@@ -469,19 +469,29 @@ class SemaineWidget(QWidget):
         # Ouvrir le dialogue de comparaison et remplacement
         dialog = RemplacerRepasDialog(self, self.db_manager, repas_actuel)
         if dialog.exec():
-            recette_id, facteurs_quantite = dialog.get_data()
+            recette_id, facteurs_ou_ingredients = dialog.get_data()
 
             # Supprimer l'ancien repas
             self.db_manager.supprimer_repas(repas_id)
 
-            # Créer un nouveau repas basé sur la recette avec les quantités ajustées
-            self.db_manager.appliquer_repas_type_au_jour_avec_facteurs(
-                recette_id,
-                repas_actuel["jour"],
-                repas_actuel["ordre"],
-                self.semaine_id,
-                facteurs_quantite,
-            )
+            if recette_id == "personnalisee":
+                # Traiter le cas d'une recette personnalisée (où des ingrédients ont été ajoutés/supprimés)
+                self.db_manager.appliquer_recette_modifiee_au_jour(
+                    dialog.recette_courante_id,  # ID de la recette de base
+                    facteurs_ou_ingredients,  # Liste des ingrédients avec quantités ajustées
+                    repas_actuel["jour"],
+                    repas_actuel["ordre"],
+                    self.semaine_id,
+                )
+            else:
+                # Créer un nouveau repas basé sur la recette avec les quantités ajustées
+                self.db_manager.appliquer_repas_type_au_jour_avec_facteurs(
+                    recette_id,
+                    repas_actuel["jour"],
+                    repas_actuel["ordre"],
+                    self.semaine_id,
+                    facteurs_ou_ingredients,
+                )
 
             # Actualiser l'affichage
             self.load_data()
@@ -650,28 +660,33 @@ class AlimentRepasDialog(QDialog):
         self.load_aliments()
         layout.addRow("Aliment:", self.aliment_combo)
 
-        # Quantité en grammes avec style amélioré
+        # Quantité en grammes avec style amélioré pour une meilleure manipulation
         self.quantite_input = QDoubleSpinBox()
         self.quantite_input.setMinimum(1)
         self.quantite_input.setMaximum(5000)
         self.quantite_input.setValue(100)
         self.quantite_input.setSuffix(" g")
-        self.quantite_input.setFixedHeight(30)  # Augmenter la hauteur
+        # Configuration pour une meilleure utilisation des flèches
+        self.quantite_input.setStepType(QDoubleSpinBox.AdaptiveDecimalStepType)
+        self.quantite_input.setSingleStep(10)  # Incrément de 10g par défaut
+        self.quantite_input.setButtonSymbols(QDoubleSpinBox.UpDownArrows)
+        # Style pour les boutons verticaux
         self.quantite_input.setStyleSheet(
             """
-            QDoubleSpinBox { 
-                padding-right: 15px; /* Espace pour les flèches */
-            }
-            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
-                width: 20px; /* Augmenter la largeur des boutons */
-                height: 14px; /* Définir la hauteur des boutons */
-                padding: 0px;
+            QDoubleSpinBox {
+                padding-right: 5px;
             }
             QDoubleSpinBox::up-button {
+                subcontrol-origin: border;
                 subcontrol-position: top right;
+                width: 20px;
+                height: 15px;
             }
             QDoubleSpinBox::down-button {
+                subcontrol-origin: border;
                 subcontrol-position: bottom right;
+                width: 20px;
+                height: 15px;
             }
         """
         )

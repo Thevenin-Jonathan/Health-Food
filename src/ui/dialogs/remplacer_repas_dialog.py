@@ -18,8 +18,118 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QWidget,
     QTabWidget,
+    QMessageBox,
 )
 from PySide6.QtCore import Qt, Signal, Slot
+
+
+class AjouterIngredientDialog(QDialog):
+    """Dialogue pour ajouter un ingrédient à la recette en prévisualisation"""
+
+    def __init__(self, parent=None, db_manager=None):
+        super().__init__(parent)
+        self.db_manager = db_manager
+        self.setup_ui()
+
+    def setup_ui(self):
+        self.setWindowTitle("Ajouter un ingrédient")
+        self.setMinimumWidth(400)
+
+        layout = QFormLayout()
+
+        # Sélection de l'aliment
+        self.aliment_combo = QComboBox()
+        self.load_aliments()
+        layout.addRow("Aliment:", self.aliment_combo)
+
+        # Quantité en grammes - amélioration du contrôle avec orientation verticale
+        self.quantite_input = QDoubleSpinBox()
+        self.quantite_input.setMinimum(1)
+        self.quantite_input.setMaximum(5000)
+        self.quantite_input.setValue(100)
+        self.quantite_input.setSuffix(" g")
+        # Configuration pour une meilleure utilisation des flèches
+        self.quantite_input.setStepType(QDoubleSpinBox.AdaptiveDecimalStepType)
+        self.quantite_input.setSingleStep(10)  # Incrément de 10g par défaut
+        self.quantite_input.setButtonSymbols(QDoubleSpinBox.UpDownArrows)
+        # Style pour améliorer les boutons up/down
+        self.quantite_input.setStyleSheet(
+            """
+            QDoubleSpinBox {
+                padding-right: 5px;
+            }
+            QDoubleSpinBox::up-button {
+                subcontrol-origin: border;
+                subcontrol-position: top right;
+                width: 20px;
+                height: 15px;
+            }
+            QDoubleSpinBox::down-button {
+                subcontrol-origin: border;
+                subcontrol-position: bottom right;
+                width: 20px;
+                height: 15px;
+            }
+        """
+        )
+        self.quantite_input.valueChanged.connect(self.update_info)
+        layout.addRow("Quantité:", self.quantite_input)
+
+        # Label pour afficher les macros proportionnellement au poids
+        self.macros_label = QLabel("")
+        self.macros_label.setWordWrap(True)
+        layout.addRow("", self.macros_label)
+
+        # Mettre à jour les informations quand on change d'aliment
+        self.aliment_combo.currentIndexChanged.connect(self.update_info)
+
+        # Boutons
+        buttons_layout = QHBoxLayout()
+        self.btn_cancel = QPushButton("Annuler")
+        self.btn_cancel.clicked.connect(self.reject)
+
+        self.btn_save = QPushButton("Ajouter")
+        self.btn_save.clicked.connect(self.accept)
+
+        buttons_layout.addWidget(self.btn_cancel)
+        buttons_layout.addWidget(self.btn_save)
+
+        layout.addRow(buttons_layout)
+        self.setLayout(layout)
+
+        # Appeler update_info pour afficher les informations de l'aliment par défaut
+        if self.aliment_combo.count() > 0:
+            self.update_info()
+
+    def load_aliments(self):
+        aliments = self.db_manager.get_aliments(sort_column="nom", sort_order=True)
+        self.aliment_ids = [aliment["id"] for aliment in aliments]
+
+        for aliment in aliments:
+            self.aliment_combo.addItem(
+                f"{aliment['nom']} ({aliment['marque'] or 'Sans marque'})"
+            )
+
+    def update_info(self):
+        if self.aliment_combo.currentIndex() >= 0:
+            aliment_id = self.aliment_ids[self.aliment_combo.currentIndex()]
+            aliment = self.db_manager.get_aliment(aliment_id)
+            quantite = self.quantite_input.value()
+
+            # Information proportionnelle au poids
+            ratio = quantite / 100.0
+            macro_text = f"<b>Calories:</b> {aliment['calories'] * ratio:.0f} kcal<br>"
+            macro_text += f"<b>Protéines:</b> {aliment['proteines'] * ratio:.1f}g<br>"
+            macro_text += f"<b>Glucides:</b> {aliment['glucides'] * ratio:.1f}g<br>"
+            macro_text += f"<b>Lipides:</b> {aliment['lipides'] * ratio:.1f}g"
+            self.macros_label.setText(macro_text)
+
+    def get_data(self):
+        if self.aliment_combo.currentIndex() < 0:
+            return None, 0
+
+        aliment_id = self.aliment_ids[self.aliment_combo.currentIndex()]
+        return aliment_id, self.quantite_input.value()
 
 
 class RemplacerRepasDialog(QDialog):
@@ -136,11 +246,19 @@ class RemplacerRepasDialog(QDialog):
         self.recette_nom = QLabel()
         self.recette_layout.addWidget(self.recette_nom)
 
+        # Bouton pour ajouter un ingrédient
+        self.btn_add_ingredient = QPushButton("Ajouter un aliment")
+        self.btn_add_ingredient.setEnabled(False)  # Désactivé par défaut
+        self.btn_add_ingredient.clicked.connect(self.ajouter_ingredient)
+        self.recette_layout.addWidget(self.btn_add_ingredient)
+
         # Zone défilante pour les ajustements d'ingrédients
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         self.ingredients_widget = QWidget()
         self.ingredients_layout = QVBoxLayout(self.ingredients_widget)
+        self.ingredients_layout.setSpacing(0)  # Réduire l'espacement entre les widgets
+        self.ingredients_layout.setContentsMargins(0, 0, 0, 0)  # Réduire les marges
         scroll_area.setWidget(self.ingredients_widget)
         self.recette_layout.addWidget(scroll_area)
 
@@ -341,6 +459,7 @@ class RemplacerRepasDialog(QDialog):
         if index <= 0:
             # Réinitialiser les affichages
             self.recette_nom.setText("")
+            self.btn_add_ingredient.setEnabled(False)
 
             # Vider le layout des ingrédients
             while self.ingredients_layout.count():
@@ -361,11 +480,18 @@ class RemplacerRepasDialog(QDialog):
             recette_id
         )  # Récupérer la recette complète
 
+        # Activer le bouton d'ajout d'ingrédient
+        self.btn_add_ingredient.setEnabled(True)
+
         # Mettre à jour le nom de la recette
         self.recette_nom.setText(f"<b>{recette['nom']}</b>")
 
         # Réinitialiser les facteurs de quantité
         self.facteurs_quantite = {aliment["id"]: 1.0 for aliment in recette["aliments"]}
+
+        # Garder une référence à la recette courante
+        self.recette_courante = recette
+        self.recette_courante_id = recette_id
 
         # Vider le layout des ingrédients
         while self.ingredients_layout.count():
@@ -376,86 +502,29 @@ class RemplacerRepasDialog(QDialog):
 
         # Ajouter les ingrédients avec ajustement de quantité
         for aliment in recette["aliments"]:
-            # Créer un groupe pour chaque aliment
-            alim_group = QGroupBox(aliment["nom"])
-            alim_layout = QFormLayout(alim_group)
-
-            # Informations de base
-            quantite_actuelle = aliment["quantite"]
-            calories_base = aliment["calories"] * quantite_actuelle / 100
-
-            # Slider pour ajuster la quantité (50% à 200%)
-            slider_layout = QHBoxLayout()
-
-            # Label pour la quantité (50%)
-            slider_layout.addWidget(QLabel("50%"))
-
-            # Slider
-            slider = QSlider(Qt.Horizontal)
-            slider.setMinimum(50)
-            slider.setMaximum(200)
-            slider.setValue(100)
-            slider.setTickInterval(25)
-            slider.setTickPosition(QSlider.TicksBelow)
-            slider.valueChanged.connect(
-                lambda v, aid=aliment["id"]: self.ajuster_quantite(aid, v / 100)
-            )
-            slider_layout.addWidget(slider)
-
-            # Label pour la quantité (200%)
-            slider_layout.addWidget(QLabel("200%"))
-
-            alim_layout.addRow("Ajuster:", slider_layout)
-
-            # SpinBox pour la quantité exacte
-            spin = QDoubleSpinBox()
-            spin.setMinimum(quantite_actuelle * 0.5)
-            spin.setMaximum(quantite_actuelle * 2.0)
-            spin.setValue(quantite_actuelle)
-            spin.setSuffix("g")
-            spin.valueChanged.connect(
-                lambda v, aid=aliment[
-                    "id"
-                ], base=quantite_actuelle: self.ajuster_quantite_absolue(aid, v, base)
-            )
-            alim_layout.addRow("Quantité:", spin)
-
-            # Informations nutritionnelles de l'aliment
-            info = (
-                f"<b>Calories:</b> {calories_base:.0f} kcal | "
-                f"<b>P:</b> {aliment['proteines'] * quantite_actuelle / 100:.1f}g | "
-                f"<b>G:</b> {aliment['glucides'] * quantite_actuelle / 100:.1f}g | "
-                f"<b>L:</b> {aliment['lipides'] * quantite_actuelle / 100:.1f}g"
-            )
-            info_label = QLabel(info)
-            info_label.setObjectName(f"info_{aliment['id']}")
-            alim_layout.addRow("Info:", info_label)
-
-            self.ingredients_layout.addWidget(alim_group)
+            self.ajouter_element_visuel_ingredient(aliment)
 
         # Calcul des valeurs nutritionnelles ajustées
         self.mettre_a_jour_valeurs_recette(recette)
 
     def ajuster_quantite(self, aliment_id, facteur):
         """Ajuste la quantité d'un ingrédient par un facteur"""
+        # Stockage du facteur
         self.facteurs_quantite[aliment_id] = facteur
 
-        # Récupérer la recette pour mettre à jour les valeurs
-        if self.recette_combo.currentIndex() >= 0:
-            recette_id = self.recette_ids[self.recette_combo.currentIndex()]
-            recette = self.db_manager.get_repas_type(recette_id)
-            self.mettre_a_jour_valeurs_recette(recette)
+        # Mettre à jour directement les valeurs nutritionnelles de la recette courante
+        if hasattr(self, "recette_courante"):
+            self.mettre_a_jour_valeurs_recette(self.recette_courante)
 
     def ajuster_quantite_absolue(self, aliment_id, nouvelle_valeur, base_valeur):
         """Ajuste la quantité d'un ingrédient à une valeur absolue"""
+        # Calculer le facteur et le stocker
         facteur = nouvelle_valeur / base_valeur
         self.facteurs_quantite[aliment_id] = facteur
 
-        # Récupérer la recette pour mettre à jour les valeurs
-        if self.recette_combo.currentIndex() >= 0:
-            recette_id = self.recette_ids[self.recette_combo.currentIndex()]
-            recette = self.db_manager.get_repas_type(recette_id)
-            self.mettre_a_jour_valeurs_recette(recette)
+        # Mettre à jour directement les valeurs nutritionnelles de la recette courante
+        if hasattr(self, "recette_courante"):
+            self.mettre_a_jour_valeurs_recette(self.recette_courante)
 
     def mettre_a_jour_valeurs_recette(self, recette):
         """Met à jour les valeurs nutritionnelles de la recette avec les facteurs d'ajustement"""
@@ -732,10 +801,258 @@ class RemplacerRepasDialog(QDialog):
                 else:  # Colonnes "Après" et "Différence"
                     self.jour_diff_table.setItem(row, col, QTableWidgetItem("--"))
 
+    def ajouter_ingredient(self):
+        """Ajoute un ingrédient à la recette actuellement sélectionnée"""
+        if not hasattr(self, "recette_courante"):
+            return
+
+        dialog = AjouterIngredientDialog(self, self.db_manager)
+        if dialog.exec():
+            aliment_id, quantite = dialog.get_data()
+            if aliment_id is None:
+                return
+
+            # Vérifier si l'ingrédient existe déjà dans la recette
+            aliment_existe = False
+            for aliment in self.recette_courante["aliments"]:
+                if aliment["id"] == aliment_id:
+                    QMessageBox.warning(
+                        self,
+                        "Ingrédient existant",
+                        "Cet ingrédient existe déjà dans la recette. Ajustez sa quantité plutôt que de l'ajouter à nouveau.",
+                    )
+                    aliment_existe = True
+                    break
+
+            if not aliment_existe:
+                # Récupérer les informations de l'aliment
+                aliment = self.db_manager.get_aliment(aliment_id)
+
+                # Créer un nouvel objet aliment avec toutes les propriétés requises
+                nouvel_aliment = {
+                    "id": aliment_id,
+                    "nom": aliment["nom"],
+                    "quantite": quantite,
+                    "calories": aliment["calories"],
+                    "proteines": aliment["proteines"],
+                    "glucides": aliment["glucides"],
+                    "lipides": aliment["lipides"],
+                }
+
+                # Ajouter l'aliment à la recette courante
+                self.recette_courante["aliments"].append(nouvel_aliment)
+
+                # Ajouter ce nouvel aliment aux facteurs de quantité avec un facteur de 1.0
+                self.facteurs_quantite[aliment_id] = 1.0
+
+                # Mettre à jour les valeurs nutritionnelles
+                self.mettre_a_jour_valeurs_recette(self.recette_courante)
+
+                # Créer et ajouter un élément visuel pour le nouvel ingrédient
+                self.ajouter_element_visuel_ingredient(nouvel_aliment)
+
+    def ajouter_element_visuel_ingredient(self, aliment):
+        """Ajoute un groupe visuel pour un ingrédient dans l'interface"""
+        # Créer un groupe pour l'aliment
+        alim_group = QGroupBox(aliment["nom"])
+        alim_layout = QFormLayout(alim_group)
+
+        # Informations de base
+        quantite_actuelle = aliment["quantite"]
+        calories_base = aliment["calories"] * quantite_actuelle / 100
+
+        # Layout pour les contrôles d'ajustement et le bouton de suppression
+        header_layout = QHBoxLayout()
+
+        # Titre (nom de l'aliment)
+        header_label = QLabel(f"<b>{aliment['nom']}</b>")
+        header_layout.addWidget(
+            header_label, 1
+        )  # 1 = stretch pour prendre l'espace disponible
+
+        # Pour éviter les problèmes de connectivité du signal, nous devons créer une fonction
+        # qui capture correctement l'ID de l'aliment pour le bouton de suppression
+        def create_delete_handler(alim_id):
+            return lambda checked=False: self.supprimer_ingredient(alim_id)
+
+        # Bouton de suppression avec handler correctement connecté
+        btn_delete = QPushButton("×")
+        btn_delete.setFixedSize(20, 20)
+        btn_delete.setStyleSheet(
+            """
+            QPushButton { 
+                color: white; 
+                background-color: #e74c3c; 
+                font-weight: bold; 
+                font-size: 12px;
+                padding: 0px;
+                margin: 0px;
+            }
+            QPushButton:hover { 
+                background-color: #c0392b; 
+            }
+            """
+        )
+        btn_delete.setToolTip("Supprimer cet aliment")
+        btn_delete.clicked.connect(create_delete_handler(aliment["id"]))
+        header_layout.addWidget(btn_delete)
+
+        alim_layout.addRow(header_layout)
+
+        # Slider pour ajuster la quantité (50% à 200%)
+        slider_layout = QHBoxLayout()
+
+        # Label pour la quantité (50%)
+        slider_layout.addWidget(QLabel("50%"))
+
+        # Utiliser des fonctions de fermeture (closure) pour capturer correctement l'ID
+        def create_slider_handler(alim_id):
+            return lambda v: self.ajuster_quantite(alim_id, v / 100)
+
+        # Slider
+        slider = QSlider(Qt.Horizontal)
+        slider.setMinimum(50)
+        slider.setMaximum(200)
+        slider.setValue(100)
+        slider.setTickInterval(25)
+        slider.setTickPosition(QSlider.TicksBelow)
+        slider.valueChanged.connect(create_slider_handler(aliment["id"]))
+        slider_layout.addWidget(slider)
+
+        # Label pour la quantité (200%)
+        slider_layout.addWidget(QLabel("200%"))
+
+        alim_layout.addRow("Ajuster:", slider_layout)
+
+        # SpinBox pour la quantité exacte
+        spin = QDoubleSpinBox()
+        spin.setMinimum(quantite_actuelle * 0.5)
+        spin.setMaximum(quantite_actuelle * 2.0)
+        spin.setValue(quantite_actuelle)
+        spin.setSuffix("g")
+        # Configuration pour une meilleure utilisation des flèches
+        spin.setStepType(QDoubleSpinBox.AdaptiveDecimalStepType)
+        spin.setSingleStep(10)  # Incrément de 10g par défaut
+        spin.setButtonSymbols(QDoubleSpinBox.UpDownArrows)
+        # Style pour améliorer les boutons up/down
+        spin.setStyleSheet(
+            """
+            QDoubleSpinBox {
+                padding-right: 5px;
+            }
+            QDoubleSpinBox::up-button {
+                subcontrol-origin: border;
+                subcontrol-position: top right;
+                width: 20px;
+                height: 15px;
+            }
+            QDoubleSpinBox::down-button {
+                subcontrol-origin: border;
+                subcontrol-position: bottom right;
+                width: 20px;
+                height: 15px;
+            }
+            """
+        )
+
+        # Créer une fonction de fermeture pour le spinbox
+        def create_spinbox_handler(alim_id, base_val):
+            return lambda v: self.ajuster_quantite_absolue(alim_id, v, base_val)
+
+        spin.valueChanged.connect(
+            create_spinbox_handler(aliment["id"], quantite_actuelle)
+        )
+        alim_layout.addRow("Quantité:", spin)
+
+        # Informations nutritionnelles de l'aliment
+        info = (
+            f"<b>Calories:</b> {calories_base:.0f} kcal | "
+            f"<b>P:</b> {aliment['proteines'] * quantite_actuelle / 100:.1f}g | "
+            f"<b>G:</b> {aliment['glucides'] * quantite_actuelle / 100:.1f}g | "
+            f"<b>L:</b> {aliment['lipides'] * quantite_actuelle / 100:.1f}g"
+        )
+        info_label = QLabel(info)
+        info_label.setObjectName(f"info_{aliment['id']}")
+        alim_layout.addRow("Info:", info_label)
+
+        # Ajouter le groupe au layout des ingrédients
+        self.ingredients_layout.addWidget(alim_group)
+
+    def supprimer_ingredient(self, aliment_id):
+        """Supprime un ingrédient de la recette en cours de prévisualisation"""
+        if not hasattr(self, "recette_courante"):
+            return
+
+        # Demander confirmation
+        reply = QMessageBox.question(
+            self,
+            "Confirmer la suppression",
+            "Êtes-vous sûr de vouloir supprimer cet aliment de la recette ?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+
+        if reply == QMessageBox.Yes:
+            # Supprimer l'aliment de la liste des aliments de la recette
+            for i, aliment in enumerate(self.recette_courante["aliments"]):
+                if aliment["id"] == aliment_id:
+                    del self.recette_courante["aliments"][i]
+                    break
+
+            # Supprimer le facteur de quantité associé
+            if aliment_id in self.facteurs_quantite:
+                del self.facteurs_quantite[aliment_id]
+
+            # Reconstruction complète des widgets d'ingrédients
+            # C'est plus fiable que de tenter de supprimer un widget spécifique
+            self.reconstruire_widgets_ingredients()
+
+            # Mettre à jour les valeurs nutritionnelles
+            self.mettre_a_jour_valeurs_recette(self.recette_courante)
+
+    def reconstruire_widgets_ingredients(self):
+        """Reconstruit tous les widgets d'ingrédients à partir de la recette courante"""
+        # Vider le layout des ingrédients
+        while self.ingredients_layout.count():
+            item = self.ingredients_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        # Ajouter à nouveau tous les ingrédients
+        for aliment in self.recette_courante["aliments"]:
+            self.ajouter_element_visuel_ingredient(aliment)
+
     def get_data(self):
         """Retourne l'ID de la recette sélectionnée et les facteurs d'ajustement"""
         index = self.recette_combo.currentIndex()
         if index > 0:  # Si une recette est sélectionnée (pas l'élément vide)
+            # Si nous avons modifié la recette (ajout ou suppression d'ingrédients),
+            # nous devons renvoyer la liste complète des ingrédients au lieu d'utiliser
+            # la recette d'origine avec des facteurs d'ajustement
+            if hasattr(self, "recette_courante_id") and hasattr(
+                self, "recette_courante"
+            ):
+                recette_id = self.recette_courante_id
+                ingredients_modifies = []
+
+                for aliment in self.recette_courante["aliments"]:
+                    facteur = self.facteurs_quantite.get(aliment["id"], 1.0)
+                    quantite_ajustee = aliment["quantite"] * facteur
+                    ingredients_modifies.append(
+                        {"id": aliment["id"], "quantite": quantite_ajustee}
+                    )
+
+                # Si nous avons vraiment modifié la composition (pas seulement les quantités)
+                if len(self.recette_courante["aliments"]) != len(
+                    self.facteurs_quantite
+                ):
+                    # Signaler qu'il s'agit d'une recette personnalisée
+                    return "personnalisee", ingredients_modifies
+
+                return recette_id, self.facteurs_quantite
+
+            # Comportement par défaut
             recette_id = self.recette_ids[index - 1]  # Ajustement pour l'élément vide
             return recette_id, self.facteurs_quantite
+
         return None, {}
