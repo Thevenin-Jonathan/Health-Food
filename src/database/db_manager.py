@@ -13,6 +13,8 @@ class DatabaseManager:
     def connect(self):
         self.conn = sqlite3.connect(self.db_file)
         self.conn.row_factory = sqlite3.Row
+        # Activer les contraintes de clés étrangères à chaque connexion
+        self.conn.execute("PRAGMA foreign_keys = ON")
         self.cursor = self.conn.cursor()
 
     def disconnect(self):
@@ -22,6 +24,9 @@ class DatabaseManager:
     def init_db(self):
         """Initialise la base de données avec les tables nécessaires"""
         self.connect()
+
+        # Activer les contraintes de clés étrangères (important pour les suppressions en cascade)
+        self.cursor.execute("PRAGMA foreign_keys = ON")
 
         # Table des aliments
         self.cursor.execute(
@@ -153,9 +158,48 @@ class DatabaseManager:
         self.disconnect()
 
     def supprimer_aliment(self, id):
-        """Supprime un aliment"""
+        """Supprime un aliment et toutes ses références dans les repas"""
         self.connect()
+
+        # Vérifier si l'aliment est utilisé dans des repas
+        self.cursor.execute(
+            """
+            SELECT COUNT(*) FROM repas_aliments
+            WHERE aliment_id = ?
+            """,
+            (id,),
+        )
+        count_repas = self.cursor.fetchone()[0]
+
+        self.cursor.execute(
+            """
+            SELECT COUNT(*) FROM repas_types_aliments
+            WHERE aliment_id = ?
+            """,
+            (id,),
+        )
+        count_repas_types = self.cursor.fetchone()[0]
+
+        # Supprimer d'abord les références dans les repas_aliments
+        if count_repas > 0:
+            self.cursor.execute(
+                "DELETE FROM repas_aliments WHERE aliment_id = ?", (id,)
+            )
+
+        # Supprimer les références dans les repas_types_aliments
+        if count_repas_types > 0:
+            self.cursor.execute(
+                "DELETE FROM repas_types_aliments WHERE aliment_id = ?", (id,)
+            )
+
+        # Enfin, supprimer l'aliment lui-même
         self.cursor.execute("DELETE FROM aliments WHERE id = ?", (id,))
+
+        # Afficher des informations de débogage
+        print(
+            f"Suppression de l'aliment {id}. Références supprimées: {count_repas} dans repas, {count_repas_types} dans recettes."
+        )
+
         self.conn.commit()
         self.disconnect()
 
