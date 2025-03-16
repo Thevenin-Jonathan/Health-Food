@@ -76,6 +76,13 @@ class PlanningTab(QWidget):
         self.tabs_semaines.setTabsClosable(True)
         self.tabs_semaines.tabCloseRequested.connect(self.fermer_semaine)
         self.tabs_semaines.currentChanged.connect(self.on_tab_changed)
+
+        # Permettre le glisser-déposer des onglets
+        self.tabs_semaines.setMovable(True)
+
+        # Connecter le signal de déplacement d'onglet
+        self.tabs_semaines.tabBar().tabMoved.connect(self.on_tab_moved)
+
         main_layout.addWidget(self.tabs_semaines, 1)
 
         # Bouton pour ajouter un repas
@@ -92,6 +99,11 @@ class PlanningTab(QWidget):
         self.btn_remove_week.setEnabled(has_tab)
         self.btn_rename_week.setEnabled(has_tab)
         self.btn_add_meal.setEnabled(has_tab)
+
+    def on_tab_moved(self, from_index, to_index):
+        """Méthode appelée lorsqu'un onglet est déplacé"""
+        # Mettre à jour les noms d'onglets pour refléter l'ordre actuel
+        self.mettre_a_jour_noms_onglets()
 
     def ajouter_semaine(self):
         """Ajoute une nouvelle semaine numérotée"""
@@ -206,20 +218,25 @@ class PlanningTab(QWidget):
 
     def mettre_a_jour_noms_onglets(self):
         """Met à jour les noms des onglets non personnalisés en fonction de leur position réelle"""
+        position_counter = 1  # Compteur pour les onglets non personnalisés
+
+        # Créer un mapping temporaire entre l'index d'onglet et l'ID de semaine
+        index_to_id = {}
         for index in range(self.tabs_semaines.count()):
-            # Trouver l'ID de semaine correspondant à cet onglet
             semaine_widget = self.tabs_semaines.widget(index)
-            semaine_id = None
             for id, widget in self.semaines.items():
                 if widget == semaine_widget:
-                    semaine_id = id
+                    index_to_id[index] = id
                     break
 
-            # Si l'onglet n'a pas de nom personnalisé, mettre à jour son nom avec sa position + 1
-            # Les positions commencent à 0, donc on ajoute 1 pour avoir des semaines numérotées de 1 à N
-            if semaine_id is not None and semaine_id not in self.onglets_personnalises:
-                position = index + 1  # Position 1-based au lieu de 0-based
-                self.tabs_semaines.setTabText(index, f"Semaine {position}")
+        # Mettre à jour les noms des onglets non personnalisés
+        for index in range(self.tabs_semaines.count()):
+            if index in index_to_id:
+                semaine_id = index_to_id[index]
+                if semaine_id not in self.onglets_personnalises:
+                    # Onglet non personnalisé, utiliser la numérotation séquentielle
+                    self.tabs_semaines.setTabText(index, f"Semaine {position_counter}")
+                    position_counter += 1
 
     def add_meal(self):
         """Ajoute un repas à la semaine courante"""
@@ -248,6 +265,11 @@ class SemaineWidget(QWidget):
         # Widget contenant les jours
         self.days_container = QWidget()
         self.days_layout = QGridLayout()
+
+        # Définir une largeur maximum pour les colonnes des jours
+        self.days_layout.setColumnMinimumWidth(0, 300)  # Largeur minimum
+        self.days_layout.setColumnStretch(0, 1)  # Facteur d'étirement
+
         self.days_container.setLayout(self.days_layout)
 
         self.scroll_area.setWidget(self.days_container)
@@ -279,6 +301,9 @@ class SemaineWidget(QWidget):
         for col, jour in enumerate(jours):
             # Créer un widget pour le jour
             day_widget = QWidget()
+            day_widget.setMaximumWidth(
+                350
+            )  # Ajouter cette ligne pour limiter la largeur
             day_layout = QVBoxLayout()
             day_widget.setLayout(day_layout)
 
@@ -404,10 +429,10 @@ class SemaineWidget(QWidget):
 
                         # Créer un tooltip riche avec les informations détaillées
                         tooltip_text = f"""<b>{aliment['nom']}</b> ({aliment['quantite']}g)<br>
-<b>Calories:</b> {calories:.0f} kcal<br>
-<b>Protéines:</b> {proteines:.1f}g<br>
-<b>Glucides:</b> {glucides:.1f}g<br>
-<b>Lipides:</b> {lipides:.1f}g"""
+                                        <b>Calories:</b> {calories:.0f} kcal<br>
+                                        <b>Protéines:</b> {proteines:.1f}g<br>
+                                        <b>Glucides:</b> {glucides:.1f}g<br>
+                                        <b>Lipides:</b> {lipides:.1f}g"""
 
                         if "fibres" in aliment and aliment["fibres"]:
                             fibres = aliment["fibres"] * aliment["quantite"] / 100
@@ -481,6 +506,10 @@ class SemaineWidget(QWidget):
             day_layout.addStretch()
 
             self.days_layout.addWidget(day_widget, 0, col)
+
+        # Ajouter ce code ici, après la boucle qui crée les colonnes
+        for col in range(7):  # Pour chaque jour
+            self.days_layout.setColumnStretch(col, 1)  # Répartition égale
 
     def add_meal(self):
         """Ajoute un repas à cette semaine"""
