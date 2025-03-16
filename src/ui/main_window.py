@@ -4,6 +4,7 @@ from .tabs.aliments_tab import AlimentsTab
 from .tabs.planning_tab import PlanningTab
 from .tabs.courses_tab import CoursesTab
 from .tabs.recettes_tab import RecettesTab
+from .tabs.utilisateur_tab import UtilisateurTab
 from ..utils.events import event_bus
 
 
@@ -38,6 +39,10 @@ class MainWindow(QMainWindow):
         # Onglet de liste de courses
         self.courses_tab = CoursesTab(self.db_manager)
         self.tabs.addTab(self.courses_tab, "Liste de courses")
+
+        # Onglet utilisateur avec calculs de calories
+        self.utilisateur_tab = UtilisateurTab(self.db_manager)
+        self.tabs.addTab(self.utilisateur_tab, "Utilisateur")
 
         # Définir comme widget central
         self.setCentralWidget(self.tabs)

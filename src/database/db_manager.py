@@ -28,6 +28,25 @@ class DatabaseManager:
         # Activer les contraintes de clés étrangères (important pour les suppressions en cascade)
         self.cursor.execute("PRAGMA foreign_keys = ON")
 
+        # Table des utilisateurs
+        self.cursor.execute(
+            """
+        CREATE TABLE IF NOT EXISTS utilisateur (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nom TEXT,
+            sexe TEXT,
+            age INTEGER,
+            taille REAL,
+            poids REAL,
+            niveau_activite TEXT,
+            objectif TEXT,
+            taux_variation REAL,
+            calories_personnalisees INTEGER,
+            repartition_macros TEXT
+        )
+        """
+        )
+
         # Table des aliments
         self.cursor.execute(
             """
@@ -735,3 +754,200 @@ class DatabaseManager:
             results = self.cursor.fetchall()
             self.disconnect()
             return [result[0] for result in results if result[0]]
+
+    # Méthodes pour gérer les données utilisateur
+    def sauvegarder_utilisateur(self, data):
+        """Sauvegarde ou met à jour les informations utilisateur"""
+        self.connect()
+
+        # Vérifier si un utilisateur existe déjà (on ne garde qu'un seul profil)
+        self.cursor.execute("SELECT COUNT(*) FROM utilisateur")
+        count = self.cursor.fetchone()[0]
+
+        if count == 0:
+            # Insertion d'un nouvel utilisateur
+            self.cursor.execute(
+                """
+                INSERT INTO utilisateur (
+                    nom, sexe, age, taille, poids, niveau_activite, 
+                    objectif, taux_variation, calories_personnalisees, repartition_macros
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data.get("nom", ""),
+                    data.get("sexe", ""),
+                    data.get("age", 0),
+                    data.get("taille", 0),
+                    data.get("poids", 0),
+                    data.get("niveau_activite", "Sédentaire"),
+                    data.get("objectif", "Maintien"),
+                    data.get("taux_variation", 0),
+                    data.get("calories_personnalisees", 0),
+                    data.get("repartition_macros", "Standard"),
+                ),
+            )
+        else:
+            # Mise à jour de l'utilisateur existant (on prend le premier)
+            self.cursor.execute("SELECT id FROM utilisateur LIMIT 1")
+            user_id = self.cursor.fetchone()[0]
+
+            self.cursor.execute(
+                """
+                UPDATE utilisateur SET
+                    nom = ?, sexe = ?, age = ?, taille = ?, poids = ?,
+                    niveau_activite = ?, objectif = ?, taux_variation = ?,
+                    calories_personnalisees = ?, repartition_macros = ?
+                WHERE id = ?
+                """,
+                (
+                    data.get("nom", ""),
+                    data.get("sexe", ""),
+                    data.get("age", 0),
+                    data.get("taille", 0),
+                    data.get("poids", 0),
+                    data.get("niveau_activite", "Sédentaire"),
+                    data.get("objectif", "Maintien"),
+                    data.get("taux_variation", 0),
+                    data.get("calories_personnalisees", 0),
+                    data.get("repartition_macros", "Standard"),
+                    user_id,
+                ),
+            )
+
+        self.conn.commit()
+        self.disconnect()
+
+    def get_utilisateur(self):
+        """Récupère les informations de l'utilisateur"""
+        self.connect()
+        self.cursor.execute("SELECT COUNT(*) FROM utilisateur")
+        count = self.cursor.fetchone()[0]
+
+        if count == 0:
+            # Retourner des valeurs par défaut si aucun utilisateur n'est trouvé
+            self.disconnect()
+            return {
+                "nom": "",
+                "sexe": "Homme",
+                "age": 30,
+                "taille": 175,
+                "poids": 70,
+                "niveau_activite": "Modéré",
+                "objectif": "Maintien",
+                "taux_variation": 0,
+                "calories_personnalisees": 0,
+                "repartition_macros": "Standard",
+            }
+
+        self.cursor.execute("SELECT * FROM utilisateur LIMIT 1")
+        user = dict(self.cursor.fetchone())
+        self.disconnect()
+        return user
+
+    def calculer_calories_journalieres(self, user_data=None):
+        """Calcule les besoins caloriques journaliers basés sur les données utilisateur"""
+        if user_data is None:
+            user_data = self.get_utilisateur()
+
+        # Facteurs d'activité
+        facteurs_activite = {
+            "Très sédentaire": 1.2,
+            "Sédentaire": 1.3,
+            "Légèrement actif": 1.375,
+            "Peu actif": 1.425,
+            "Modéré": 1.55,
+            "Actif": 1.65,
+            "Très actif": 1.725,
+            "Extrêmement actif": 1.9,
+        }
+
+        # Calcul du métabolisme de base (MB) selon Harris-Benedict
+        poids = user_data.get("poids", 70)
+        taille = user_data.get("taille", 175)
+        age = user_data.get("age", 30)
+        sexe = user_data.get("sexe", "Homme")
+
+        if sexe == "Homme":
+            mb = 10 * poids + 6.25 * taille - 5 * age + 5
+        else:
+            mb = 10 * poids + 6.25 * taille - 5 * age - 161
+
+        # Appliquer le facteur d'activité
+        niveau_activite = user_data.get("niveau_activite", "Modéré")
+        facteur = facteurs_activite.get(niveau_activite, 1.55)
+        calories_maintien = mb * facteur
+
+        # Ajuster selon l'objectif
+        objectif = user_data.get("objectif", "Maintien")
+        taux_variation = user_data.get("taux_variation", 0)  # en g/semaine
+
+        ajustement_calories = 0
+        if objectif == "Perte de poids":
+            # Convertir g/semaine en déficit calorique journalier
+            # 1 kg de graisse = environ 7700 kcal
+            ajustement_calories = -(taux_variation * 7700) / (
+                7 * 100
+            )  # divisé par 100 car taux en g/100g/semaine
+        elif objectif == "Prise de masse":
+            ajustement_calories = (taux_variation * 7700) / (7 * 100)
+
+        calories_objectif = calories_maintien + ajustement_calories
+
+        # Si des calories personnalisées sont définies, les utiliser
+        calories_perso = user_data.get("calories_personnalisees", 0)
+        if calories_perso > 0:
+            calories_finales = calories_perso
+        else:
+            calories_finales = calories_objectif
+
+        # Calculer la répartition des macros
+        repartition = user_data.get("repartition_macros", "Standard")
+        if repartition == "Standard":
+            proteines_pct = 0.3
+            glucides_pct = 0.4
+            lipides_pct = 0.3
+        elif repartition == "Low-carb":
+            proteines_pct = 0.35
+            glucides_pct = 0.25
+            lipides_pct = 0.4
+        elif repartition == "Hyperprotéiné":
+            proteines_pct = 0.45
+            glucides_pct = 0.35
+            lipides_pct = 0.2
+        elif repartition == "Faible en gras":
+            proteines_pct = 0.35
+            glucides_pct = 0.5
+            lipides_pct = 0.15
+        elif repartition == "Cétogène":
+            proteines_pct = 0.30
+            glucides_pct = 0.05
+            lipides_pct = 0.65
+        elif repartition == "Personnalisé":
+            # Ces valeurs seraient stockées ailleurs dans un cas réel
+            proteines_pct = user_data.get("proteines_pct", 0.3)
+            glucides_pct = user_data.get("glucides_pct", 0.4)
+            lipides_pct = user_data.get("lipides_pct", 0.3)
+        else:
+            # Valeurs par défaut
+            proteines_pct = 0.3
+            glucides_pct = 0.4
+            lipides_pct = 0.3
+
+        # Calcul des macros en grammes
+        # 1g de protéines = 4 kcal, 1g de glucides = 4 kcal, 1g de lipides = 9 kcal
+        proteines_g = (calories_finales * proteines_pct) / 4
+        glucides_g = (calories_finales * glucides_pct) / 4
+        lipides_g = (calories_finales * lipides_pct) / 9
+
+        return {
+            "metabolisme_base": round(mb),
+            "calories_maintien": round(calories_maintien),
+            "calories_objectif": round(calories_objectif),
+            "calories_finales": round(calories_finales),
+            "proteines_g": round(proteines_g),
+            "glucides_g": round(glucides_g),
+            "lipides_g": round(lipides_g),
+            "proteines_pct": proteines_pct,
+            "glucides_pct": glucides_pct,
+            "lipides_pct": lipides_pct,
+        }
