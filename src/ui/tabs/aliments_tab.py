@@ -17,6 +17,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QColor
 
+from ..dialogs.ajouter_aliment_dialog import AjouterAlimentDialog
+
 
 class AlimentsTab(QWidget):
     def __init__(self, db_manager):
@@ -165,11 +167,24 @@ class AlimentsTab(QWidget):
         self.load_data()
 
     def add_aliment(self):
-        dialog = AlimentDialog(self)
+        dialog = AjouterAlimentDialog(self, self.db_manager)
         if dialog.exec():
             data = dialog.get_data()
-            self.db_manager.ajouter_aliment(data)
-            self.load_data()
+            # Ajouter les valeurs par défaut pour les champs non requis
+            if "categorie" not in data or not data["categorie"]:
+                data["categorie"] = None
+            if "fibres" not in data:
+                data["fibres"] = None
+            if "prix_kg" not in data:
+                data["prix_kg"] = None
+
+            aliment_id = self.db_manager.ajouter_aliment(data)
+            self.charger_aliments()
+            self.select_aliment(
+                aliment_id
+            )  # Sélectionner l'aliment nouvellement ajouté
+            return True
+        return False
 
     def edit_aliment(self):
         selected_items = self.table.selectedItems()

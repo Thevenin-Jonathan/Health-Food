@@ -578,3 +578,53 @@ class DatabaseManager:
             )
 
         return repas_id
+
+    def get_marques_uniques(self):
+        """Récupère toutes les marques uniques présentes dans la base de données, triées par fréquence"""
+        try:
+            self.connect()
+            query = """
+                SELECT marque, COUNT(*) as count 
+                FROM aliments 
+                WHERE marque IS NOT NULL AND marque != '' 
+                GROUP BY marque 
+                ORDER BY count DESC
+            """
+            self.cursor.execute(query)
+            results = self.cursor.fetchall()
+            self.disconnect()
+            return [result[0] for result in results if result[0]]
+        except Exception as e:
+            print(f"Erreur lors de la récupération des marques: {e}")
+            # Version simple sans tri par fréquence
+            self.connect()
+            query = "SELECT DISTINCT marque FROM aliments WHERE marque IS NOT NULL AND marque != ''"
+            self.cursor.execute(query)
+            results = self.cursor.fetchall()
+            self.disconnect()
+            return [result[0] for result in results if result[0]]
+
+    def get_magasins_uniques(self):
+        """Récupère tous les magasins uniques présents dans la base de données, triés par fréquence"""
+        try:
+            self.connect()
+            query = """
+                SELECT magasin, COUNT(*) as count 
+                FROM aliments 
+                WHERE magasin IS NOT NULL AND magasin != '' 
+                GROUP BY magasin 
+                ORDER BY count DESC
+            """
+            self.cursor.execute(query)
+            results = self.cursor.fetchall()
+            self.disconnect()
+            return [result[0] for result in results if result[0]]
+        except Exception as e:
+            print(f"Erreur lors de la récupération des magasins: {e}")
+            # Version simple sans tri par fréquence
+            self.connect()
+            query = "SELECT DISTINCT magasin FROM aliments WHERE magasin IS NOT NULL AND magasin != ''"
+            self.cursor.execute(query)
+            results = self.cursor.fetchall()
+            self.disconnect()
+            return [result[0] for result in results if result[0]]
