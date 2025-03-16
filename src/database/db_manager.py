@@ -324,19 +324,33 @@ class DatabaseManager:
         self.disconnect()
         return result
 
-    def generer_liste_courses(self):
-        """Génère une liste de courses organisée par magasin et catégorie"""
+    def generer_liste_courses(self, semaine_id=None):
+        """Génère une liste de courses organisée par magasin et catégorie pour une semaine spécifique"""
         self.connect()
 
-        # Récupérer tous les aliments de tous les repas
-        self.cursor.execute(
+        # Requête conditionnelle selon si une semaine est spécifiée
+        if semaine_id is not None:
+            self.cursor.execute(
+                """
+            SELECT a.*, ra.quantite, a.magasin, a.categorie, a.prix_kg 
+            FROM repas_aliments ra
+            JOIN aliments a ON ra.aliment_id = a.id
+            JOIN repas r ON ra.repas_id = r.id
+            WHERE r.semaine_id = ?
+            ORDER BY a.magasin, a.categorie, a.nom
+            """,
+                (semaine_id,),
+            )
+        else:
+            # Si pas de semaine spécifiée, récupérer tous les aliments
+            self.cursor.execute(
+                """
+            SELECT a.*, ra.quantite, a.magasin, a.categorie, a.prix_kg 
+            FROM repas_aliments ra
+            JOIN aliments a ON ra.aliment_id = a.id
+            ORDER BY a.magasin, a.categorie, a.nom
             """
-        SELECT a.*, ra.quantite, a.magasin, a.categorie, a.prix_kg 
-        FROM repas_aliments ra
-        JOIN aliments a ON ra.aliment_id = a.id
-        ORDER BY a.magasin, a.categorie, a.nom
-        """
-        )
+            )
 
         aliments = [dict(row) for row in self.cursor.fetchall()]
 

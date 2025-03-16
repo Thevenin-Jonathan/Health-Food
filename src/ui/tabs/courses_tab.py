@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (
     QDialog,
     QTextEdit,
     QCheckBox,
+    QComboBox,
+    QFormLayout,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtPrintSupport import QPrinter, QPrintDialog
@@ -21,6 +23,7 @@ class CoursesTab(QWidget):
     def __init__(self, db_manager):
         super().__init__()
         self.db_manager = db_manager
+        self.current_semaine_id = None
         self.setup_ui()
 
     def setup_ui(self):
@@ -37,6 +40,18 @@ class CoursesTab(QWidget):
         )
         desc.setWordWrap(True)
         main_layout.addWidget(desc)
+
+        # Sélection de semaine
+        semaine_layout = QFormLayout()
+        self.semaine_combo = QComboBox()
+        self.semaine_combo.addItem("Toutes les semaines", None)
+
+        # Récupérer les semaines disponibles (on implémentera une méthode pour cela)
+        self.charger_semaines()
+
+        self.semaine_combo.currentIndexChanged.connect(self.on_semaine_changed)
+        semaine_layout.addRow("Semaine:", self.semaine_combo)
+        main_layout.addLayout(semaine_layout)
 
         # Arbre pour afficher la liste de courses
         self.tree = QTreeWidget()
@@ -73,11 +88,43 @@ class CoursesTab(QWidget):
         # Charger les données
         self.load_data()
 
+    def charger_semaines(self):
+        """Charge les semaines disponibles dans le sélecteur"""
+        # Ajoutez cette méthode pour récupérer les identifiants de semaine
+        # Normalement, vous devriez ajouter une méthode dans db_manager pour récupérer les semaines
+        # Pour cet exemple, nous supposons que cette méthode existe
+        self.semaine_combo.clear()
+        self.semaine_combo.addItem("Toutes les semaines", None)
+
+        # Connectez-vous à la base de données
+        self.db_manager.connect()
+
+        # Récupérer les semaines uniques
+        self.db_manager.cursor.execute(
+            """
+            SELECT DISTINCT semaine_id FROM repas
+            WHERE semaine_id IS NOT NULL
+            ORDER BY semaine_id
+            """
+        )
+        semaines = self.db_manager.cursor.fetchall()
+        self.db_manager.disconnect()
+
+        # Ajouter chaque semaine au combobox
+        for semaine in semaines:
+            semaine_id = semaine[0]
+            self.semaine_combo.addItem(f"Semaine {semaine_id}", semaine_id)
+
+    def on_semaine_changed(self, index):
+        """Appelé lorsqu'une semaine différente est sélectionnée"""
+        self.current_semaine_id = self.semaine_combo.currentData()
+        self.load_data()
+
     def load_data(self):
         self.tree.clear()
 
-        # Récupérer la liste de courses organisée
-        liste_courses = self.db_manager.generer_liste_courses()
+        # Récupérer la liste de courses organisée pour la semaine sélectionnée
+        liste_courses = self.db_manager.generer_liste_courses(self.current_semaine_id)
 
         # Remplir l'arbre
         for magasin, categories in liste_courses.items():
