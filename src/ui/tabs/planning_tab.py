@@ -48,6 +48,10 @@ class PlanningTab(QWidget):
         if not semaines_chargees:
             self.ajouter_semaine()  # Ajouter la première semaine par défaut
 
+        # S'abonner aux événements de modification des aliments
+        event_bus.aliment_supprime.connect(self.on_aliment_supprime)
+        event_bus.aliments_modifies.connect(self.refresh_planning)
+
     def setup_ui(self):
         main_layout = QVBoxLayout()
 
@@ -352,3 +356,13 @@ class PlanningTab(QWidget):
 
         # Mettre à jour les noms d'onglets par défaut
         self.mettre_a_jour_noms_onglets()
+
+    def on_aliment_supprime(self, aliment_id):
+        """Appelé lorsqu'un aliment est supprimé"""
+        # Rafraîchir tous les widgets de semaine
+        self.refresh_planning()
+
+    def refresh_planning(self):
+        """Rafraîchit tous les widgets de semaine"""
+        for semaine_id, widget in self.semaines.items():
+            widget.load_data()

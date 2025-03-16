@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCursor
+from ...utils.events import event_bus
 
 
 # Délégué personnalisé pour permettre l'édition uniquement de la colonne quantité
@@ -64,6 +65,12 @@ class RecettesTab(QWidget):
         self.current_recette_id = None
         self.setup_ui()
         self.load_data()
+
+        # S'abonner aux événements de modification des aliments
+        event_bus.aliment_supprime.connect(self.on_aliment_supprime)
+        event_bus.aliments_modifies.connect(
+            self.refresh_data
+        )  # Cette ligne cause l'erreur
 
     # Signal pour la mise à jour de la quantité
     quantite_modifiee = Signal(int, float)
@@ -470,6 +477,23 @@ class RecettesTab(QWidget):
                 if self.recettes_list.item(i).data(Qt.UserRole) == recette_id:
                     self.recettes_list.setCurrentRow(i)
                     break
+
+    def on_aliment_supprime(self, aliment_id):
+        """Appelé lorsqu'un aliment est supprimé"""
+        # Rafraîchir les recettes qui pourraient contenir cet aliment
+        self.refresh_data()
+
+    # Ajout de la méthode manquante
+    def refresh_data(self):
+        """Rafraîchit les données affichées"""
+        current_row = self.recettes_list.currentRow()
+        self.load_data()
+
+        # Restaurer la sélection si possible
+        if current_row >= 0 and current_row < self.recettes_list.count():
+            self.recettes_list.setCurrentRow(current_row)
+        elif self.recettes_list.count() > 0:
+            self.recettes_list.setCurrentRow(0)
 
 
 class RecetteDialog(QDialog):

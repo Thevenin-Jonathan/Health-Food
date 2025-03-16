@@ -20,6 +20,7 @@ from .tab_base import TabBase
 from ..dialogs.aliment_dialog import AlimentDialog
 from ...database.models import Aliment
 from ...utils.config import BUTTON_STYLES
+from ...utils.events import event_bus
 
 
 # Classe personnalisée pour les éléments de tableau avec tri numérique correct
@@ -368,6 +369,11 @@ class AlimentsTab(TabBase):
         if dialog.exec():
             data = dialog.get_data()
             self.db_manager.modifier_aliment(aliment_id, data)
+
+            # Émettre le signal pour notifier les autres composants
+            event_bus.aliment_modifie.emit(aliment_id)
+            event_bus.aliments_modifies.emit()
+
             self.load_data()
 
     def delete_aliment_by_id(self, aliment_id):
@@ -392,6 +398,11 @@ class AlimentsTab(TabBase):
 
         if reply == QMessageBox.Yes:
             self.db_manager.supprimer_aliment(aliment_id)
+
+            # Émettre le signal pour notifier les autres composants
+            event_bus.aliment_supprime.emit(aliment_id)
+            event_bus.aliments_modifies.emit()
+
             self.load_data()
 
     def add_aliment(self):
@@ -407,7 +418,12 @@ class AlimentsTab(TabBase):
 
         if dialog.exec():
             data = dialog.get_data()
-            self.db_manager.ajouter_aliment(data)
+            aliment_id = self.db_manager.ajouter_aliment(data)
+
+            # Émettre le signal pour notifier les autres composants
+            event_bus.aliment_ajoute.emit(aliment_id)
+            event_bus.aliments_modifies.emit()
+
             self.load_data()
 
     def edit_aliment(self):

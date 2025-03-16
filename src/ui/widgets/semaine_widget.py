@@ -14,6 +14,7 @@ from PySide6.QtCore import Qt
 from ..dialogs.repas_dialog import RepasDialog
 from ..dialogs.aliment_repas_dialog import AlimentRepasDialog
 from ..dialogs.remplacer_repas_dialog import RemplacerRepasDialog
+from ...utils.events import event_bus
 
 
 class SemaineWidget(QWidget):
@@ -25,6 +26,9 @@ class SemaineWidget(QWidget):
         self.semaine_id = semaine_id  # Identifiant numérique de la semaine
         self.setup_ui()
         self.load_data()
+
+        # S'abonner aux événements de modification des aliments
+        event_bus.aliment_supprime.connect(self.on_aliment_supprime)
 
     def setup_ui(self):
         main_layout = QVBoxLayout()
@@ -379,3 +383,8 @@ class SemaineWidget(QWidget):
 
             # Actualiser l'affichage
             self.load_data()
+
+    def on_aliment_supprime(self, aliment_id):
+        """Appelé lorsqu'un aliment est supprimé"""
+        # Rafraîchir les données de cette semaine
+        self.load_data()

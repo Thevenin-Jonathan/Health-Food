@@ -14,6 +14,12 @@ class EventBus(QObject):
     )  # Signal émis quand une semaine est supprimée avec son ID
     semaines_modifiees = Signal()  # Signal général pour toute modification des semaines
 
+    # Nouveaux signaux pour les aliments
+    aliment_supprime = Signal(int)  # Signal émis quand un aliment est supprimé (ID)
+    aliment_modifie = Signal(int)  # Signal émis quand un aliment est modifié (ID)
+    aliment_ajoute = Signal(int)  # Signal émis quand un aliment est ajouté (ID)
+    aliments_modifies = Signal()  # Signal général pour toute modification des aliments
+
     # Instance unique (singleton)
     _instance = None
 
