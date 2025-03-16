@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMenu,
     QTabWidget,
+    QInputDialog,
 )
 from PySide6.QtCore import Qt, QPoint
 from PySide6.QtGui import QCursor
@@ -42,6 +43,9 @@ class PlanningTab(QWidget):
         # Liste pour suivre les numéros de semaine utilisés
         self.semaine_ids = []
 
+        # Dictionnaire pour stocker les noms personnalisés des onglets
+        self.onglets_personnalises = {}
+
         self.setup_ui()
         self.ajouter_semaine()  # Ajouter la première semaine par défaut
 
@@ -59,6 +63,11 @@ class PlanningTab(QWidget):
         self.btn_remove_week.clicked.connect(self.supprimer_semaine_courante)
         control_layout.addWidget(self.btn_remove_week)
 
+        # Ajout du bouton pour renommer la semaine courante
+        self.btn_rename_week = QPushButton("Renommer la semaine courante")
+        self.btn_rename_week.clicked.connect(self.renommer_semaine_courante)
+        control_layout.addWidget(self.btn_rename_week)
+
         control_layout.addStretch()
         main_layout.addLayout(control_layout)
 
@@ -66,6 +75,7 @@ class PlanningTab(QWidget):
         self.tabs_semaines = QTabWidget()
         self.tabs_semaines.setTabsClosable(True)
         self.tabs_semaines.tabCloseRequested.connect(self.fermer_semaine)
+        self.tabs_semaines.currentChanged.connect(self.on_tab_changed)
         main_layout.addWidget(self.tabs_semaines, 1)
 
         # Bouton pour ajouter un repas
@@ -74,6 +84,14 @@ class PlanningTab(QWidget):
         main_layout.addWidget(self.btn_add_meal)
 
         self.setLayout(main_layout)
+
+    def on_tab_changed(self, index):
+        """Méthode appelée quand l'onglet actif change"""
+        # Activer/désactiver les boutons en fonction de si un onglet est sélectionné
+        has_tab = index >= 0
+        self.btn_remove_week.setEnabled(has_tab)
+        self.btn_rename_week.setEnabled(has_tab)
+        self.btn_add_meal.setEnabled(has_tab)
 
     def ajouter_semaine(self):
         """Ajoute une nouvelle semaine numérotée"""
@@ -92,7 +110,9 @@ class PlanningTab(QWidget):
         semaine_widget = SemaineWidget(self.db_manager, semaine_id)
 
         # Ajouter l'onglet
-        tab_text = f"Semaine {semaine_id}"
+        # Plutôt que d'utiliser l'ID comme numéro, utiliser la position + 1
+        position = self.tabs_semaines.count() + 1
+        tab_text = f"Semaine {position}"
         index = self.tabs_semaines.addTab(semaine_widget, tab_text)
 
         # Stocker le widget dans le dictionnaire
@@ -103,6 +123,12 @@ class PlanningTab(QWidget):
 
         # Passer à cet onglet
         self.tabs_semaines.setCurrentIndex(index)
+
+        # Mettre à jour l'état des boutons
+        self.on_tab_changed(index)
+
+        # Mettre à jour les noms d'onglets si nécessaire pour garantir la cohérence
+        self.mettre_a_jour_noms_onglets()
 
     def fermer_semaine(self, index):
         """Ferme une semaine à l'index donné"""
@@ -126,16 +152,74 @@ class PlanningTab(QWidget):
             # Supprimer l'ID de la liste des semaines utilisées
             self.semaine_ids.remove(semaine_id)
 
+            # Supprimer tout nom personnalisé pour cet onglet
+            if semaine_id in self.onglets_personnalises:
+                del self.onglets_personnalises[semaine_id]
+
             # Supprimer du dictionnaire
             del self.semaines[semaine_id]
 
             # Supprimer l'onglet
             self.tabs_semaines.removeTab(index)
 
+            # Mettre à jour les noms d'onglets par défaut
+            self.mettre_a_jour_noms_onglets()
+
     def supprimer_semaine_courante(self):
         """Supprime la semaine actuellement affichée"""
         current_index = self.tabs_semaines.currentIndex()
         self.fermer_semaine(current_index)
+
+    def renommer_semaine_courante(self):
+        """Ouvre un dialogue pour renommer la semaine courante"""
+        current_index = self.tabs_semaines.currentIndex()
+        if current_index < 0:
+            return
+
+        # Trouver l'ID de la semaine courante
+        semaine_widget = self.tabs_semaines.widget(current_index)
+        semaine_id = None
+        for id, widget in self.semaines.items():
+            if widget == semaine_widget:
+                semaine_id = id
+                break
+
+        if semaine_id is not None:
+            # Récupérer le nom actuel
+            nom_actuel = self.tabs_semaines.tabText(current_index)
+
+            # Ouvrir une boîte de dialogue pour saisir le nouveau nom
+            nouveau_nom, ok = QInputDialog.getText(
+                self,
+                "Renommer la semaine",
+                "Entrez un nouveau nom pour cette semaine:",
+                QLineEdit.Normal,
+                nom_actuel,
+            )
+
+            if ok and nouveau_nom:
+                # Enregistrer le nouveau nom personnalisé
+                self.onglets_personnalises[semaine_id] = nouveau_nom
+
+                # Mettre à jour l'onglet
+                self.tabs_semaines.setTabText(current_index, nouveau_nom)
+
+    def mettre_a_jour_noms_onglets(self):
+        """Met à jour les noms des onglets non personnalisés en fonction de leur position réelle"""
+        for index in range(self.tabs_semaines.count()):
+            # Trouver l'ID de semaine correspondant à cet onglet
+            semaine_widget = self.tabs_semaines.widget(index)
+            semaine_id = None
+            for id, widget in self.semaines.items():
+                if widget == semaine_widget:
+                    semaine_id = id
+                    break
+
+            # Si l'onglet n'a pas de nom personnalisé, mettre à jour son nom avec sa position + 1
+            # Les positions commencent à 0, donc on ajoute 1 pour avoir des semaines numérotées de 1 à N
+            if semaine_id is not None and semaine_id not in self.onglets_personnalises:
+                position = index + 1  # Position 1-based au lieu de 0-based
+                self.tabs_semaines.setTabText(index, f"Semaine {position}")
 
     def add_meal(self):
         """Ajoute un repas à la semaine courante"""
