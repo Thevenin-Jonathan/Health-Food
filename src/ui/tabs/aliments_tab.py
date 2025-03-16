@@ -1,194 +1,253 @@
 from PySide6.QtWidgets import (
-    QWidget,
     QVBoxLayout,
     QHBoxLayout,
+    QPushButton,
     QTableWidget,
     QTableWidgetItem,
-    QPushButton,
     QHeaderView,
-    QMessageBox,
+    QAbstractItemView,
+    QMenu,
     QDialog,
-    QFormLayout,
-    QLineEdit,
-    QLabel,
-    QDoubleSpinBox,
-    QComboBox,
+    QMessageBox,
 )
-from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtGui import QColor
+from PySide6.QtCore import Qt, QPoint
+from PySide6.QtGui import QAction
 
-from ..dialogs.ajouter_aliment_dialog import AjouterAlimentDialog
+from .tab_base import TabBase
+from ..dialogs.aliment_dialog import AlimentDialog
+from ...database.models import Aliment
+from ...utils.config import BUTTON_STYLES
 
 
-class AlimentsTab(QWidget):
-    def __init__(self, db_manager):
+# Classe personnalisée pour les éléments de tableau avec tri numérique correct
+class NumericTableItem(QTableWidgetItem):
+    def __init__(self, value, text="", unit=""):
         super().__init__()
-        self.db_manager = db_manager
-        self.current_sort_column = None
-        self.sort_order = True  # True pour ASC, False pour DESC
+        self.setValue(value)
+        if text:
+            self.setText(text)
+        else:
+            self.formatValue(value, unit)
+
+    def setValue(self, value):
+        self.setData(Qt.UserRole, float(value) if value is not None else 0.0)
+
+    def formatValue(self, value, unit):
+        if value and value > 0:
+            if unit:
+                self.setText(f"{value:.2f} {unit}")
+            else:
+                self.setText(f"{value:.2f}")
+        else:
+            self.setText("")
+
+    def __lt__(self, other):
+        my_value = self.data(Qt.UserRole)
+        other_value = other.data(Qt.UserRole)
+
+        # Placer les valeurs nulles/0 à la fin lors du tri ascendant
+        if my_value == 0 and other_value > 0:
+            return False
+        if other_value == 0 and my_value > 0:
+            return True
+
+        return my_value < other_value
+
+
+class AlimentsTab(TabBase):
+    def __init__(self, db_manager):
+        super().__init__(db_manager)
         self.setup_ui()
         self.load_data()
 
     def setup_ui(self):
-        layout = QVBoxLayout()
+        main_layout = QVBoxLayout()
 
-        # Tableau des aliments
+        # Tableau des aliments avec toutes les colonnes nécessaires
         self.table = QTableWidget()
-        self.table.setColumnCount(10)
+        self.table.setColumnCount(11)  # Augmenter le nombre de colonnes
         self.table.setHorizontalHeaderLabels(
             [
+                "ID",
                 "Nom",
                 "Marque",
                 "Magasin",
                 "Catégorie",
                 "Calories",
-                "Protéines (g)",
-                "Glucides (g)",
-                "Lipides (g)",
-                "Fibres (g)",
-                "Prix/kg (€)",
+                "Protéines",
+                "Glucides",
+                "Lipides",
+                "Fibres",
+                "Prix/kg",
             ]
         )
 
-        # Permettre le tri en cliquant sur les en-têtes
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.table.horizontalHeader().setSortIndicatorShown(True)
-        self.table.setSortingEnabled(False)  # Désactiver le tri automatique du tableau
-        self.table.horizontalHeader().sectionClicked.connect(self.on_header_clicked)
+        # Configuration du tableau
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)  # Lecture seule
+        self.table.setSortingEnabled(
+            True
+        )  # Permettre le tri en cliquant sur les en-têtes
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self.show_context_menu)
+
+        # Masquer la colonne ID
+        self.table.hideColumn(0)
+
+        # Définir une taille minimale pour le tableau
+        self.table.setMinimumWidth(900)
+        self.table.setMinimumHeight(500)
+        main_layout.addWidget(self.table)
 
         # Boutons d'action
-        btn_layout = QHBoxLayout()
+        buttons_layout = QHBoxLayout()
 
         self.btn_add = QPushButton("Ajouter un aliment")
         self.btn_add.clicked.connect(self.add_aliment)
 
-        self.btn_edit = QPushButton("Modifier")
+        self.btn_edit = QPushButton("Modifier l'aliment sélectionné")
         self.btn_edit.clicked.connect(self.edit_aliment)
 
-        self.btn_delete = QPushButton("Supprimer")
+        self.btn_delete = QPushButton("Supprimer l'aliment sélectionné")
         self.btn_delete.clicked.connect(self.delete_aliment)
 
-        btn_layout.addWidget(self.btn_add)
-        btn_layout.addWidget(self.btn_edit)
-        btn_layout.addWidget(self.btn_delete)
+        self.btn_refresh = QPushButton("Actualiser la liste")
+        self.btn_refresh.clicked.connect(self.refresh_data)
 
-        layout.addWidget(self.table)
-        layout.addLayout(btn_layout)
-        self.setLayout(layout)
+        buttons_layout.addWidget(self.btn_add)
+        buttons_layout.addWidget(self.btn_edit)
+        buttons_layout.addWidget(self.btn_delete)
+        buttons_layout.addWidget(self.btn_refresh)
 
-    def load_data(self):
-        # Effacer le tableau
-        self.table.setRowCount(0)
+        main_layout.addLayout(buttons_layout)
 
-        # Récupérer les aliments triés si nécessaire
-        aliments = self.db_manager.get_aliments(
-            self.current_sort_column, self.sort_order
-        )
+        self.setLayout(main_layout)
 
-        # Remplir le tableau
-        for row, aliment in enumerate(aliments):
-            self.table.insertRow(row)
-
-            # Nom (texte)
-            self.table.setItem(row, 0, QTableWidgetItem(aliment["nom"]))
-
-            # Marque (texte)
-            self.table.setItem(row, 1, QTableWidgetItem(aliment["marque"] or ""))
-
-            # Magasin (texte)
-            self.table.setItem(row, 2, QTableWidgetItem(aliment["magasin"] or ""))
-
-            # Catégorie (texte)
-            self.table.setItem(row, 3, QTableWidgetItem(aliment["categorie"] or ""))
-
-            # Calories (nombre)
-            calories_item = QTableWidgetItem()
-            calories_item.setData(Qt.DisplayRole, aliment["calories"] or 0)
-            self.table.setItem(row, 4, calories_item)
-
-            # Protéines (nombre)
-            proteines_item = QTableWidgetItem()
-            proteines_item.setData(Qt.DisplayRole, aliment["proteines"] or 0)
-            self.table.setItem(row, 5, proteines_item)
-
-            # Glucides (nombre)
-            glucides_item = QTableWidgetItem()
-            glucides_item.setData(Qt.DisplayRole, aliment["glucides"] or 0)
-            self.table.setItem(row, 6, glucides_item)
-
-            # Lipides (nombre)
-            lipides_item = QTableWidgetItem()
-            lipides_item.setData(Qt.DisplayRole, aliment["lipides"] or 0)
-            self.table.setItem(row, 7, lipides_item)
-
-            # Fibres (nombre)
-            fibres_item = QTableWidgetItem()
-            fibres_item.setData(Qt.DisplayRole, aliment["fibres"] or 0)
-            self.table.setItem(row, 8, fibres_item)
-
-            # Prix/kg (nombre)
-            prix_item = QTableWidgetItem()
-            prix_item.setData(Qt.DisplayRole, aliment["prix_kg"] or 0)
-            self.table.setItem(row, 9, prix_item)
-
-            # Stocker l'ID comme données
-            self.table.item(row, 0).setData(Qt.UserRole, aliment["id"])
-
-    def on_header_clicked(self, index):
-        # Mapping des index de colonnes vers les noms de colonnes de la base de données
-        column_mapping = {
-            0: "nom",
-            1: "marque",
-            2: "magasin",
-            3: "categorie",
-            4: "calories",
-            5: "proteines",
-            6: "glucides",
-            7: "lipides",
-            8: "fibres",
-            9: "prix_kg",
-        }
-
-        column_name = column_mapping.get(index)
-
-        # Si c'est la même colonne, inverser l'ordre
-        if self.current_sort_column == column_name:
-            self.sort_order = not self.sort_order
-        else:
-            self.current_sort_column = column_name
-            self.sort_order = True
-
-        # Mettre à jour l'indicateur visuel de tri
-        self.table.horizontalHeader().setSortIndicator(
-            index, Qt.AscendingOrder if self.sort_order else Qt.DescendingOrder
-        )
-
-        # Actualiser les données avec le tri approprié
+    def refresh_data(self):
+        """Implémentation de la méthode de base - rafraîchit les données"""
         self.load_data()
 
+    def load_data(self, sort_column="nom", sort_order=True):
+        """Charge les aliments dans le tableau avec option de tri"""
+        self.table.setSortingEnabled(False)  # Désactiver le tri pendant le chargement
+
+        # Vider le tableau
+        self.table.setRowCount(0)
+
+        # Charger les aliments triés
+        aliments = self.db_manager.get_aliments(sort_column, sort_order)
+
+        # Remplir le tableau
+        self.table.setRowCount(len(aliments))
+        for i, aliment in enumerate(aliments):
+            # ID (caché)
+            id_item = QTableWidgetItem()
+            id_item.setData(
+                Qt.DisplayRole, aliment["id"]
+            )  # Utiliser setData pour stocker en tant que nombre
+            self.table.setItem(i, 0, id_item)
+
+            # Nom
+            self.table.setItem(i, 1, QTableWidgetItem(aliment["nom"]))
+
+            # Marque
+            self.table.setItem(i, 2, QTableWidgetItem(aliment["marque"] or ""))
+
+            # Magasin
+            self.table.setItem(i, 3, QTableWidgetItem(aliment["magasin"] or ""))
+
+            # Catégorie
+            self.table.setItem(i, 4, QTableWidgetItem(aliment["categorie"] or ""))
+
+            # Valeurs nutritionnelles avec tri numérique correct
+            cal_item = NumericTableItem(
+                aliment["calories"], f"{aliment['calories']:.0f}"
+            )
+            self.table.setItem(i, 5, cal_item)
+
+            prot_item = NumericTableItem(
+                aliment["proteines"], f"{aliment['proteines']:.1f}"
+            )
+            self.table.setItem(i, 6, prot_item)
+
+            gluc_item = NumericTableItem(
+                aliment["glucides"], f"{aliment['glucides']:.1f}"
+            )
+            self.table.setItem(i, 7, gluc_item)
+
+            lip_item = NumericTableItem(aliment["lipides"], f"{aliment['lipides']:.1f}")
+            self.table.setItem(i, 8, lip_item)
+
+            # Fibres
+            fibres_val = aliment.get("fibres", 0) or 0
+            fibres_item = NumericTableItem(fibres_val, f"{fibres_val:.1f}")
+            self.table.setItem(i, 9, fibres_item)
+
+            # Prix au kg avec tri numérique correct
+            prix_val = aliment.get("prix_kg", 0) or 0
+            prix_item = NumericTableItem(prix_val)
+            # Formater le texte avec le symbole €
+            if prix_val > 0:
+                prix_item.setText(f"{prix_val:.2f} €")
+            self.table.setItem(i, 10, prix_item)
+
+        # Réactiver le tri après avoir rempli les données
+        self.table.setSortingEnabled(True)
+
+        # Configuration optimisée des largeurs de colonnes
+        header = self.table.horizontalHeader()
+
+        # Colonnes à largeur fixe pour un affichage compact mais lisible
+        col_widths = {
+            1: 140,  # Nom
+            2: 100,  # Marque
+            3: 100,  # Magasin
+            4: 100,  # Catégorie
+            5: 70,  # Calories
+            6: 70,  # Protéines
+            7: 70,  # Glucides
+            8: 70,  # Lipides
+            9: 70,  # Fibres
+            10: 70,  # Prix/kg
+        }
+
+        # Appliquer les largeurs définies
+        for col, width in col_widths.items():
+            self.table.setColumnWidth(col, width)
+            header.setSectionResizeMode(col, QHeaderView.Interactive)
+
+        # Colonne Nom extensible mais avec limite minimale
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setMinimumSectionSize(100)
+
+        # Ajouter des tooltips aux en-têtes pour plus de clarté
+        self.table.horizontalHeaderItem(5).setToolTip("Calories pour 100g")
+        self.table.horizontalHeaderItem(6).setToolTip("Protéines en g pour 100g")
+        self.table.horizontalHeaderItem(7).setToolTip("Glucides en g pour 100g")
+        self.table.horizontalHeaderItem(8).setToolTip("Lipides en g pour 100g")
+        self.table.horizontalHeaderItem(9).setToolTip("Fibres en g pour 100g")
+
     def add_aliment(self):
-        dialog = AjouterAlimentDialog(self, self.db_manager)
+        """Ajoute un nouvel aliment"""
+        # Récupérer les listes de données existantes
+        magasins = self.db_manager.get_magasins_uniques()
+        marques = self.db_manager.get_marques_uniques()
+        categories = self.db_manager.get_categories_uniques()
+
+        dialog = AlimentDialog(
+            self, magasins=magasins, marques=marques, categories=categories
+        )
+
         if dialog.exec():
             data = dialog.get_data()
-            # Ajouter les valeurs par défaut pour les champs non requis
-            if "categorie" not in data or not data["categorie"]:
-                data["categorie"] = None
-            if "fibres" not in data:
-                data["fibres"] = None
-            if "prix_kg" not in data:
-                data["prix_kg"] = None
-
-            aliment_id = self.db_manager.ajouter_aliment(data)
-            self.charger_aliments()
-            self.select_aliment(
-                aliment_id
-            )  # Sélectionner l'aliment nouvellement ajouté
-            return True
-        return False
+            self.db_manager.ajouter_aliment(data)
+            self.load_data()
 
     def edit_aliment(self):
-        selected_items = self.table.selectedItems()
-        if not selected_items:
+        """Modifie l'aliment sélectionné"""
+        selected_rows = self.table.selectedItems()
+        if not selected_rows:
             QMessageBox.warning(
                 self,
                 "Sélection requise",
@@ -196,23 +255,35 @@ class AlimentsTab(QWidget):
             )
             return
 
-        # Récupérer l'ID de l'aliment sélectionné
-        row = selected_items[0].row()
-        aliment_id = self.table.item(row, 0).data(Qt.UserRole)
+        # Récupérer l'ID de la ligne sélectionnée
+        row = selected_rows[0].row()
+        aliment_id = int(self.table.item(row, 0).text())
 
-        # Récupérer les données actuelles
+        # Récupérer les données de l'aliment
         aliment = self.db_manager.get_aliment(aliment_id)
 
-        # Ouvrir la boîte de dialogue avec les données pré-remplies
-        dialog = AlimentDialog(self, aliment)
+        # Récupérer les listes de données existantes
+        magasins = self.db_manager.get_magasins_uniques()
+        marques = self.db_manager.get_marques_uniques()
+        categories = self.db_manager.get_categories_uniques()
+
+        dialog = AlimentDialog(
+            self,
+            aliment=aliment,
+            magasins=magasins,
+            marques=marques,
+            categories=categories,
+        )
+
         if dialog.exec():
             data = dialog.get_data()
             self.db_manager.modifier_aliment(aliment_id, data)
             self.load_data()
 
     def delete_aliment(self):
-        selected_items = self.table.selectedItems()
-        if not selected_items:
+        """Supprime l'aliment sélectionné"""
+        selected_rows = self.table.selectedItems()
+        if not selected_rows:
             QMessageBox.warning(
                 self,
                 "Sélection requise",
@@ -220,152 +291,36 @@ class AlimentsTab(QWidget):
             )
             return
 
-        # Confirmer la suppression
+        # Récupérer l'ID de la ligne sélectionnée
+        row = selected_rows[0].row()
+        aliment_id = int(self.table.item(row, 0).text())
+        aliment_nom = self.table.item(row, 1).text()
+
+        # Demander confirmation
         reply = QMessageBox.question(
             self,
             "Confirmer la suppression",
-            "Êtes-vous sûr de vouloir supprimer cet aliment ?",
+            f"Êtes-vous sûr de vouloir supprimer l'aliment '{aliment_nom}' ?\n\n"
+            "Attention: cette action supprimera également cet aliment de tous les repas où il est utilisé.",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
 
         if reply == QMessageBox.Yes:
-            row = selected_items[0].row()
-            aliment_id = self.table.item(row, 0).data(Qt.UserRole)
             self.db_manager.supprimer_aliment(aliment_id)
             self.load_data()
 
+    def show_context_menu(self, position):
+        """Affiche un menu contextuel pour les actions rapides"""
+        menu = QMenu()
 
-class AlimentDialog(QDialog):
-    def __init__(self, parent=None, aliment=None):
-        super().__init__(parent)
-        self.aliment = aliment
-        self.setup_ui()
+        edit_action = menu.addAction("Modifier")
+        delete_action = menu.addAction("Supprimer")
 
-    def setup_ui(self):
-        if self.aliment:
-            self.setWindowTitle("Modifier un aliment")
-        else:
-            self.setWindowTitle("Ajouter un aliment")
+        action = menu.exec_(self.table.mapToGlobal(position))
 
-        self.setMinimumWidth(400)
-        layout = QFormLayout()
-
-        # Champs de saisie
-        self.nom_input = QLineEdit()
-        self.marque_input = QLineEdit()
-        self.magasin_input = QLineEdit()
-        self.categorie_input = QComboBox()
-
-        # Catégories prédéfinies
-        categories = [
-            "Fruits",
-            "Légumes",
-            "Viandes",
-            "Poissons",
-            "Produits laitiers",
-            "Féculents",
-            "Boissons",
-            "Snacks",
-            "Sucreries",
-            "Épices et condiments",
-            "Autre",
-        ]
-        self.categorie_input.addItems(categories)
-        self.categorie_input.setEditable(True)
-
-        self.calories_input = QDoubleSpinBox()
-        self.calories_input.setMaximum(1000)
-
-        self.proteines_input = QDoubleSpinBox()
-        self.proteines_input.setMaximum(100)
-
-        self.glucides_input = QDoubleSpinBox()
-        self.glucides_input.setMaximum(100)
-
-        self.lipides_input = QDoubleSpinBox()
-        self.lipides_input.setMaximum(100)
-
-        self.fibres_input = QDoubleSpinBox()
-        self.fibres_input.setMaximum(100)
-
-        self.prix_input = QDoubleSpinBox()
-        self.prix_input.setMaximum(1000)
-        self.prix_input.setSuffix(" €/kg")
-
-        # Pré-remplir les champs si on modifie un aliment existant
-        if self.aliment:
-            self.nom_input.setText(self.aliment["nom"])
-            self.marque_input.setText(self.aliment["marque"] or "")
-            self.magasin_input.setText(self.aliment["magasin"] or "")
-
-            # Chercher si la catégorie existe déjà, sinon l'ajouter
-            categorie = self.aliment["categorie"] or ""
-            if categorie:
-                index = self.categorie_input.findText(categorie)
-                if index >= 0:
-                    self.categorie_input.setCurrentIndex(index)
-                else:
-                    self.categorie_input.addItem(categorie)
-                    self.categorie_input.setCurrentText(categorie)
-
-            self.calories_input.setValue(self.aliment["calories"] or 0)
-            self.proteines_input.setValue(self.aliment["proteines"] or 0)
-            self.glucides_input.setValue(self.aliment["glucides"] or 0)
-            self.lipides_input.setValue(self.aliment["lipides"] or 0)
-            self.fibres_input.setValue(self.aliment["fibres"] or 0)
-            self.prix_input.setValue(self.aliment["prix_kg"] or 0)
-
-        # Ajouter les champs au formulaire
-        layout.addRow("Nom *:", self.nom_input)
-        layout.addRow("Marque:", self.marque_input)
-        layout.addRow("Magasin:", self.magasin_input)
-        layout.addRow("Catégorie:", self.categorie_input)
-        layout.addRow("Calories (pour 100g):", self.calories_input)
-        layout.addRow("Protéines (g/100g):", self.proteines_input)
-        layout.addRow("Glucides (g/100g):", self.glucides_input)
-        layout.addRow("Lipides (g/100g):", self.lipides_input)
-        layout.addRow("Fibres (g/100g):", self.fibres_input)
-        layout.addRow("Prix au kilo (€):", self.prix_input)
-
-        # Note explicative
-        note = QLabel("* Champ obligatoire")
-        layout.addRow(note)
-
-        # Boutons
-        btn_layout = QHBoxLayout()
-        self.btn_cancel = QPushButton("Annuler")
-        self.btn_cancel.clicked.connect(self.reject)
-
-        self.btn_save = QPushButton("Enregistrer")
-        self.btn_save.clicked.connect(self.validate_and_accept)
-
-        btn_layout.addWidget(self.btn_cancel)
-        btn_layout.addWidget(self.btn_save)
-
-        layout.addRow(btn_layout)
-        self.setLayout(layout)
-
-    def validate_and_accept(self):
-        # Vérifier que le nom n'est pas vide
-        if not self.nom_input.text().strip():
-            QMessageBox.warning(
-                self, "Champ obligatoire", "Le nom de l'aliment est obligatoire."
-            )
-            return
-
-        self.accept()
-
-    def get_data(self):
-        return {
-            "nom": self.nom_input.text().strip(),
-            "marque": self.marque_input.text().strip(),
-            "magasin": self.magasin_input.text().strip(),
-            "categorie": self.categorie_input.currentText().strip(),
-            "calories": self.calories_input.value(),
-            "proteines": self.proteines_input.value(),
-            "glucides": self.glucides_input.value(),
-            "lipides": self.lipides_input.value(),
-            "fibres": self.fibres_input.value(),
-            "prix_kg": self.prix_input.value(),
-        }
+        # Exécuter l'action choisie
+        if action == edit_action:
+            self.edit_aliment()
+        elif action == delete_action:
+            self.delete_aliment()

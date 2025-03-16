@@ -666,3 +666,28 @@ class DatabaseManager:
             results = self.cursor.fetchall()
             self.disconnect()
             return [result[0] for result in results if result[0]]
+
+    def get_categories_uniques(self):
+        """Récupère toutes les catégories uniques présentes dans la base de données, triées par fréquence"""
+        try:
+            self.connect()
+            query = """
+                SELECT categorie, COUNT(*) as count 
+                FROM aliments 
+                WHERE categorie IS NOT NULL AND categorie != '' 
+                GROUP BY categorie 
+                ORDER BY count DESC
+            """
+            self.cursor.execute(query)
+            results = self.cursor.fetchall()
+            self.disconnect()
+            return [result[0] for result in results if result[0]]
+        except Exception as e:
+            print(f"Erreur lors de la récupération des catégories: {e}")
+            # Version simple sans tri par fréquence
+            self.connect()
+            query = "SELECT DISTINCT categorie FROM aliments WHERE categorie IS NOT NULL AND categorie != ''"
+            self.cursor.execute(query)
+            results = self.cursor.fetchall()
+            self.disconnect()
+            return [result[0] for result in results if result[0]]

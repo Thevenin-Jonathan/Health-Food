@@ -1,38 +1,34 @@
 from PySide6.QtWidgets import (
-    QWidget,
     QVBoxLayout,
     QHBoxLayout,
     QPushButton,
-    QScrollArea,
     QLabel,
     QTreeWidget,
     QTreeWidgetItem,
     QHeaderView,
-    QDialog,
-    QTextEdit,
-    QCheckBox,
-    QComboBox,
     QFormLayout,
+    QComboBox,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 from PySide6.QtGui import QTextDocument, QPageLayout
 
-# Ajouter l'import du bus d'événements au début du fichier
+from .tab_base import TabBase
+from ..dialogs.print_preview_dialog import PrintPreviewDialog
 from ...utils.events import event_bus
+from ...utils.config import JOURS_SEMAINE
 
 
-class CoursesTab(QWidget):
+class CoursesTab(TabBase):
     def __init__(self, db_manager):
-        super().__init__()
-        self.db_manager = db_manager
+        super().__init__(db_manager)
         self.current_semaine_id = None
         self.setup_ui()
 
         # Se connecter aux signaux du bus d'événements
         event_bus.semaine_ajoutee.connect(self.on_semaine_ajoutee)
         event_bus.semaine_supprimee.connect(self.on_semaine_supprimee)
-        event_bus.semaines_modifiees.connect(self.charger_semaines)
+        event_bus.semaines_modifiees.connect(self.refresh_data)
 
     def setup_ui(self):
         main_layout = QVBoxLayout()
@@ -53,6 +49,7 @@ class CoursesTab(QWidget):
         semaine_layout = QFormLayout()
         self.semaine_combo = QComboBox()
         self.semaine_combo.addItem("Toutes les semaines", None)
+        self.semaine_combo.currentIndexChanged.connect(self.on_semaine_changed)
         semaine_layout.addRow("Semaine:", self.semaine_combo)
         main_layout.addLayout(semaine_layout)
 
@@ -75,7 +72,7 @@ class CoursesTab(QWidget):
         self.btn_deselect_all.clicked.connect(self.deselect_all_items)
 
         self.btn_refresh = QPushButton("Actualiser la liste")
-        self.btn_refresh.clicked.connect(self.load_data)
+        self.btn_refresh.clicked.connect(self.refresh_data)
 
         self.btn_print = QPushButton("Imprimer la sélection")
         self.btn_print.clicked.connect(self.print_liste_courses)
@@ -88,34 +85,29 @@ class CoursesTab(QWidget):
 
         self.setLayout(main_layout)
 
-        # Connecter l'événement de changement après avoir initialisé tous les widgets
-        self.semaine_combo.currentIndexChanged.connect(self.on_semaine_changed)
-
-        # Récupérer les semaines disponibles (APRÈS avoir créé self.tree)
+        # Charger les semaines disponibles
         self.charger_semaines()
 
-        # La méthode load_data est déjà appelée dans charger_semaines()
+    def refresh_data(self):
+        """Implémentation de la méthode de la classe de base pour actualiser les données"""
+        self.charger_semaines()
 
     def charger_semaines(self):
         """Charge les semaines disponibles dans le sélecteur"""
-        print(
-            "CoursesTab: Mise à jour des semaines dans la liste de courses"
-        )  # Log pour déboguer
+        print("CoursesTab: Mise à jour des semaines dans la liste de courses")
 
         # Sauvegarder la semaine actuellement sélectionnée
         current_id = self.current_semaine_id
 
-        # Bloquer temporairement le signal de changement pour éviter des actualisations multiples
+        # Bloquer temporairement le signal de changement
         self.semaine_combo.blockSignals(True)
 
         # Vider le combobox
         self.semaine_combo.clear()
         self.semaine_combo.addItem("Toutes les semaines", None)
 
-        # Se connecter à la base de données
+        # Se connecter à la base de données et récupérer les semaines
         self.db_manager.connect()
-
-        # Récupérer les semaines uniques
         self.db_manager.cursor.execute(
             """
             SELECT DISTINCT semaine_id FROM repas
@@ -139,7 +131,7 @@ class CoursesTab(QWidget):
                 self.semaine_combo.setCurrentIndex(index)
                 print(f"CoursesTab: Sélection restaurée à la semaine {current_id}")
             else:
-                # Si la semaine sélectionnée n'existe plus, revenir à "Toutes les semaines"
+                # Si la semaine n'existe plus, revenir à "Toutes les semaines"
                 self.current_semaine_id = None
                 self.semaine_combo.setCurrentIndex(0)
                 print("CoursesTab: Sélection restaurée à 'Toutes les semaines'")
@@ -147,7 +139,7 @@ class CoursesTab(QWidget):
         # Réactiver les signaux
         self.semaine_combo.blockSignals(False)
 
-        # Recharger les données après avoir mis à jour la liste déroulante
+        # Charger les données avec la sélection courante
         self.load_data()
         print("CoursesTab: Données rechargées")
 
@@ -157,30 +149,27 @@ class CoursesTab(QWidget):
         self.load_data()
 
     def load_data(self):
+        """Charge les données de la liste de courses"""
         self.tree.clear()
 
-        # Récupérer la liste de courses organisée pour la semaine sélectionnée
+        # Récupérer la liste de courses pour la semaine sélectionnée
         liste_courses = self.db_manager.generer_liste_courses(self.current_semaine_id)
 
-        # Remplir l'arbre
+        # Remplir l'arbre avec les données
         for magasin, categories in liste_courses.items():
             # Créer un élément pour le magasin
             magasin_item = QTreeWidgetItem(["", magasin, "", ""])
             magasin_item.setCheckState(0, Qt.Unchecked)
-            magasin_item.setFlags(
-                magasin_item.flags() | Qt.ItemIsAutoTristate
-            )  # Pour le tri-state checkbox
-            magasin_item.setExpanded(True)  # Toujours déployé par défaut
+            magasin_item.setFlags(magasin_item.flags() | Qt.ItemIsAutoTristate)
+            magasin_item.setExpanded(True)
             self.tree.addTopLevelItem(magasin_item)
 
             for categorie, aliments in categories.items():
                 # Créer un élément pour la catégorie
                 categorie_item = QTreeWidgetItem(["", categorie, "", ""])
                 categorie_item.setCheckState(0, Qt.Unchecked)
-                categorie_item.setFlags(
-                    categorie_item.flags() | Qt.ItemIsAutoTristate
-                )  # Pour le tri-state checkbox
-                categorie_item.setExpanded(True)  # Toujours déployé par défaut
+                categorie_item.setFlags(categorie_item.flags() | Qt.ItemIsAutoTristate)
+                categorie_item.setExpanded(True)
                 magasin_item.addChild(categorie_item)
 
                 for aliment in aliments:
@@ -315,33 +304,3 @@ class CoursesTab(QWidget):
         """Appelé quand une semaine est supprimée via le bus d'événements"""
         print(f"CoursesTab: Notification de suppression de semaine {semaine_id}")
         self.charger_semaines()
-
-
-class PrintPreviewDialog(QDialog):
-    """Dialogue d'aperçu avant impression"""
-
-    def __init__(self, content, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Aperçu avant impression")
-        self.setMinimumSize(800, 600)
-
-        layout = QVBoxLayout(self)
-
-        # Aperçu du contenu
-        self.preview = QTextEdit()
-        self.preview.setReadOnly(True)
-        self.preview.setHtml(content)
-        layout.addWidget(self.preview)
-
-        # Boutons
-        btn_layout = QHBoxLayout()
-
-        self.btn_cancel = QPushButton("Annuler")
-        self.btn_cancel.clicked.connect(self.reject)
-
-        self.btn_print = QPushButton("Imprimer")
-        self.btn_print.clicked.connect(self.accept)
-
-        btn_layout.addWidget(self.btn_cancel)
-        btn_layout.addWidget(self.btn_print)
-        layout.addLayout(btn_layout)
