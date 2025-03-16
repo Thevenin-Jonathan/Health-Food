@@ -18,6 +18,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 from PySide6.QtGui import QTextDocument, QPageLayout
 
+# Ajouter l'import du bus d'événements au début du fichier
+from ...utils.events import event_bus
+
 
 class CoursesTab(QWidget):
     def __init__(self, db_manager):
@@ -25,6 +28,11 @@ class CoursesTab(QWidget):
         self.db_manager = db_manager
         self.current_semaine_id = None
         self.setup_ui()
+
+        # Se connecter aux signaux du bus d'événements
+        event_bus.semaine_ajoutee.connect(self.on_semaine_ajoutee)
+        event_bus.semaine_supprimee.connect(self.on_semaine_supprimee)
+        event_bus.semaines_modifiees.connect(self.charger_semaines)
 
     def setup_ui(self):
         main_layout = QVBoxLayout()
@@ -45,11 +53,6 @@ class CoursesTab(QWidget):
         semaine_layout = QFormLayout()
         self.semaine_combo = QComboBox()
         self.semaine_combo.addItem("Toutes les semaines", None)
-
-        # Récupérer les semaines disponibles (on implémentera une méthode pour cela)
-        self.charger_semaines()
-
-        self.semaine_combo.currentIndexChanged.connect(self.on_semaine_changed)
         semaine_layout.addRow("Semaine:", self.semaine_combo)
         main_layout.addLayout(semaine_layout)
 
@@ -85,18 +88,31 @@ class CoursesTab(QWidget):
 
         self.setLayout(main_layout)
 
-        # Charger les données
-        self.load_data()
+        # Connecter l'événement de changement après avoir initialisé tous les widgets
+        self.semaine_combo.currentIndexChanged.connect(self.on_semaine_changed)
+
+        # Récupérer les semaines disponibles (APRÈS avoir créé self.tree)
+        self.charger_semaines()
+
+        # La méthode load_data est déjà appelée dans charger_semaines()
 
     def charger_semaines(self):
         """Charge les semaines disponibles dans le sélecteur"""
-        # Ajoutez cette méthode pour récupérer les identifiants de semaine
-        # Normalement, vous devriez ajouter une méthode dans db_manager pour récupérer les semaines
-        # Pour cet exemple, nous supposons que cette méthode existe
+        print(
+            "CoursesTab: Mise à jour des semaines dans la liste de courses"
+        )  # Log pour déboguer
+
+        # Sauvegarder la semaine actuellement sélectionnée
+        current_id = self.current_semaine_id
+
+        # Bloquer temporairement le signal de changement pour éviter des actualisations multiples
+        self.semaine_combo.blockSignals(True)
+
+        # Vider le combobox
         self.semaine_combo.clear()
         self.semaine_combo.addItem("Toutes les semaines", None)
 
-        # Connectez-vous à la base de données
+        # Se connecter à la base de données
         self.db_manager.connect()
 
         # Récupérer les semaines uniques
@@ -113,7 +129,27 @@ class CoursesTab(QWidget):
         # Ajouter chaque semaine au combobox
         for semaine in semaines:
             semaine_id = semaine[0]
+            print(f"CoursesTab: Ajout de la semaine {semaine_id} au combobox")
             self.semaine_combo.addItem(f"Semaine {semaine_id}", semaine_id)
+
+        # Restaurer la sélection précédente si possible
+        if current_id is not None:
+            index = self.semaine_combo.findData(current_id)
+            if index >= 0:
+                self.semaine_combo.setCurrentIndex(index)
+                print(f"CoursesTab: Sélection restaurée à la semaine {current_id}")
+            else:
+                # Si la semaine sélectionnée n'existe plus, revenir à "Toutes les semaines"
+                self.current_semaine_id = None
+                self.semaine_combo.setCurrentIndex(0)
+                print("CoursesTab: Sélection restaurée à 'Toutes les semaines'")
+
+        # Réactiver les signaux
+        self.semaine_combo.blockSignals(False)
+
+        # Recharger les données après avoir mis à jour la liste déroulante
+        self.load_data()
+        print("CoursesTab: Données rechargées")
 
     def on_semaine_changed(self, index):
         """Appelé lorsqu'une semaine différente est sélectionnée"""
@@ -269,6 +305,16 @@ class CoursesTab(QWidget):
 
         html += "</body></html>"
         return html
+
+    def on_semaine_ajoutee(self, semaine_id):
+        """Appelé quand une semaine est ajoutée via le bus d'événements"""
+        print(f"CoursesTab: Notification d'ajout de semaine {semaine_id}")
+        self.charger_semaines()
+
+    def on_semaine_supprimee(self, semaine_id):
+        """Appelé quand une semaine est supprimée via le bus d'événements"""
+        print(f"CoursesTab: Notification de suppression de semaine {semaine_id}")
+        self.charger_semaines()
 
 
 class PrintPreviewDialog(QDialog):

@@ -23,13 +23,18 @@ from PySide6.QtWidgets import (
     QTabWidget,
     QInputDialog,
 )
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import Qt, QPoint, Signal, QObject  # Importez Signal
 from PySide6.QtGui import QCursor
 
 from ..dialogs.remplacer_repas_dialog import RemplacerRepasDialog
+from ...utils.events import event_bus
 
 
 class PlanningTab(QWidget):
+    # Ajoutez ces signaux
+    semaine_supprimee = Signal(int)
+    semaine_ajoutee = Signal(int)
+
     def __init__(self, db_manager):
         super().__init__()
         self.db_manager = db_manager
@@ -46,8 +51,17 @@ class PlanningTab(QWidget):
         # Dictionnaire pour stocker les noms personnalisés des onglets
         self.onglets_personnalises = {}
 
+        # Dictionnaire pour les onglets {semaine_id: index}
+        self.semaine_tabs = {}
+
         self.setup_ui()
-        self.ajouter_semaine()  # Ajouter la première semaine par défaut
+
+        # Charger les semaines existantes avant d'ajouter une nouvelle
+        semaines_chargees = self.charger_semaines_existantes()
+
+        # Ajouter une semaine par défaut seulement si aucune n'a été chargée
+        if not semaines_chargees:
+            self.ajouter_semaine()  # Ajouter la première semaine par défaut
 
     def setup_ui(self):
         main_layout = QVBoxLayout()
@@ -74,7 +88,9 @@ class PlanningTab(QWidget):
         # Onglets pour les semaines
         self.tabs_semaines = QTabWidget()
         self.tabs_semaines.setTabsClosable(True)
-        self.tabs_semaines.tabCloseRequested.connect(self.fermer_semaine)
+
+        # Utiliser directement supprimer_onglet_semaine au lieu de fermer_semaine
+        self.tabs_semaines.tabCloseRequested.connect(self.supprimer_onglet_semaine)
         self.tabs_semaines.currentChanged.connect(self.on_tab_changed)
 
         # Permettre le glisser-déposer des onglets
@@ -142,6 +158,13 @@ class PlanningTab(QWidget):
         # Mettre à jour les noms d'onglets si nécessaire pour garantir la cohérence
         self.mettre_a_jour_noms_onglets()
 
+        # Émettre le signal d'ajout avec un print pour déboguer
+        print(f"PlanningTab: Émission du signal semaine_ajoutee({semaine_id})")
+        self.semaine_ajoutee.emit(semaine_id)
+        # Émettre également sur le bus d'événements centralisé
+        event_bus.semaine_ajoutee.emit(semaine_id)
+        event_bus.semaines_modifiees.emit()
+
     def fermer_semaine(self, index):
         """Ferme une semaine à l'index donné"""
         # Si c'est la dernière semaine, ne pas permettre la fermeture
@@ -151,31 +174,8 @@ class PlanningTab(QWidget):
             )
             return
 
-        # Trouver l'ID de semaine correspondant à cet onglet
-        semaine_widget = self.tabs_semaines.widget(index)
-        # Trouver la clé (ID) correspondant à ce widget
-        semaine_id = None
-        for id, widget in self.semaines.items():
-            if widget == semaine_widget:
-                semaine_id = id
-                break
-
-        if semaine_id is not None:
-            # Supprimer l'ID de la liste des semaines utilisées
-            self.semaine_ids.remove(semaine_id)
-
-            # Supprimer tout nom personnalisé pour cet onglet
-            if semaine_id in self.onglets_personnalises:
-                del self.onglets_personnalises[semaine_id]
-
-            # Supprimer du dictionnaire
-            del self.semaines[semaine_id]
-
-            # Supprimer l'onglet
-            self.tabs_semaines.removeTab(index)
-
-            # Mettre à jour les noms d'onglets par défaut
-            self.mettre_a_jour_noms_onglets()
+        # Utiliser la méthode supprimer_onglet_semaine pour assurer la suppression en DB
+        self.supprimer_onglet_semaine(index)
 
     def supprimer_semaine_courante(self):
         """Supprime la semaine actuellement affichée"""
@@ -243,6 +243,131 @@ class PlanningTab(QWidget):
         current_semaine_widget = self.tabs_semaines.currentWidget()
         if current_semaine_widget:
             current_semaine_widget.add_meal()
+
+    def charger_semaines_existantes(self):
+        """Charge les semaines existantes depuis la base de données"""
+        self.db_manager.connect()
+        self.db_manager.cursor.execute(
+            """
+            SELECT DISTINCT semaine_id FROM repas
+            WHERE semaine_id IS NOT NULL
+            ORDER BY semaine_id
+            """
+        )
+        semaines = self.db_manager.cursor.fetchall()
+        self.db_manager.disconnect()
+
+        # Si aucune semaine trouvée, retourner False
+        if not semaines:
+            return False
+
+        # Ajouter chaque semaine à l'interface
+        for semaine in semaines:
+            semaine_id = semaine[0]
+            self.ajouter_semaine_avec_id(semaine_id)
+
+        # Au moins une semaine a été chargée
+        return True
+
+    def ajouter_onglet_semaine(self, semaine_id, emit_signal=True):
+        """Ajoute un nouvel onglet pour une semaine spécifique"""
+        # Créer un widget de planning pour la semaine
+        semaine_widget = SemainePlanningWidget(self.db_manager, semaine_id)
+
+        # Ajouter l'onglet au TabWidget des semaines
+        tab_index = self.semaines_tab_widget.addTab(
+            semaine_widget, f"Semaine {semaine_id}"
+        )
+
+        # Garder une trace de cet onglet
+        self.semaine_tabs[semaine_id] = tab_index
+
+        # Émettre le signal si nécessaire
+        if emit_signal:
+            self.semaine_ajoutee.emit(semaine_id)
+
+        return tab_index
+
+    def ajouter_semaine_avec_id(self, semaine_id):
+        """Ajoute une semaine avec un ID spécifique"""
+        # Vérifier si cette semaine_id est déjà utilisée
+        if semaine_id in self.semaine_ids:
+            return False
+
+        # Créer un widget pour cette semaine
+        semaine_widget = SemaineWidget(self.db_manager, semaine_id)
+
+        # Ajouter l'onglet
+        tab_text = f"Semaine {semaine_id}"
+        index = self.tabs_semaines.addTab(semaine_widget, tab_text)
+
+        # Stocker le widget dans le dictionnaire
+        self.semaines[semaine_id] = semaine_widget
+
+        # Ajouter l'ID à la liste des semaines utilisées
+        self.semaine_ids.append(semaine_id)
+
+        # Stocker la relation entre semaine_id et index
+        self.semaine_tabs[semaine_id] = index
+
+        # Émettre le signal d'ajout
+        self.semaine_ajoutee.emit(semaine_id)
+
+        return True
+
+    def supprimer_onglet_semaine(self, index):
+        """Supprime un onglet de semaine"""
+        # Si c'est la dernière semaine, ne pas permettre la fermeture
+        if self.tabs_semaines.count() <= 1:
+            QMessageBox.warning(
+                self, "Impossible", "Vous devez garder au moins une semaine."
+            )
+            return
+
+        # Trouver le semaine_id correspondant à cet index
+        semaine_widget = self.tabs_semaines.widget(index)
+        semaine_id = None
+
+        # Rechercher l'ID de la semaine à partir du widget
+        for sid, widget in self.semaines.items():
+            if widget == semaine_widget:
+                semaine_id = sid
+                break
+
+        if semaine_id is not None:
+            print(
+                f"Suppression de la semaine {semaine_id} de la base de données"
+            )  # Log pour débugger
+
+            # Supprimer de la base de données
+            self.db_manager.supprimer_semaine(semaine_id)
+
+            # Supprimer du dictionnaire des semaines
+            del self.semaines[semaine_id]
+
+            # Supprimer de la liste des IDs
+            if semaine_id in self.semaine_ids:
+                self.semaine_ids.remove(semaine_id)
+
+            # Supprimer des onglets
+            if semaine_id in self.semaine_tabs:
+                del self.semaine_tabs[semaine_id]
+
+            # Supprimer tout nom personnalisé pour cet onglet
+            if semaine_id in self.onglets_personnalises:
+                del self.onglets_personnalises[semaine_id]
+
+            # Émettre les signaux
+            self.semaine_supprimee.emit(semaine_id)
+            # Émettre également sur le bus d'événements centralisé
+            event_bus.semaine_supprimee.emit(semaine_id)
+            event_bus.semaines_modifiees.emit()
+
+        # Supprimer l'onglet visuellement
+        self.tabs_semaines.removeTab(index)
+
+        # Mettre à jour les noms d'onglets par défaut
+        self.mettre_a_jour_noms_onglets()
 
 
 class SemaineWidget(QWidget):

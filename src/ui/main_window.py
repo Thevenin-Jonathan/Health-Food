@@ -1,8 +1,10 @@
-from PySide6.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout
+from PySide6.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout, QMessageBox
+from PySide6.QtCore import QTimer  # Pour les délais
 from .tabs.aliments_tab import AlimentsTab
 from .tabs.planning_tab import PlanningTab
 from .tabs.courses_tab import CoursesTab
-from .tabs.recettes_tab import RecettesTab  # Importer le nouvel onglet
+from .tabs.recettes_tab import RecettesTab
+from ..utils.events import event_bus
 
 
 class MainWindow(QMainWindow):
@@ -17,6 +19,9 @@ class MainWindow(QMainWindow):
 
         # Widget central avec onglets
         self.tabs = QTabWidget()
+
+        # Connecter le changement d'onglet pour actualiser la liste des courses
+        self.tabs.currentChanged.connect(self.on_tab_changed)
 
         # Onglet de gestion des aliments
         self.aliments_tab = AlimentsTab(self.db_manager)
@@ -36,3 +41,41 @@ class MainWindow(QMainWindow):
 
         # Définir comme widget central
         self.setCentralWidget(self.tabs)
+
+        # Connexion aux signaux du PlanningTab pour la mise à jour des courses
+        self.planning_tab.semaine_supprimee.connect(self.on_semaine_supprimee)
+        self.planning_tab.semaine_ajoutee.connect(self.on_semaine_ajoutee)
+
+        # Connexion aux signaux du bus d'événements (redondant mais pour sécurité)
+        event_bus.semaine_ajoutee.connect(self.on_semaine_ajoutee)
+        event_bus.semaine_supprimee.connect(self.on_semaine_supprimee)
+
+    def on_tab_changed(self, index):
+        """Appelé lorsque l'utilisateur change d'onglet"""
+        # Si on passe à l'onglet des courses, actualiser la liste des semaines
+        if index == 3:  # L'onglet des courses est le 4ème (index 3)
+            QTimer.singleShot(50, self.courses_tab.charger_semaines)
+
+    def on_semaine_supprimee(self, semaine_id):
+        """Appelé lorsqu'une semaine est supprimée du planning"""
+        print(f"MainWindow: Semaine {semaine_id} supprimée")  # Log pour déboguer
+
+        # Mettre à jour la liste des courses
+        if hasattr(self, "courses_tab"):
+            QTimer.singleShot(
+                50, self.courses_tab.charger_semaines
+            )  # Léger délai pour assurer l'ordre d'exécution
+        else:
+            print("Erreur: courses_tab n'est pas accessible")
+
+    def on_semaine_ajoutee(self, semaine_id):
+        """Appelé lorsqu'une semaine est ajoutée au planning"""
+        print(f"MainWindow: Semaine {semaine_id} ajoutée")  # Log pour débogger
+
+        # Mettre à jour la liste des courses
+        if hasattr(self, "courses_tab"):
+            QTimer.singleShot(
+                50, self.courses_tab.charger_semaines
+            )  # Léger délai pour assurer l'ordre d'exécution
+        else:
+            print("Erreur: courses_tab n'est pas accessible")
