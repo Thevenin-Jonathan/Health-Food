@@ -9,9 +9,12 @@ from PySide6.QtWidgets import (
     QMenu,
     QDialog,
     QMessageBox,
+    QWidget,
+    QSpacerItem,
+    QSizePolicy,
 )
 from PySide6.QtCore import Qt, QPoint
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QIcon
 
 from .tab_base import TabBase
 from ..dialogs.aliment_dialog import AlimentDialog
@@ -54,6 +57,38 @@ class NumericTableItem(QTableWidgetItem):
         return my_value < other_value
 
 
+class ActionButton(QPushButton):
+    """Bouton d'action personnalisé pour les cellules du tableau"""
+
+    def __init__(self, text, icon=None, parent=None):
+        super().__init__(text, parent)
+        self.setMinimumWidth(80)
+        self.setMaximumWidth(80)
+        self.setMinimumHeight(20)
+        self.setMaximumHeight(22)
+        if icon:
+            self.setIcon(QIcon(icon))
+
+        # Réduire la taille de police de 2px
+        font = self.font()
+        font.setPixelSize(
+            max(font.pixelSize() - 2, 8)
+        )  # Éviter les tailles trop petites
+        self.setFont(font)
+
+
+class ButtonContainer(QWidget):
+    """Widget conteneur pour centrer un bouton dans une cellule de tableau"""
+
+    def __init__(self, button, parent=None):
+        super().__init__(parent)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)  # Marges réduites
+        layout.setAlignment(Qt.AlignCenter)  # Alignement centré
+        layout.addWidget(button)
+        self.setLayout(layout)
+
+
 class AlimentsTab(TabBase):
     def __init__(self, db_manager):
         super().__init__(db_manager)
@@ -61,11 +96,38 @@ class AlimentsTab(TabBase):
         self.load_data()
 
     def setup_ui(self):
-        main_layout = QVBoxLayout()
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(10)
 
-        # Tableau des aliments avec toutes les colonnes nécessaires
+        # En-tête avec le bouton d'ajout à droite
+        header_layout = QHBoxLayout()
+        header_spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        header_layout.addItem(header_spacer)
+
+        self.btn_add = QPushButton("Ajouter un aliment")
+        self.btn_add.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                font-weight: bold;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """
+        )
+        self.btn_add.clicked.connect(self.add_aliment)
+        header_layout.addWidget(self.btn_add)
+
+        main_layout.addLayout(header_layout)
+
+        # Tableau des aliments avec les colonnes de boutons d'action
         self.table = QTableWidget()
-        self.table.setColumnCount(11)  # Augmenter le nombre de colonnes
+        self.table.setColumnCount(13)  # 11 colonnes de données + 2 colonnes d'actions
         self.table.setHorizontalHeaderLabels(
             [
                 "ID",
@@ -79,6 +141,8 @@ class AlimentsTab(TabBase):
                 "Lipides",
                 "Fibres",
                 "Prix/kg",
+                "Modifier",  # Nouvelle colonne pour le bouton Modifier
+                "Supprimer",  # Nouvelle colonne pour le bouton Supprimer
             ]
         )
 
@@ -86,9 +150,7 @@ class AlimentsTab(TabBase):
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)  # Lecture seule
-        self.table.setSortingEnabled(
-            True
-        )  # Permettre le tri en cliquant sur les en-têtes
+        self.table.setSortingEnabled(True)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.show_context_menu)
 
@@ -96,33 +158,47 @@ class AlimentsTab(TabBase):
         self.table.hideColumn(0)
 
         # Définir une taille minimale pour le tableau
-        self.table.setMinimumWidth(900)
+        self.table.setMinimumWidth(1000)
         self.table.setMinimumHeight(500)
         main_layout.addWidget(self.table)
 
-        # Boutons d'action
-        buttons_layout = QHBoxLayout()
+        # Configuration des largeurs de colonnes
+        header = self.table.horizontalHeader()
 
-        self.btn_add = QPushButton("Ajouter un aliment")
-        self.btn_add.clicked.connect(self.add_aliment)
+        # Définir les largeurs des colonnes
+        col_widths = {
+            1: 140,  # Nom
+            2: 100,  # Marque
+            3: 100,  # Magasin
+            4: 100,  # Catégorie
+            5: 70,  # Calories
+            6: 70,  # Protéines
+            7: 70,  # Glucides
+            8: 70,  # Lipides
+            9: 70,  # Fibres
+            10: 70,  # Prix/kg
+            11: 70,  # Bouton Modifier
+            12: 70,  # Bouton Supprimer
+        }
 
-        self.btn_edit = QPushButton("Modifier l'aliment sélectionné")
-        self.btn_edit.clicked.connect(self.edit_aliment)
+        # Appliquer les largeurs définies
+        for col, width in col_widths.items():
+            self.table.setColumnWidth(col, width)
+            if col in [11, 12]:  # Colonnes des boutons
+                header.setSectionResizeMode(col, QHeaderView.Fixed)
+            else:
+                header.setSectionResizeMode(col, QHeaderView.Interactive)
 
-        self.btn_delete = QPushButton("Supprimer l'aliment sélectionné")
-        self.btn_delete.clicked.connect(self.delete_aliment)
+        # La colonne Nom est extensible mais avec une largeur minimale
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setMinimumSectionSize(100)
 
-        self.btn_refresh = QPushButton("Actualiser la liste")
-        self.btn_refresh.clicked.connect(self.refresh_data)
-
-        buttons_layout.addWidget(self.btn_add)
-        buttons_layout.addWidget(self.btn_edit)
-        buttons_layout.addWidget(self.btn_delete)
-        buttons_layout.addWidget(self.btn_refresh)
-
-        main_layout.addLayout(buttons_layout)
-
-        self.setLayout(main_layout)
+        # Ajouter des tooltips
+        self.table.horizontalHeaderItem(5).setToolTip("Calories pour 100g")
+        self.table.horizontalHeaderItem(6).setToolTip("Protéines en g pour 100g")
+        self.table.horizontalHeaderItem(7).setToolTip("Glucides en g pour 100g")
+        self.table.horizontalHeaderItem(8).setToolTip("Lipides en g pour 100g")
+        self.table.horizontalHeaderItem(9).setToolTip("Fibres en g pour 100g")
 
     def refresh_data(self):
         """Implémentation de la méthode de base - rafraîchit les données"""
@@ -130,7 +206,28 @@ class AlimentsTab(TabBase):
 
     def load_data(self, sort_column="nom", sort_order=True):
         """Charge les aliments dans le tableau avec option de tri"""
-        self.table.setSortingEnabled(False)  # Désactiver le tri pendant le chargement
+        # Désactiver temporairement le tri pendant le chargement
+        self.table.setSortingEnabled(False)
+
+        # Mémoriser la colonne et l'ordre de tri actuels
+        current_sort_column = self.table.horizontalHeader().sortIndicatorSection()
+        current_sort_order = self.table.horizontalHeader().sortIndicatorOrder()
+
+        # Si le tri est activé et diffère des paramètres par défaut
+        if self.table.isSortingEnabled() and current_sort_column > 0:
+            sort_column_name = {
+                1: "nom",
+                2: "marque",
+                3: "magasin",
+                4: "categorie",
+                5: "calories",
+                6: "proteines",
+                7: "glucides",
+                8: "lipides",
+                9: "fibres",
+                10: "prix_kg",
+            }.get(current_sort_column, "nom")
+            sort_order = current_sort_order == Qt.AscendingOrder
 
         # Vider le tableau
         self.table.setRowCount(0)
@@ -143,9 +240,7 @@ class AlimentsTab(TabBase):
         for i, aliment in enumerate(aliments):
             # ID (caché)
             id_item = QTableWidgetItem()
-            id_item.setData(
-                Qt.DisplayRole, aliment["id"]
-            )  # Utiliser setData pour stocker en tant que nombre
+            id_item.setData(Qt.DisplayRole, aliment["id"])
             self.table.setItem(i, 0, id_item)
 
             # Nom
@@ -187,78 +282,73 @@ class AlimentsTab(TabBase):
             # Prix au kg avec tri numérique correct
             prix_val = aliment.get("prix_kg", 0) or 0
             prix_item = NumericTableItem(prix_val)
-            # Formater le texte avec le symbole €
             if prix_val > 0:
                 prix_item.setText(f"{prix_val:.2f} €")
             self.table.setItem(i, 10, prix_item)
 
-        # Réactiver le tri après avoir rempli les données
-        self.table.setSortingEnabled(True)
-
-        # Configuration optimisée des largeurs de colonnes
-        header = self.table.horizontalHeader()
-
-        # Colonnes à largeur fixe pour un affichage compact mais lisible
-        col_widths = {
-            1: 140,  # Nom
-            2: 100,  # Marque
-            3: 100,  # Magasin
-            4: 100,  # Catégorie
-            5: 70,  # Calories
-            6: 70,  # Protéines
-            7: 70,  # Glucides
-            8: 70,  # Lipides
-            9: 70,  # Fibres
-            10: 70,  # Prix/kg
-        }
-
-        # Appliquer les largeurs définies
-        for col, width in col_widths.items():
-            self.table.setColumnWidth(col, width)
-            header.setSectionResizeMode(col, QHeaderView.Interactive)
-
-        # Colonne Nom extensible mais avec limite minimale
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        header.setMinimumSectionSize(100)
-
-        # Ajouter des tooltips aux en-têtes pour plus de clarté
-        self.table.horizontalHeaderItem(5).setToolTip("Calories pour 100g")
-        self.table.horizontalHeaderItem(6).setToolTip("Protéines en g pour 100g")
-        self.table.horizontalHeaderItem(7).setToolTip("Glucides en g pour 100g")
-        self.table.horizontalHeaderItem(8).setToolTip("Lipides en g pour 100g")
-        self.table.horizontalHeaderItem(9).setToolTip("Fibres en g pour 100g")
-
-    def add_aliment(self):
-        """Ajoute un nouvel aliment"""
-        # Récupérer les listes de données existantes
-        magasins = self.db_manager.get_magasins_uniques()
-        marques = self.db_manager.get_marques_uniques()
-        categories = self.db_manager.get_categories_uniques()
-
-        dialog = AlimentDialog(
-            self, magasins=magasins, marques=marques, categories=categories
-        )
-
-        if dialog.exec():
-            data = dialog.get_data()
-            self.db_manager.ajouter_aliment(data)
-            self.load_data()
-
-    def edit_aliment(self):
-        """Modifie l'aliment sélectionné"""
-        selected_rows = self.table.selectedItems()
-        if not selected_rows:
-            QMessageBox.warning(
-                self,
-                "Sélection requise",
-                "Veuillez sélectionner un aliment à modifier.",
+            # Bouton Modifier
+            btn_edit = ActionButton("Modifier")
+            btn_edit.setStyleSheet(
+                """
+                QPushButton {
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 3px;
+                    font-size: 11px;
+                }
+                QPushButton:hover {
+                    background-color: #2980b9;
+                }
+            """
             )
-            return
+            btn_edit.clicked.connect(
+                lambda checked, row=i: self.edit_aliment_from_button(row)
+            )
+            # Utiliser le conteneur pour centrer le bouton
+            edit_container = ButtonContainer(btn_edit)
+            self.table.setCellWidget(i, 11, edit_container)
 
-        # Récupérer l'ID de la ligne sélectionnée
-        row = selected_rows[0].row()
+            # Bouton Supprimer
+            btn_delete = ActionButton("Supprimer")
+            btn_delete.setStyleSheet(
+                """
+                QPushButton {
+                    background-color: #e74c3c;
+                    color: white;
+                    border: none;
+                    border-radius: 3px;
+                    font-size: 11px;
+                }
+                QPushButton:hover {
+                    background-color: #c0392b;
+                }
+            """
+            )
+            btn_delete.clicked.connect(
+                lambda checked, row=i: self.delete_aliment_from_button(row)
+            )
+            # Utiliser le conteneur pour centrer le bouton
+            delete_container = ButtonContainer(btn_delete)
+            self.table.setCellWidget(i, 12, delete_container)
+
+        # Réactiver le tri avec la même colonne et ordre qu'avant
+        self.table.setSortingEnabled(True)
+        if current_sort_column > 0:
+            self.table.sortItems(current_sort_column, current_sort_order)
+
+    def edit_aliment_from_button(self, row):
+        """Éditer un aliment depuis le bouton dans le tableau"""
         aliment_id = int(self.table.item(row, 0).text())
+        self.edit_aliment_by_id(aliment_id)
 
+    def delete_aliment_from_button(self, row):
+        """Supprimer un aliment depuis le bouton dans le tableau"""
+        aliment_id = int(self.table.item(row, 0).text())
+        self.delete_aliment_by_id(aliment_id)
+
+    def edit_aliment_by_id(self, aliment_id):
+        """Édite un aliment par son ID"""
         # Récupérer les données de l'aliment
         aliment = self.db_manager.get_aliment(aliment_id)
 
@@ -280,21 +370,15 @@ class AlimentsTab(TabBase):
             self.db_manager.modifier_aliment(aliment_id, data)
             self.load_data()
 
-    def delete_aliment(self):
-        """Supprime l'aliment sélectionné"""
-        selected_rows = self.table.selectedItems()
-        if not selected_rows:
-            QMessageBox.warning(
-                self,
-                "Sélection requise",
-                "Veuillez sélectionner un aliment à supprimer.",
-            )
-            return
-
-        # Récupérer l'ID de la ligne sélectionnée
-        row = selected_rows[0].row()
-        aliment_id = int(self.table.item(row, 0).text())
-        aliment_nom = self.table.item(row, 1).text()
+    def delete_aliment_by_id(self, aliment_id):
+        """Supprime un aliment par son ID avec confirmation"""
+        # Trouver le nom de l'aliment pour la confirmation
+        for row in range(self.table.rowCount()):
+            if int(self.table.item(row, 0).text()) == aliment_id:
+                aliment_nom = self.table.item(row, 1).text()
+                break
+        else:
+            aliment_nom = f"Aliment #{aliment_id}"
 
         # Demander confirmation
         reply = QMessageBox.question(
@@ -309,6 +393,54 @@ class AlimentsTab(TabBase):
         if reply == QMessageBox.Yes:
             self.db_manager.supprimer_aliment(aliment_id)
             self.load_data()
+
+    def add_aliment(self):
+        """Ajoute un nouvel aliment"""
+        # Récupérer les listes de données existantes
+        magasins = self.db_manager.get_magasins_uniques()
+        marques = self.db_manager.get_marques_uniques()
+        categories = self.db_manager.get_categories_uniques()
+
+        dialog = AlimentDialog(
+            self, magasins=magasins, marques=marques, categories=categories
+        )
+
+        if dialog.exec():
+            data = dialog.get_data()
+            self.db_manager.ajouter_aliment(data)
+            self.load_data()
+
+    def edit_aliment(self):
+        """Méthode conservée pour compatibilité avec le menu contextuel"""
+        selected_rows = self.table.selectedItems()
+        if not selected_rows:
+            QMessageBox.warning(
+                self,
+                "Sélection requise",
+                "Veuillez sélectionner un aliment à modifier.",
+            )
+            return
+
+        # Récupérer l'ID de la ligne sélectionnée
+        row = selected_rows[0].row()
+        aliment_id = int(self.table.item(row, 0).text())
+        self.edit_aliment_by_id(aliment_id)
+
+    def delete_aliment(self):
+        """Méthode conservée pour compatibilité avec le menu contextuel"""
+        selected_rows = self.table.selectedItems()
+        if not selected_rows:
+            QMessageBox.warning(
+                self,
+                "Sélection requise",
+                "Veuillez sélectionner un aliment à supprimer.",
+            )
+            return
+
+        # Récupérer l'ID de la ligne sélectionnée
+        row = selected_rows[0].row()
+        aliment_id = int(self.table.item(row, 0).text())
+        self.delete_aliment_by_id(aliment_id)
 
     def show_context_menu(self, position):
         """Affiche un menu contextuel pour les actions rapides"""
