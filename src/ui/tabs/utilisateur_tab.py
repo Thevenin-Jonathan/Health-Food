@@ -10,12 +10,13 @@ from PySide6.QtWidgets import (
     QPushButton,
     QGroupBox,
     QRadioButton,
-    QSlider,
     QGridLayout,
     QButtonGroup,
     QWidget,
     QStackedWidget,
     QAbstractSpinBox,
+    QFrame,
+    QSizePolicy,
 )
 from PySide6.QtCore import Qt, QMargins, Signal, QTimer
 from PySide6.QtGui import QFont, QColor
@@ -42,6 +43,52 @@ class UtilisateurTab(TabBase):
                 height: 15px;
             }
         """
+
+    # Définitions des régimes alimentaires
+    REGIMES = {
+        "Régime équilibré": {
+            "description": "Maintenir le poids avec une répartition globale équilibrée.",
+            "proteines": (1.2, 1.6),  # (min, max) en g/kg
+            "glucides": (3.0, 5.0),
+            "lipides": (0.8, 1.0),
+        },
+        "Régime hypocalorique": {
+            "description": "Créer un déficit calorique tout en maintenant les muscles.",
+            "proteines": (1.6, 2.2),
+            "glucides": (1.0, 3.0),
+            "lipides": (0.6, 0.8),
+        },
+        "Régime hyperprotéiné": {
+            "description": "Favoriser la prise de muscle ou maximiser la définition musculaire.",
+            "proteines": (1.8, 2.5),
+            "glucides": (2.0, 4.0),
+            "lipides": (0.8, 1.0),
+        },
+        "Régime cétogène": {
+            "description": "Passer en état de cétose (brûler les graisses comme source principale d'énergie).",
+            "proteines": (1.2, 1.6),
+            "glucides": (0.5, 1.0),
+            "lipides": (1.8, 2.5),
+        },
+        "Régime de prise de masse": {
+            "description": "Construire du muscle tout en minimisant le gain de graisse.",
+            "proteines": (1.6, 2.2),
+            "glucides": (4.0, 6.0),
+            "lipides": (0.8, 1.2),
+        },
+        "Régime végétarien / vegan": {
+            "description": "Adapté à une alimentation sans viande (attention à l'apport protéique complet).",
+            "proteines": (1.6, 2.2),
+            "glucides": (3.0, 5.0),
+            "lipides": (0.8, 1.0),
+        },
+        "Personnalisé": {
+            "description": "Définir manuellement vos besoins en macronutriments.",
+            "proteines": (1.4, 1.4),  # Valeurs par défaut
+            "glucides": (3.0, 3.0),
+            "lipides": (0.9, 0.9),
+        },
+    }
 
     def __init__(self, db_manager):
         super().__init__(db_manager)
@@ -284,31 +331,115 @@ class UtilisateurTab(TabBase):
         macros_group = QGroupBox("Répartition des macronutriments")
         macros_layout = QVBoxLayout()
 
-        # Préréglages
+        # Préréglages de régimes
         presets_layout = QFormLayout()
-        self.macro_combo = QComboBox()
-        self.macro_combo.addItems(
-            [
-                "Standard",
-                "Low-carb",
-                "Hyperprotéiné",
-                "Faible en gras",
-                "Cétogène",
-                "Personnalisé",
-            ]
+        self.regime_combo = QComboBox()
+        self.regime_combo.addItems(self.REGIMES.keys())
+        self.regime_combo.currentIndexChanged.connect(self.on_regime_changed)
+        presets_layout.addRow("Type de régime:", self.regime_combo)
+
+        # Description du régime
+        self.regime_description = QLabel(
+            self.REGIMES["Régime équilibré"]["description"]
         )
-        self.macro_combo.currentIndexChanged.connect(self.on_macro_preset_changed)
-        presets_layout.addRow("Préréglage:", self.macro_combo)
+        self.regime_description.setWordWrap(True)
+        self.regime_description.setStyleSheet("font-style: italic; color: #666;")
+        presets_layout.addRow(self.regime_description)
+
         macros_layout.addLayout(presets_layout)
 
-        # Sliders pour les pourcentages avec champs de saisie en grammes
-        self.proteines_slider = self.create_macro_slider("Protéines", 30)
-        self.glucides_slider = self.create_macro_slider("Glucides", 40)
-        self.lipides_slider = self.create_macro_slider("Lipides", 30)
+        # Ligne de séparation
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        macros_layout.addWidget(line)
 
-        macros_layout.addLayout(self.proteines_slider["layout"])
-        macros_layout.addLayout(self.glucides_slider["layout"])
-        macros_layout.addLayout(self.lipides_slider["layout"])
+        # Table des macronutriments
+        macro_table = QGridLayout()
+        macro_table.setHorizontalSpacing(15)
+
+        # En-têtes
+        macro_table.addWidget(QLabel(""), 0, 0)
+        header_g_kg = QLabel("g/kg de poids corporel")
+        header_g_kg.setAlignment(Qt.AlignCenter)
+        header_g_kg.setStyleSheet("font-weight: bold;")
+        macro_table.addWidget(header_g_kg, 0, 1, 1, 2)
+
+        header_total = QLabel("Total (grammes)")
+        header_total.setAlignment(Qt.AlignCenter)
+        header_total.setStyleSheet("font-weight: bold;")
+        macro_table.addWidget(header_total, 0, 3)
+
+        # Protéines
+        prot_label = QLabel("Protéines:")
+        prot_label.setStyleSheet("font-weight: bold;")
+        macro_table.addWidget(prot_label, 1, 0)
+
+        self.prot_min_spin = QDoubleSpinBox()
+        self.prot_min_spin.setRange(0.1, 4.0)
+        self.prot_min_spin.setDecimals(1)
+        self.prot_min_spin.setSingleStep(0.1)
+        self.prot_min_spin.setValue(1.2)
+        self.prot_min_spin.setStyleSheet(self.spin_style)
+        self.prot_min_spin.valueChanged.connect(self.calculer_calories)
+        macro_table.addWidget(self.prot_min_spin, 1, 1)
+
+        macro_table.addWidget(QLabel("-"), 1, 2, Qt.AlignCenter)
+
+        self.prot_gram_label = QLabel("0 g")
+        self.prot_gram_label.setStyleSheet("font-weight: bold;")
+        macro_table.addWidget(self.prot_gram_label, 1, 3, Qt.AlignCenter)
+
+        # Glucides
+        gluc_label = QLabel("Glucides:")
+        gluc_label.setStyleSheet("font-weight: bold;")
+        macro_table.addWidget(gluc_label, 2, 0)
+
+        self.gluc_min_spin = QDoubleSpinBox()
+        self.gluc_min_spin.setRange(0.1, 8.0)
+        self.gluc_min_spin.setDecimals(1)
+        self.gluc_min_spin.setSingleStep(0.1)
+        self.gluc_min_spin.setValue(3.0)
+        self.gluc_min_spin.setStyleSheet(self.spin_style)
+        self.gluc_min_spin.valueChanged.connect(self.calculer_calories)
+        macro_table.addWidget(self.gluc_min_spin, 2, 1)
+
+        macro_table.addWidget(QLabel("-"), 2, 2, Qt.AlignCenter)
+
+        self.gluc_gram_label = QLabel("0 g")
+        self.gluc_gram_label.setStyleSheet("font-weight: bold;")
+        macro_table.addWidget(self.gluc_gram_label, 2, 3, Qt.AlignCenter)
+
+        # Lipides
+        lip_label = QLabel("Lipides:")
+        lip_label.setStyleSheet("font-weight: bold;")
+        macro_table.addWidget(lip_label, 3, 0)
+
+        self.lip_min_spin = QDoubleSpinBox()
+        self.lip_min_spin.setRange(0.1, 3.0)
+        self.lip_min_spin.setDecimals(1)
+        self.lip_min_spin.setSingleStep(0.1)
+        self.lip_min_spin.setValue(0.8)
+        self.lip_min_spin.setStyleSheet(self.spin_style)
+        self.lip_min_spin.valueChanged.connect(self.calculer_calories)
+        macro_table.addWidget(self.lip_min_spin, 3, 1)
+
+        macro_table.addWidget(QLabel("-"), 3, 2, Qt.AlignCenter)
+
+        self.lip_gram_label = QLabel("0 g")
+        self.lip_gram_label.setStyleSheet("font-weight: bold;")
+        macro_table.addWidget(self.lip_gram_label, 3, 3, Qt.AlignCenter)
+
+        # Total calories
+        total_label = QLabel("Total:")
+        total_label.setStyleSheet("font-weight: bold;")
+        macro_table.addWidget(total_label, 4, 0)
+
+        self.total_calories_label = QLabel("0 kcal")
+        self.total_calories_label.setStyleSheet("font-weight: bold; color: #2e7d32;")
+        macro_table.addWidget(self.total_calories_label, 4, 3, Qt.AlignCenter)
+
+        macros_layout.addLayout(macro_table)
 
         macros_group.setLayout(macros_layout)
         right_column.addWidget(macros_group)
@@ -340,28 +471,6 @@ class UtilisateurTab(TabBase):
         results_layout.addWidget(self.objectif_label, 2, 1)
         results_layout.addWidget(QLabel("kcal"), 2, 2)
 
-        # Macros en grammes et pourcentages
-        self.proteines_g_label = QLabel("0 g")
-        self.proteines_g_label.setStyleSheet("font-weight: bold;")
-        self.proteines_pct_label = QLabel("(30%)")
-        results_layout.addWidget(QLabel("Protéines:"), 3, 0)
-        results_layout.addWidget(self.proteines_g_label, 3, 1)
-        results_layout.addWidget(self.proteines_pct_label, 3, 2)
-
-        self.glucides_g_label = QLabel("0 g")
-        self.glucides_g_label.setStyleSheet("font-weight: bold;")
-        self.glucides_pct_label = QLabel("(40%)")
-        results_layout.addWidget(QLabel("Glucides:"), 4, 0)
-        results_layout.addWidget(self.glucides_g_label, 4, 1)
-        results_layout.addWidget(self.glucides_pct_label, 4, 2)
-
-        self.lipides_g_label = QLabel("0 g")
-        self.lipides_g_label.setStyleSheet("font-weight: bold;")
-        self.lipides_pct_label = QLabel("(30%)")
-        results_layout.addWidget(QLabel("Lipides:"), 5, 0)
-        results_layout.addWidget(self.lipides_g_label, 5, 1)
-        results_layout.addWidget(self.lipides_pct_label, 5, 2)
-
         results_group.setLayout(results_layout)
         right_column.addWidget(results_group)
 
@@ -383,228 +492,27 @@ class UtilisateurTab(TabBase):
         # Initialiser l'état des champs selon le mode
         self.on_mode_changed()
 
-    def create_macro_slider(self, name, default_value):
-        """Crée un slider pour les macronutriments avec son label et sa valeur"""
-        layout = QHBoxLayout()
+    def on_regime_changed(self):
+        """Appelé quand le type de régime alimentaire change"""
+        regime_nom = self.regime_combo.currentText()
+        regime_data = self.REGIMES[regime_nom]
 
-        # Label du macronutriment
-        label = QLabel(f"{name}:")
-        layout.addWidget(label)
+        # Mettre à jour la description
+        self.regime_description.setText(regime_data["description"])
 
-        # Slider pour le pourcentage
-        slider = QSlider(Qt.Horizontal)
-        slider.setRange(5, 70)
-        slider.setValue(default_value)
-        slider.setEnabled(
-            False
-        )  # Désactivé par défaut, activé seulement en mode personnalisé
-        slider.valueChanged.connect(self.on_macro_slider_changed)
-        layout.addWidget(slider)
+        # Mettre à jour les valeurs des spins
+        self.prot_min_spin.setValue(regime_data["proteines"][0])
+        self.gluc_min_spin.setValue(regime_data["glucides"][0])
+        self.lip_min_spin.setValue(regime_data["lipides"][0])
 
-        # Label de pourcentage
-        value_label = QLabel(f"{default_value}%")
-        layout.addWidget(value_label)
+        # Activer/désactiver la modification selon le régime sélectionné
+        is_custom = regime_nom == "Personnalisé"
+        self.prot_min_spin.setEnabled(is_custom)
+        self.gluc_min_spin.setEnabled(is_custom)
+        self.lip_min_spin.setEnabled(is_custom)
 
-        # Champ pour saisie directe en grammes
-        gram_spin = QSpinBox()
-        gram_spin.setRange(0, 500)
-        gram_spin.setValue(0)  # Sera mis à jour lors du calcul
-        gram_spin.setSuffix(" g")
-        gram_spin.setEnabled(False)  # Désactivé par défaut
-        gram_spin.setStyleSheet(self.spin_style)
-        gram_spin.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
-
-        if name == "Protéines":
-            gram_spin.valueChanged.connect(
-                lambda: self.on_macro_gram_changed("Protéines")
-            )
-        elif name == "Glucides":
-            gram_spin.valueChanged.connect(
-                lambda: self.on_macro_gram_changed("Glucides")
-            )
-        elif name == "Lipides":
-            gram_spin.valueChanged.connect(
-                lambda: self.on_macro_gram_changed("Lipides")
-            )
-
-        layout.addWidget(gram_spin)
-
-        return {
-            "label": label,
-            "slider": slider,
-            "value_label": value_label,
-            "gram_spin": gram_spin,
-            "layout": layout,
-        }
-
-    def on_macro_slider_changed(self):
-        """Appelé quand un slider de macro est modifié pour s'assurer que le total est de 100%"""
-        # Récupérer les valeurs actuelles
-        p_val = self.proteines_slider["slider"].value()
-        g_val = self.glucides_slider["slider"].value()
-        l_val = self.lipides_slider["slider"].value()
-
-        # Calculer le total
-        total = p_val + g_val + l_val
-
-        # Si le total n'est pas 100%, ajuster selon le slider modifié
-        if total != 100:
-            # Déterminer quel slider a été modifié
-            sender = self.sender()
-
-            if sender == self.proteines_slider["slider"]:
-                # Ajuster uniquement les glucides
-                new_g = 100 - p_val - l_val
-                if new_g < 5:  # Respecter la valeur minimale
-                    new_g = 5
-                    new_p = 100 - new_g - l_val
-                    if new_p < 5:  # Si impossible, ajuster les lipides aussi
-                        new_p = 5
-                        new_l = 100 - new_p - new_g
-                        self.lipides_slider["slider"].blockSignals(True)
-                        self.lipides_slider["slider"].setValue(new_l)
-                        self.lipides_slider["slider"].blockSignals(False)
-                    self.proteines_slider["slider"].blockSignals(True)
-                    self.proteines_slider["slider"].setValue(new_p)
-                    self.proteines_slider["slider"].blockSignals(False)
-
-                self.glucides_slider["slider"].blockSignals(True)
-                self.glucides_slider["slider"].setValue(new_g)
-                self.glucides_slider["slider"].blockSignals(False)
-
-            elif sender == self.lipides_slider["slider"]:
-                # Ajuster uniquement les glucides
-                new_g = 100 - p_val - l_val
-                if new_g < 5:  # Respecter la valeur minimale
-                    new_g = 5
-                    new_l = 100 - p_val - new_g
-                    if new_l < 5:  # Si impossible, ajuster les protéines aussi
-                        new_l = 5
-                        new_p = 100 - new_l - new_g
-                        self.proteines_slider["slider"].blockSignals(True)
-                        self.proteines_slider["slider"].setValue(new_p)
-                        self.proteines_slider["slider"].blockSignals(False)
-                    self.lipides_slider["slider"].blockSignals(True)
-                    self.lipides_slider["slider"].setValue(new_l)
-                    self.lipides_slider["slider"].blockSignals(False)
-
-                self.glucides_slider["slider"].blockSignals(True)
-                self.glucides_slider["slider"].setValue(new_g)
-                self.glucides_slider["slider"].blockSignals(False)
-
-            elif sender == self.glucides_slider["slider"]:
-                # Ajuster uniquement les protéines
-                new_p = 100 - g_val - l_val
-                if new_p < 5:  # Respecter la valeur minimale
-                    new_p = 5
-                    new_g = 100 - new_p - l_val
-                    if new_g < 5:  # Si impossible, ajuster les lipides aussi
-                        new_g = 5
-                        new_l = 100 - new_p - new_g
-                        self.lipides_slider["slider"].blockSignals(True)
-                        self.lipides_slider["slider"].setValue(new_l)
-                        self.lipides_slider["slider"].blockSignals(False)
-                    self.glucides_slider["slider"].blockSignals(True)
-                    self.glucides_slider["slider"].setValue(new_g)
-                    self.glucides_slider["slider"].blockSignals(False)
-
-                self.proteines_slider["slider"].blockSignals(True)
-                self.proteines_slider["slider"].setValue(new_p)
-                self.proteines_slider["slider"].blockSignals(False)
-
-        # Mettre à jour les labels
-        self.proteines_slider["value_label"].setText(
-            f"{self.proteines_slider['slider'].value()}%"
-        )
-        self.glucides_slider["value_label"].setText(
-            f"{self.glucides_slider['slider'].value()}%"
-        )
-        self.lipides_slider["value_label"].setText(
-            f"{self.lipides_slider['slider'].value()}%"
-        )
-
-        # Recalculer les calories et mettre à jour les champs en grammes
+        # Recalculer les calories
         self.calculer_calories()
-        self.update_macro_grams_from_pct()
-
-        # Récupérer les valeurs mises à jour pour affichage
-        p_gram = self.proteines_slider["gram_spin"].value()
-        g_gram = self.glucides_slider["gram_spin"].value()
-        l_gram = self.lipides_slider["gram_spin"].value()
-
-        # Mettre à jour les labels
-        self.proteines_g_label.setText(f"{p_gram} g")
-        self.glucides_g_label.setText(f"{g_gram} g")
-        self.lipides_g_label.setText(f"{l_gram} g")
-
-    def on_macro_gram_changed(self, macro_name):
-        """Appelé quand un champ de grammes est modifié pour mettre à jour les pourcentages"""
-
-        # Récupérer les valeurs en grammes
-        p_gram = self.proteines_slider["gram_spin"].value()
-        g_gram = self.glucides_slider["gram_spin"].value()
-        l_gram = self.lipides_slider["gram_spin"].value()
-
-        # Calculer les calories totales des macros
-        total_calories = (p_gram * 4) + (g_gram * 4) + (l_gram * 9)
-
-        if total_calories > 0:
-            # Calculer les nouveaux pourcentages
-            p_pct = int((p_gram * 4 / total_calories) * 100)
-            g_pct = int((g_gram * 4 / total_calories) * 100)
-            l_pct = int((l_gram * 9 / total_calories) * 100)
-
-            # Ajuster pour s'assurer que le total est 100%
-            total_pct = p_pct + g_pct + l_pct
-            if total_pct != 100:
-                # Ajuster selon le macro modifié
-                if macro_name == "Protéines":
-                    p_pct = 100 - g_pct - l_pct
-                elif macro_name == "Lipides":
-                    g_pct = 100 - p_pct - l_pct
-                elif macro_name == "Glucides":
-                    l_pct = 100 - p_pct - g_pct
-
-            # Mettre à jour les sliders
-            self.update_macro_sliders(p_pct, g_pct, l_pct)
-
-            # Mettre à jour les calories objectif
-            if self.mode_manuel_radio.isChecked():
-                self.calories_manuelles_spin.setValue(int(total_calories))
-
-            # Recalculer pour mettre à jour l'interface
-            self.calculer_calories()
-
-    def update_macro_grams_from_pct(self):
-        """Met à jour les champs de grammes en fonction des pourcentages et des calories totales"""
-        # Récupérer les calories totales
-        if self.mode_auto_radio.isChecked():
-            calories = int(self.objectif_label.text())
-        else:
-            calories = self.calories_manuelles_spin.value()
-
-        # Récupérer les pourcentages
-        p_pct = self.proteines_slider["slider"].value() / 100
-        g_pct = self.glucides_slider["slider"].value() / 100
-        l_pct = self.lipides_slider["slider"].value() / 100
-
-        # Calculer les grammes
-        p_gram = int((calories * p_pct) / 4)  # 4 kcal par gramme de protéines
-        g_gram = int((calories * g_pct) / 4)  # 4 kcal par gramme de glucides
-        l_gram = int((calories * l_pct) / 9)  # 9 kcal par gramme de lipides
-
-        # Mettre à jour les champs sans déclencher les signaux
-        self.proteines_slider["gram_spin"].blockSignals(True)
-        self.glucides_slider["gram_spin"].blockSignals(True)
-        self.lipides_slider["gram_spin"].blockSignals(True)
-
-        self.proteines_slider["gram_spin"].setValue(p_gram)
-        self.glucides_slider["gram_spin"].setValue(g_gram)
-        self.lipides_slider["gram_spin"].setValue(l_gram)
-
-        self.proteines_slider["gram_spin"].blockSignals(False)
-        self.glucides_slider["gram_spin"].blockSignals(False)
-        self.lipides_slider["gram_spin"].blockSignals(False)
 
     def on_mode_changed(self, button=None):
         """Gère le changement de mode (auto/manuel)"""
@@ -612,12 +520,6 @@ class UtilisateurTab(TabBase):
 
         # Changer la page du stacked widget
         self.stacked_widget.setCurrentIndex(0 if is_auto else 1)
-
-        # Activer/désactiver les champs de grammes selon le mode
-        is_custom = self.macro_combo.currentText() == "Personnalisé"
-        self.proteines_slider["gram_spin"].setEnabled(is_custom)
-        self.glucides_slider["gram_spin"].setEnabled(is_custom)
-        self.lipides_slider["gram_spin"].setEnabled(is_custom)
 
         # Recalculer les calories
         self.calculer_calories()
@@ -628,51 +530,190 @@ class UtilisateurTab(TabBase):
         self.variation_spin.setEnabled(objectif != "Maintien")
         self.calculer_calories()
 
-    def on_macro_preset_changed(self):
-        """Gère le changement de préréglage des macros"""
-        preset = self.macro_combo.currentText()
+    def update_macro_grams(self):
+        """Calcule et ajuste les grammes de macronutriments en fonction du poids, des valeurs g/kg et des calories cibles"""
+        poids = self.poids_spin.value()
 
-        # Activer les sliders et les champs de grammes uniquement en mode personnalisé
-        is_custom = preset == "Personnalisé"
-        self.proteines_slider["slider"].setEnabled(is_custom)
-        self.glucides_slider["slider"].setEnabled(is_custom)
-        self.lipides_slider["slider"].setEnabled(is_custom)
-        self.proteines_slider["gram_spin"].setEnabled(is_custom)
-        self.glucides_slider["gram_spin"].setEnabled(is_custom)
-        self.lipides_slider["gram_spin"].setEnabled(is_custom)
+        # Récupérer les valeurs de base des macros en g/kg selon le régime sélectionné
+        regime_nom = self.regime_combo.currentText()
+        regime_data = self.REGIMES[regime_nom]
 
-        # Mettre à jour les valeurs selon le préréglage
-        if preset == "Standard":
-            self.update_macro_sliders(30, 40, 30)
-        elif preset == "Low-carb":
-            self.update_macro_sliders(35, 25, 40)
-        elif preset == "Hyperprotéiné":
-            self.update_macro_sliders(45, 35, 20)
-        elif preset == "Faible en gras":
-            self.update_macro_sliders(35, 50, 15)
-        elif preset == "Cétogène":
-            self.update_macro_sliders(30, 5, 65)
+        # Calculer les calories cibles
+        if self.mode_auto_radio.isChecked() and self.objectif_label.text():
+            calories_cible = int(self.objectif_label.text())
+        else:
+            calories_cible = self.calories_manuelles_spin.value()
 
-        self.calculer_calories()
-        self.update_macro_grams_from_pct()
+        # Convertir les g/kg en grammes - valeurs de base
+        prot_g_kg = self.prot_min_spin.value()
+        gluc_g_kg = self.gluc_min_spin.value()
+        lip_g_kg = self.lip_min_spin.value()
 
-    def update_macro_sliders(self, p, g, l):
-        """Met à jour les valeurs des sliders sans déclencher les signaux"""
-        self.proteines_slider["slider"].blockSignals(True)
-        self.glucides_slider["slider"].blockSignals(True)
-        self.lipides_slider["slider"].blockSignals(True)
+        # Calculer les grammes de base
+        prot_g_base = round(prot_g_kg * poids)
+        gluc_g_base = round(gluc_g_kg * poids)
+        lip_g_base = round(lip_g_kg * poids)
 
-        self.proteines_slider["slider"].setValue(p)
-        self.glucides_slider["slider"].setValue(g)
-        self.lipides_slider["slider"].setValue(l)
+        # Calculer les calories de base
+        cal_prot = prot_g_base * 4  # 4 kcal par gramme de protéines
+        cal_gluc = gluc_g_base * 4  # 4 kcal par gramme de glucides
+        cal_lip = lip_g_base * 9  # 9 kcal par gramme de lipides
 
-        self.proteines_slider["value_label"].setText(f"{p}%")
-        self.glucides_slider["value_label"].setText(f"{g}%")
-        self.lipides_slider["value_label"].setText(f"{l}%")
+        total_cal_base = cal_prot + cal_gluc + cal_lip
 
-        self.proteines_slider["slider"].blockSignals(False)
-        self.glucides_slider["slider"].blockSignals(False)
-        self.lipides_slider["slider"].blockSignals(False)
+        # Si les calories de base sont différentes des calories cibles, ajuster les macros
+        if abs(total_cal_base - calories_cible) > 10:  # Tolérance de 10 kcal
+            # 1. Protéines : priorité haute - maintenir ou ajuster légèrement si en excès
+            prot_g = prot_g_base
+
+            # 2. Lipides : maintenir un minimum, ajuster si nécessaire
+            lip_g = lip_g_base
+            lip_g_min = round(0.6 * poids)  # Minimum 0.6g/kg
+
+            # 3. Calculer les glucides comme variable d'ajustement principal
+            cal_restantes = calories_cible - (prot_g * 4) - (lip_g * 9)
+            gluc_g = max(10, round(cal_restantes / 4))  # Minimum 10g de glucides
+
+            # 4. Si les glucides sont trop bas (<0.5 g/kg) et les lipides/protéines élevés, ajuster
+            if gluc_g < round(0.5 * poids) and calories_cible < total_cal_base:
+                # Réduction progressive - d'abord les lipides jusqu'au minimum
+                if lip_g > lip_g_min:
+                    # Calculer la réduction nécessaire en lipides tout en conservant min 0.5g/kg glucides
+                    gluc_g_min = round(0.5 * poids)
+                    cal_necessaires = gluc_g_min * 4
+                    cal_restantes_apres_prot = calories_cible - (prot_g * 4)
+
+                    # Calculer lipides max possible
+                    lip_g = min(
+                        lip_g, round((cal_restantes_apres_prot - cal_necessaires) / 9)
+                    )
+                    lip_g = max(lip_g_min, lip_g)  # Ne pas descendre sous le minimum
+
+                    # Recalculer les glucides
+                    cal_restantes = calories_cible - (prot_g * 4) - (lip_g * 9)
+                    gluc_g = max(gluc_g_min, round(cal_restantes / 4))
+
+                # Si toujours en déficit calorique important, ajuster légèrement les protéines
+                cal_actuelles = (prot_g * 4) + (lip_g * 9) + (gluc_g * 4)
+                if cal_actuelles < calories_cible * 0.9:  # Si <90% des calories cibles
+                    # Ajuster les protéines mais sans descendre sous 1.6g/kg
+                    prot_g_min = round(1.6 * poids)
+                    prot_g = max(
+                        prot_g_min,
+                        round((calories_cible - (lip_g * 9) - (gluc_g * 4)) / 4),
+                    )
+
+            # 5. Si on dépasse les calories en prise de masse, privilégier les glucides
+            if calories_cible > total_cal_base:
+                # En prise de masse, on peut privilégier les glucides
+                regime = self.objectif_combo.currentText()
+                if regime == "Prise de masse":
+                    # Maintenir les protéines et lipides aux valeurs de base
+                    # Augmenter les glucides pour atteindre l'objectif calorique
+                    cal_restantes = calories_cible - (prot_g * 4) - (lip_g * 9)
+                    gluc_g = round(cal_restantes / 4)
+        else:
+            # Garder les valeurs de base si pas besoin d'ajustement
+            prot_g = prot_g_base
+            gluc_g = gluc_g_base
+            lip_g = lip_g_base
+
+        # Mettre à jour les labels
+        self.prot_gram_label.setText(f"{prot_g} g")
+        self.gluc_gram_label.setText(f"{gluc_g} g")
+        self.lip_gram_label.setText(f"{lip_g} g")
+
+        # Calculer le total des calories ajusté
+        total_kcal = (prot_g * 4) + (gluc_g * 4) + (lip_g * 9)
+        self.total_calories_label.setText(f"{total_kcal} kcal")
+
+        # Calculer et afficher les pourcentages
+        pct_prot = round((prot_g * 4 / total_kcal) * 100) if total_kcal > 0 else 0
+        pct_gluc = round((gluc_g * 4 / total_kcal) * 100) if total_kcal > 0 else 0
+        pct_lip = round((lip_g * 9 / total_kcal) * 100) if total_kcal > 0 else 0
+
+        # Afficher les g/kg effectifs
+        prot_g_kg_effectif = round(prot_g / poids, 1)
+        gluc_g_kg_effectif = round(gluc_g / poids, 1)
+        lip_g_kg_effectif = round(lip_g / poids, 1)
+
+        # Si les valeurs ont été ajustées, mettre à jour les champs g/kg
+        if regime_nom == "Personnalisé" or abs(total_cal_base - total_kcal) > 10:
+            self.prot_min_spin.blockSignals(True)
+            self.gluc_min_spin.blockSignals(True)
+            self.lip_min_spin.blockSignals(True)
+
+            self.prot_min_spin.setValue(prot_g_kg_effectif)
+            self.gluc_min_spin.setValue(gluc_g_kg_effectif)
+            self.lip_min_spin.setValue(lip_g_kg_effectif)
+
+            self.prot_min_spin.blockSignals(False)
+            self.gluc_min_spin.blockSignals(False)
+            self.lip_min_spin.blockSignals(False)
+
+        return {
+            "proteines_g": prot_g,
+            "glucides_g": gluc_g,
+            "lipides_g": lip_g,
+            "total_kcal": total_kcal,
+            "proteines_pct": pct_prot / 100,
+            "glucides_pct": pct_gluc / 100,
+            "lipides_pct": pct_lip / 100,
+        }
+
+    def calculer_calories(self):
+        """Calcule les besoins caloriques et met à jour l'affichage"""
+        # Préparer les données utilisateur à partir des champs du formulaire
+        user_data = {
+            "sexe": self.sexe_combo.currentText(),
+            "age": self.age_spin.value(),
+            "taille": self.taille_spin.value(),
+            "poids": self.poids_spin.value(),
+            "niveau_activite": self.activite_combo.currentText(),
+            "objectif": self.objectif_combo.currentText(),
+            "taux_variation": self.variation_spin.value()
+            / 100,  # Convertir en g/100g/semaine pour compatibilité
+            "calories_personnalisees": (
+                self.calories_manuelles_spin.value()
+                if self.mode_manuel_radio.isChecked()
+                else 0
+            ),
+            "regime_alimentaire": self.regime_combo.currentText(),
+            "proteines_g_kg": self.prot_min_spin.value(),
+            "glucides_g_kg": self.gluc_min_spin.value(),
+            "lipides_g_kg": self.lip_min_spin.value(),
+        }
+
+        # Effectuer le calcul
+        resultats = self.db_manager.calculer_calories_journalieres(user_data)
+
+        # Mettre à jour l'affichage des résultats
+        self.mb_label.setText(str(resultats["metabolisme_base"]))
+        self.maintien_label.setText(str(resultats["calories_maintien"]))
+
+        # Mettre à jour l'objectif calorique selon le mode
+        if self.mode_auto_radio.isChecked():
+            self.objectif_label.setText(str(resultats["calories_finales"]))
+
+        # Mettre à jour le label de variation
+        objectif = self.objectif_combo.currentText()
+        taux = self.variation_spin.value()  # En grammes par semaine
+
+        if objectif == "Perte de poids":
+            deficit = round((taux * 770) / (7 * 100))  # Utiliser 770 kcal pour 100g
+            self.variation_label.setText(f"≈ -{deficit} kcal/jour")
+        elif objectif == "Prise de masse":
+            surplus = round((taux * 770) / (7 * 100))  # Utiliser 770 kcal pour 100g
+            self.variation_label.setText(f"≈ +{surplus} kcal/jour")
+        else:
+            self.variation_label.setText("≈ 0 kcal/jour")
+
+        # Calculer et mettre à jour les macros en grammes - après avoir défini l'objectif calorique
+        macros = self.update_macro_grams()
+
+        # En mode manuel, mettre à jour l'objectif avec les calories calculées par les macros
+        if self.mode_manuel_radio.isChecked():
+            self.objectif_label.setText(str(macros["total_kcal"]))
 
     def charger_donnees_utilisateur(self):
         """Charge les données de l'utilisateur depuis la base de données"""
@@ -708,19 +749,24 @@ class UtilisateurTab(TabBase):
             self.mode_auto_radio.setChecked(True)
             self.on_mode_changed()
 
-        # Répartition des macros
-        self.macro_combo.setCurrentText(user_data.get("repartition_macros", "Standard"))
-        is_custom = user_data.get("repartition_macros", "Standard") == "Personnalisé"
-        self.proteines_slider["slider"].setEnabled(is_custom)
-        self.glucides_slider["slider"].setEnabled(is_custom)
-        self.lipides_slider["slider"].setEnabled(is_custom)
-        self.proteines_slider["gram_spin"].setEnabled(is_custom)
-        self.glucides_slider["gram_spin"].setEnabled(is_custom)
-        self.lipides_slider["gram_spin"].setEnabled(is_custom)
+        # Régime alimentaire
+        regime = user_data.get("regime_alimentaire", "Régime équilibré")
+        self.regime_combo.setCurrentText(regime)
+
+        # Valeurs des macros en g/kg
+        if regime == "Personnalisé":
+            self.prot_min_spin.setValue(user_data.get("proteines_g_kg", 1.4))
+            self.gluc_min_spin.setValue(user_data.get("glucides_g_kg", 3.0))
+            self.lip_min_spin.setValue(user_data.get("lipides_g_kg", 0.9))
+
+        # Activer/désactiver la modification selon le régime sélectionné
+        is_custom = regime == "Personnalisé"
+        self.prot_min_spin.setEnabled(is_custom)
+        self.gluc_min_spin.setEnabled(is_custom)
+        self.lip_min_spin.setEnabled(is_custom)
 
         # Calculer les calories
         self.calculer_calories()
-        self.update_macro_grams_from_pct()
 
     def sauvegarder_profil(self):
         """Sauvegarde le profil utilisateur dans la base de données"""
@@ -740,14 +786,11 @@ class UtilisateurTab(TabBase):
                 if self.mode_manuel_radio.isChecked()
                 else 0
             ),
-            "repartition_macros": self.macro_combo.currentText(),
+            "regime_alimentaire": self.regime_combo.currentText(),
+            "proteines_g_kg": self.prot_min_spin.value(),
+            "glucides_g_kg": self.gluc_min_spin.value(),
+            "lipides_g_kg": self.lip_min_spin.value(),
         }
-
-        # Si répartition personnalisée, stocker les pourcentages des sliders
-        if self.macro_combo.currentText() == "Personnalisé":
-            user_data["proteines_pct"] = self.proteines_slider["slider"].value() / 100
-            user_data["glucides_pct"] = self.glucides_slider["slider"].value() / 100
-            user_data["lipides_pct"] = self.lipides_slider["slider"].value() / 100
 
         # Sauvegarder dans la base de données
         self.db_manager.sauvegarder_utilisateur(user_data)
@@ -763,73 +806,6 @@ class UtilisateurTab(TabBase):
         """Réinitialise l'apparence du bouton de sauvegarde"""
         self.save_button.setText("Sauvegarder le profil")
         self.save_button.setStyleSheet("")
-
-    def calculer_calories(self):
-        """Calcule les besoins caloriques et met à jour l'affichage"""
-        # Préparer les données utilisateur à partir des champs du formulaire
-        user_data = {
-            "sexe": self.sexe_combo.currentText(),
-            "age": self.age_spin.value(),
-            "taille": self.taille_spin.value(),
-            "poids": self.poids_spin.value(),
-            "niveau_activite": self.activite_combo.currentText(),
-            "objectif": self.objectif_combo.currentText(),
-            "taux_variation": self.variation_spin.value()
-            / 100,  # Convertir en g/100g/semaine pour compatibilité
-            "calories_personnalisees": (
-                self.calories_manuelles_spin.value()
-                if self.mode_manuel_radio.isChecked()
-                else 0
-            ),
-            "repartition_macros": self.macro_combo.currentText(),
-        }
-
-        # Si répartition personnalisée, ajouter les pourcentages des sliders
-        if self.macro_combo.currentText() == "Personnalisé":
-            user_data["proteines_pct"] = self.proteines_slider["slider"].value() / 100
-            user_data["glucides_pct"] = self.glucides_slider["slider"].value() / 100
-            user_data["lipides_pct"] = self.lipides_slider["slider"].value() / 100
-
-        # Effectuer le calcul
-        resultats = self.db_manager.calculer_calories_journalieres(user_data)
-
-        # Mettre à jour l'affichage des résultats
-        self.mb_label.setText(str(resultats["metabolisme_base"]))
-        self.maintien_label.setText(str(resultats["calories_maintien"]))
-        self.objectif_label.setText(str(resultats["calories_finales"]))
-
-        # Macros en grammes et pourcentages
-        self.proteines_g_label.setText(f"{resultats['proteines_g']} g")
-        self.glucides_g_label.setText(f"{resultats['glucides_g']} g")
-        self.lipides_g_label.setText(f"{resultats['lipides_g']} g")
-
-        # Afficher les pourcentages dans les labels
-        pct_p = int(resultats["proteines_pct"] * 100)
-        pct_g = int(resultats["glucides_pct"] * 100)
-        pct_l = int(resultats["lipides_pct"] * 100)
-
-        # Mettre à jour les labels des pourcentages directement
-        self.proteines_pct_label.setText(f"({pct_p}%)")
-        self.glucides_pct_label.setText(f"({pct_g}%)")
-        self.lipides_pct_label.setText(f"({pct_l}%)")
-
-        # Mettre à jour le label de variation
-        objectif = self.objectif_combo.currentText()
-        taux = self.variation_spin.value()  # En grammes par semaine
-
-        if objectif == "Perte de poids":
-            # Convertir g/semaine en déficit calorique journalier
-            # 100g de graisse = environ 770 kcal
-            deficit = round((taux * 770) / (7 * 100))  # Utiliser 770 kcal pour 100g
-            self.variation_label.setText(f"≈ -{deficit} kcal/jour")
-        elif objectif == "Prise de masse":
-            surplus = round((taux * 770) / (7 * 100))  # Utiliser 770 kcal pour 100g
-            self.variation_label.setText(f"≈ +{surplus} kcal/jour")
-        else:
-            self.variation_label.setText("≈ 0 kcal/jour")
-
-        # Mettre à jour les champs de grammes
-        self.update_macro_grams_from_pct()
 
     def refresh_data(self):
         """Implémentation de la méthode de base pour actualiser les données"""
