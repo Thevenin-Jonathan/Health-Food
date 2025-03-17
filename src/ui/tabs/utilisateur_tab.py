@@ -770,6 +770,12 @@ class UtilisateurTab(TabBase):
 
     def sauvegarder_profil(self):
         """Sauvegarde le profil utilisateur dans la base de données"""
+        # Récupérer les valeurs calculées des macros
+        macros = self.update_macro_grams()
+
+        # Récupérer l'objectif calorique (selon le mode)
+        objectif_calories = int(self.objectif_label.text())
+
         # Récupérer les valeurs des champs
         user_data = {
             "nom": self.nom_edit.text(),
@@ -790,6 +796,11 @@ class UtilisateurTab(TabBase):
             "proteines_g_kg": self.prot_min_spin.value(),
             "glucides_g_kg": self.gluc_min_spin.value(),
             "lipides_g_kg": self.lip_min_spin.value(),
+            # Nouvelles valeurs pour les objectifs
+            "objectif_calories": objectif_calories,
+            "objectif_proteines": macros["proteines_g"],
+            "objectif_glucides": macros["glucides_g"],
+            "objectif_lipides": macros["lipides_g"],
         }
 
         # Sauvegarder dans la base de données

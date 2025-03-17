@@ -42,7 +42,14 @@ class DatabaseManager:
             objectif TEXT,
             taux_variation REAL,
             calories_personnalisees INTEGER,
-            repartition_macros TEXT
+            repartition_macros TEXT,
+            proteines_g_kg REAL,
+            glucides_g_kg REAL,
+            lipides_g_kg REAL,
+            objectif_calories INTEGER,
+            objectif_proteines INTEGER,
+            objectif_glucides INTEGER,
+            objectif_lipides INTEGER
         )
         """
         )
@@ -770,8 +777,10 @@ class DatabaseManager:
                 """
                 INSERT INTO utilisateur (
                     nom, sexe, age, taille, poids, niveau_activite, 
-                    objectif, taux_variation, calories_personnalisees, repartition_macros
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    objectif, taux_variation, calories_personnalisees, repartition_macros,
+                    proteines_g_kg, glucides_g_kg, lipides_g_kg,
+                    objectif_calories, objectif_proteines, objectif_glucides, objectif_lipides
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     data.get("nom", ""),
@@ -784,6 +793,13 @@ class DatabaseManager:
                     data.get("taux_variation", 0),
                     data.get("calories_personnalisees", 0),
                     data.get("repartition_macros", "Standard"),
+                    data.get("proteines_g_kg", 1.2),
+                    data.get("glucides_g_kg", 3.0),
+                    data.get("lipides_g_kg", 0.8),
+                    data.get("objectif_calories", 0),
+                    data.get("objectif_proteines", 0),
+                    data.get("objectif_glucides", 0),
+                    data.get("objectif_lipides", 0),
                 ),
             )
         else:
@@ -796,7 +812,9 @@ class DatabaseManager:
                 UPDATE utilisateur SET
                     nom = ?, sexe = ?, age = ?, taille = ?, poids = ?,
                     niveau_activite = ?, objectif = ?, taux_variation = ?,
-                    calories_personnalisees = ?, repartition_macros = ?
+                    calories_personnalisees = ?, repartition_macros = ?,
+                    proteines_g_kg = ?, glucides_g_kg = ?, lipides_g_kg = ?,
+                    objectif_calories = ?, objectif_proteines = ?, objectif_glucides = ?, objectif_lipides = ?
                 WHERE id = ?
                 """,
                 (
@@ -810,6 +828,13 @@ class DatabaseManager:
                     data.get("taux_variation", 0),
                     data.get("calories_personnalisees", 0),
                     data.get("repartition_macros", "Standard"),
+                    data.get("proteines_g_kg", 1.2),
+                    data.get("glucides_g_kg", 3.0),
+                    data.get("lipides_g_kg", 0.8),
+                    data.get("objectif_calories", 0),
+                    data.get("objectif_proteines", 0),
+                    data.get("objectif_glucides", 0),
+                    data.get("objectif_lipides", 0),
                     user_id,
                 ),
             )
@@ -837,6 +862,13 @@ class DatabaseManager:
                 "taux_variation": 0,
                 "calories_personnalisees": 0,
                 "repartition_macros": "Standard",
+                "proteines_g_kg": 1.2,
+                "glucides_g_kg": 3.0,
+                "lipides_g_kg": 0.8,
+                "objectif_calories": 0,
+                "objectif_proteines": 0,
+                "objectif_glucides": 0,
+                "objectif_lipides": 0,
             }
 
         self.cursor.execute("SELECT * FROM utilisateur LIMIT 1")
