@@ -109,12 +109,12 @@ class UtilisateurTab(TabBase):
 
         activity_description = QLabel(
             "Très sédentaire: Peu ou pas d'exercice, travail de bureau\n"
-            "Sédentaire: Exercice léger 1-2 fois/semaine\n"
-            "Légèrement actif: Exercice léger 2-3 fois/semaine\n"
-            "Peu actif: Exercice modéré 2-3 fois/semaine\n"
-            "Modéré: Exercice modéré 3-5 fois/semaine\n"
-            "Actif: Exercice intense 3-5 fois/semaine\n"
-            "Très actif: Exercice intense 6-7 fois/semaine\n"
+            "Sédentaire: Exercice léger 1 fois/semaine\n"
+            "Légèrement actif: Exercice léger 2 fois/semaine\n"
+            "Peu actif: Exercice modéré 3 fois/semaine\n"
+            "Modéré: Exercice modéré 4 fois/semaine\n"
+            "Actif: Exercice intense 5 fois/semaine\n"
+            "Très actif: Exercice intense 6 fois/semaine\n"
             "Extrêmement actif: Exercice très intense quotidien ou métier physique"
         )
         activity_description.setWordWrap(True)
