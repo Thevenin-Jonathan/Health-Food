@@ -526,6 +526,13 @@ class UtilisateurTab(TabBase):
         # Recalculer les calories et mettre à jour les champs en grammes
         self.calculer_calories()
         self.update_macro_grams_from_pct()
+
+        # Récupérer les valeurs mises à jour pour affichage
+        p_gram = self.proteines_slider["gram_spin"].value()
+        g_gram = self.glucides_slider["gram_spin"].value()
+        l_gram = self.lipides_slider["gram_spin"].value()
+
+        # Mettre à jour les labels
         self.proteines_g_label.setText(f"{p_gram} g")
         self.glucides_g_label.setText(f"{g_gram} g")
         self.lipides_g_label.setText(f"{l_gram} g")
