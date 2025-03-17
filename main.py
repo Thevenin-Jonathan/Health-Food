@@ -34,6 +34,6 @@ if __name__ == "__main__":
     # Appliquer le curseur pointant à tous les boutons
     setup_cursor_for_buttons(window)
 
-    window.show()
+    window.showMaximized()
 
     sys.exit(app.exec())
