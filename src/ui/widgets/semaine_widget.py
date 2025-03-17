@@ -8,8 +8,10 @@ from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QMessageBox,
+    QProgressBar,
 )
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QPalette, QColor
 
 from ..dialogs.repas_dialog import RepasDialog
 from ..dialogs.aliment_repas_dialog import AlimentRepasDialog
@@ -24,11 +26,32 @@ class SemaineWidget(QWidget):
         super().__init__()
         self.db_manager = db_manager
         self.semaine_id = semaine_id  # Identifiant numérique de la semaine
+
+        # Charger les objectifs utilisateur dès l'initialisation
+        self.objectifs_utilisateur = self.charger_objectifs_utilisateur()
+
         self.setup_ui()
         self.load_data()
 
-        # S'abonner aux événements de modification des aliments
+        # S'abonner aux événements
         event_bus.aliment_supprime.connect(self.on_aliment_supprime)
+        if hasattr(event_bus, "utilisateur_modifie"):
+            event_bus.utilisateur_modifie.connect(self.update_objectifs_utilisateur)
+
+    def charger_objectifs_utilisateur(self):
+        """Récupère les objectifs nutritionnels de l'utilisateur"""
+        user_data = self.db_manager.get_utilisateur()
+        return {
+            "calories": user_data.get("objectif_calories", 2500),
+            "proteines": user_data.get("objectif_proteines", 180),
+            "glucides": user_data.get("objectif_glucides", 250),
+            "lipides": user_data.get("objectif_lipides", 70),
+        }
+
+    def update_objectifs_utilisateur(self):
+        """Met à jour les objectifs quand le profil utilisateur est modifié"""
+        self.objectifs_utilisateur = self.charger_objectifs_utilisateur()
+        self.load_data()
 
     def setup_ui(self):
         main_layout = QVBoxLayout()
@@ -272,10 +295,101 @@ class SemaineWidget(QWidget):
             total_widget.setLayout(total_layout)
 
             total_layout.addWidget(QLabel(f"<h3>Total du jour</h3>"))
-            total_layout.addWidget(QLabel(f"<b>Calories:</b> {total_cal:.0f} kcal"))
-            total_layout.addWidget(QLabel(f"<b>Protéines:</b> {total_prot:.1f}g"))
-            total_layout.addWidget(QLabel(f"<b>Glucides:</b> {total_gluc:.1f}g"))
-            total_layout.addWidget(QLabel(f"<b>Lipides:</b> {total_lip:.1f}g"))
+
+            # Créer un widget pour chaque ligne de macro avec barre de progression
+            objectifs = self.objectifs_utilisateur
+
+            # Calories
+            cal_layout = QHBoxLayout()
+            cal_text = QLabel(f"<b>Calories:</b> {total_cal:.0f}")
+            cal_layout.addWidget(cal_text)
+
+            # Pourcentage de l'objectif
+            pct_cal = (
+                int((total_cal / objectifs["calories"]) * 100)
+                if objectifs["calories"] > 0
+                else 0
+            )
+            cal_obj_text = QLabel(f"/ {objectifs['calories']} ({pct_cal}%)")
+            cal_layout.addWidget(cal_obj_text)
+
+            # Ajouter le layout au layout total
+            total_layout.addLayout(cal_layout)
+
+            # Ajouter la barre de progression en arrière-plan
+            cal_progress = self.create_background_progress_bar(
+                total_cal, objectifs["calories"]
+            )
+            total_layout.addWidget(cal_progress)
+
+            # Protéines
+            prot_layout = QHBoxLayout()
+            prot_text = QLabel(f"<b>Protéines:</b> {total_prot:.1f}g")
+            prot_layout.addWidget(prot_text)
+
+            # Pourcentage de l'objectif
+            pct_prot = (
+                int((total_prot / objectifs["proteines"]) * 100)
+                if objectifs["proteines"] > 0
+                else 0
+            )
+            prot_obj_text = QLabel(f"/ {objectifs['proteines']}g ({pct_prot}%)")
+            prot_layout.addWidget(prot_obj_text)
+
+            # Ajouter le layout au layout total
+            total_layout.addLayout(prot_layout)
+
+            # Ajouter la barre de progression en arrière-plan
+            prot_progress = self.create_background_progress_bar(
+                total_prot, objectifs["proteines"]
+            )
+            total_layout.addWidget(prot_progress)
+
+            # Glucides
+            gluc_layout = QHBoxLayout()
+            gluc_text = QLabel(f"<b>Glucides:</b> {total_gluc:.1f}g")
+            gluc_layout.addWidget(gluc_text)
+
+            # Pourcentage de l'objectif
+            pct_gluc = (
+                int((total_gluc / objectifs["glucides"]) * 100)
+                if objectifs["glucides"] > 0
+                else 0
+            )
+            gluc_obj_text = QLabel(f"/ {objectifs['glucides']}g ({pct_gluc}%)")
+            gluc_layout.addWidget(gluc_obj_text)
+
+            # Ajouter le layout au layout total
+            total_layout.addLayout(gluc_layout)
+
+            # Ajouter la barre de progression en arrière-plan
+            gluc_progress = self.create_background_progress_bar(
+                total_gluc, objectifs["glucides"]
+            )
+            total_layout.addWidget(gluc_progress)
+
+            # Lipides
+            lip_layout = QHBoxLayout()
+            lip_text = QLabel(f"<b>Lipides:</b> {total_lip:.1f}g")
+            lip_layout.addWidget(lip_text)
+
+            # Pourcentage de l'objectif
+            pct_lip = (
+                int((total_lip / objectifs["lipides"]) * 100)
+                if objectifs["lipides"] > 0
+                else 0
+            )
+            lip_obj_text = QLabel(f"/ {objectifs['lipides']}g ({pct_lip}%)")
+            lip_layout.addWidget(lip_obj_text)
+
+            # Ajouter le layout au layout total
+            total_layout.addLayout(lip_layout)
+
+            # Ajouter la barre de progression en arrière-plan
+            lip_progress = self.create_background_progress_bar(
+                total_lip, objectifs["lipides"]
+            )
+            total_layout.addWidget(lip_progress)
 
             day_layout.addWidget(total_widget)
             day_layout.addStretch()
@@ -285,6 +399,49 @@ class SemaineWidget(QWidget):
         # Ajouter ce code ici, après la boucle qui crée les colonnes
         for col in range(7):  # Pour chaque jour
             self.days_layout.setColumnStretch(col, 1)  # Répartition égale
+
+    def create_background_progress_bar(self, value, max_value):
+        """Crée une barre de progression simplifiée pour l'arrière-plan"""
+        progress = QProgressBar()
+        progress.setMinimum(0)
+
+        # Pour l'affichage visuel de la barre, étendre le maximum si nécessaire
+        if value > max_value:
+            progress.setMaximum(int(value * 1.1))
+        else:
+            progress.setMaximum(max_value)
+
+        progress.setValue(value)
+        progress.setTextVisible(False)  # Pas de texte, juste la barre
+
+        # Hauteur minimale pour la barre
+        progress.setFixedHeight(10)
+
+        # Colorer la barre selon le pourcentage
+        palette = QPalette()
+        if value < max_value * 0.8:
+            palette.setColor(QPalette.Highlight, QColor("orange"))  # En dessous
+        elif value <= max_value * 1.05:
+            palette.setColor(
+                QPalette.Highlight, QColor("#4CAF50")
+            )  # Dans la cible (vert)
+        else:
+            palette.setColor(QPalette.Highlight, QColor("#F44336"))  # Au-dessus (rouge)
+
+        progress.setPalette(palette)
+
+        # Appliquer un style pour une barre plus discrète
+        progress.setStyleSheet(
+            """
+            QProgressBar {
+                border: none;
+                background-color: #f0f0f0;
+                margin: 2px 0px;
+            }
+        """
+        )
+
+        return progress
 
     def add_meal(self):
         """Ajoute un repas à cette semaine"""
