@@ -849,16 +849,17 @@ class DatabaseManager:
         if user_data is None:
             user_data = self.get_utilisateur()
 
-        # Facteurs d'activité
+        # Facteurs d'activité ajustés pour des résultats plus réalistes
         facteurs_activite = {
-            "Très sédentaire": 1.2,
-            "Sédentaire": 1.3,
-            "Légèrement actif": 1.375,
-            "Peu actif": 1.425,
-            "Modéré": 1.55,
-            "Actif": 1.65,
-            "Très actif": 1.725,
-            "Extrêmement actif": 1.9,
+            "Très sédentaire": 1.0,
+            "Sédentaire": 1.1,  # Sédentaire (aucun exercice)
+            "Légèrement actif": 1.2,  # Exercice 1-3 jours/semaine
+            "Peu actif": 1.375,  # Intermédiaire
+            "Modéré": 1.55,  # Exercice 3-5 jours/semaine
+            "Actif": 1.725,  # Entraînements réguliers
+            "Très actif": 1.9,  # Activité intense quotidienne
+            "Extrêmement actif": 2.1,  # Sport d'élite ou travail très exigeant
+            "Ultra-intense": 2.3,  # Entraînement plusieurs fois par jour
         }
 
         # Calcul du métabolisme de base (MB) selon Harris-Benedict
@@ -866,11 +867,10 @@ class DatabaseManager:
         taille = user_data.get("taille", 175)
         age = user_data.get("age", 30)
         sexe = user_data.get("sexe", "Homme")
-
         if sexe == "Homme":
-            mb = 10 * poids + 6.25 * taille - 5 * age + 5
+            mb = (10 * poids) + (6.25 * taille) - (5 * age) + 5
         else:
-            mb = 10 * poids + 6.25 * taille - 5 * age - 161
+            mb = (10 * poids) + (6.25 * taille) - (5 * age) - 161
 
         # Appliquer le facteur d'activité
         niveau_activite = user_data.get("niveau_activite", "Modéré")
@@ -880,16 +880,13 @@ class DatabaseManager:
         # Ajuster selon l'objectif
         objectif = user_data.get("objectif", "Maintien")
         taux_variation = user_data.get("taux_variation", 0)  # en g/semaine
-
         ajustement_calories = 0
         if objectif == "Perte de poids":
             # Convertir g/semaine en déficit calorique journalier
-            # 1 kg de graisse = environ 7700 kcal
-            ajustement_calories = -(taux_variation * 7700) / (
-                7 * 100
-            )  # divisé par 100 car taux en g/100g/semaine
+            # 100g de graisse = environ 770 kcal (mis à jour selon les nouvelles valeurs)
+            ajustement_calories = -(taux_variation * 110)
         elif objectif == "Prise de masse":
-            ajustement_calories = (taux_variation * 7700) / (7 * 100)
+            ajustement_calories = taux_variation * 110
 
         calories_objectif = calories_maintien + ajustement_calories
 
