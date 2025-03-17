@@ -173,13 +173,11 @@ class NutritionComparison(QWidget):
         self.prot_impact = self._create_custom_progress_bar(progress_bar_style)
         self.gluc_impact = self._create_custom_progress_bar(progress_bar_style)
         self.lip_impact = self._create_custom_progress_bar(progress_bar_style)
-        self.fibre_impact = self._create_custom_progress_bar(progress_bar_style)
 
         progress_layout.addRow("Calories:", self.cal_impact)
         progress_layout.addRow("Protéines:", self.prot_impact)
         progress_layout.addRow("Glucides:", self.gluc_impact)
         progress_layout.addRow("Lipides:", self.lip_impact)
-        progress_layout.addRow("Fibres:", self.fibre_impact)
 
         # Ajouter le layout des barres au conteneur extérieur
         outer_layout.addLayout(progress_layout)
@@ -393,14 +391,12 @@ class NutritionComparison(QWidget):
             update_progress_bar(self.prot_impact, new_prot, prot_target)
             update_progress_bar(self.gluc_impact, new_gluc, gluc_target)
             update_progress_bar(self.lip_impact, new_lip, lip_target)
-            update_progress_bar(self.fibre_impact, new_fibre, fibre_target)
 
             # Colorer les barres selon l'écart par rapport aux objectifs
             self._set_progress_bar_color(self.cal_impact, new_cal / cal_target)
             self._set_progress_bar_color(self.prot_impact, new_prot / prot_target)
             self._set_progress_bar_color(self.gluc_impact, new_gluc / gluc_target)
             self._set_progress_bar_color(self.lip_impact, new_lip / lip_target)
-            self._set_progress_bar_color(self.fibre_impact, new_fibre / fibre_target)
 
             # Force le réajustement du marker 100%
             QTimer.singleShot(50, self.update)
