@@ -9,13 +9,16 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QMessageBox,
     QProgressBar,
+    QStyle,
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPalette, QColor
+from PySide6.QtGui import QPalette, QColor, QTextDocument, QPageLayout
+from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 
 from ..dialogs.repas_dialog import RepasDialog
 from ..dialogs.aliment_repas_dialog import AlimentRepasDialog
 from ..dialogs.remplacer_repas_dialog import RemplacerRepasDialog
+from ..dialogs.print_preview_dialog import PrintPreviewDialog
 from ...utils.events import event_bus
 
 
@@ -55,6 +58,18 @@ class SemaineWidget(QWidget):
 
     def setup_ui(self):
         main_layout = QVBoxLayout()
+
+        # Bouton pour imprimer le planning
+        print_layout = QHBoxLayout()
+        self.btn_print = QPushButton("Imprimer le planning")
+        # Utiliser une icône standard disponible
+        self.btn_print.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogListView)
+        )
+        self.btn_print.clicked.connect(self.print_planning)
+        print_layout.addStretch()
+        print_layout.addWidget(self.btn_print)
+        main_layout.addLayout(print_layout)
 
         # Conteneur pour les jours avec scroll
         self.scroll_area = QScrollArea()
@@ -405,7 +420,7 @@ class SemaineWidget(QWidget):
         progress = QProgressBar()
         progress.setMinimum(0)
 
-        # Pour l'affichage visuel de la barre, étendre le maximum si nécessaire
+        # Pour l'affichage visuel de la barre, étendre le maximum si nécessaire()
         if value > max_value:
             progress.setMaximum(int(value * 1.1))
         else:
@@ -540,6 +555,101 @@ class SemaineWidget(QWidget):
 
             # Actualiser l'affichage
             self.load_data()
+
+    def print_planning(self):
+        """Imprime le planning de la semaine actuelle"""
+        # Générer le contenu HTML pour l'impression
+        content = self.generate_print_content()
+
+        # Afficher une boîte de dialogue d'aperçu avant impression
+        preview_dialog = PrintPreviewDialog(content, self)
+        if preview_dialog.exec():
+            # Création d'une imprimante et configuration
+            printer = QPrinter(QPrinter.HighResolution)
+
+            # Configuration en format paysage pour avoir tous les jours sur une seule page
+            printer.setPageOrientation(QPageLayout.Landscape)
+
+            # Afficher la boîte de dialogue d'impression
+            print_dialog = QPrintDialog(printer, self)
+            if print_dialog.exec():
+                # Créer et remplir un document texte
+                document = QTextDocument()
+
+                # Désactiver les marges internes du document
+                document.setDocumentMargin(0)
+
+                # Charger le contenu HTML
+                document.setHtml(content)
+
+                # Imprimer le document
+                document.print_(printer)
+
+    def generate_print_content(self):
+        """Génère le contenu HTML du planning pour l'impression - version optimisée"""
+        # Récupérer les données de la semaine
+        repas_semaine = self.db_manager.get_repas_semaine(self.semaine_id)
+        jours = [
+            "Lundi",
+            "Mardi",
+            "Mercredi",
+            "Jeudi",
+            "Vendredi",
+            "Samedi",
+            "Dimanche",
+        ]
+
+        # Créer le document HTML avec un style optimisé pour l'impression
+        html = "<html><head>"
+        html += "<meta charset='UTF-8'>"
+        html += "<style>"
+        html += "body { font-family: Arial, sans-serif; margin: 0; padding: 0; width: 100%; }"
+        html += "table { width: 100%; border-collapse: collapse; table-layout: fixed; }"
+        html += "th { background-color: #f2f2f2; padding: 12px 5px; border: 2px solid #000; font-weight: bold; font-size: 14pt; text-align: center; }"
+        html += "td { border: 2px solid #000; padding: 8px 5px; vertical-align: top; font-size: 12pt; width: 14%; }"
+        html += ".repas { margin-bottom: 15px; page-break-inside: avoid; }"
+        html += (
+            ".repas-title { font-weight: bold; margin-bottom: 8px; font-size: 10pt; }"
+        )
+        html += ".aliment { margin-left: 10px; margin-bottom: 6px; font-size: 8pt; }"
+        html += "* { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }"
+        html += "@page { size: landscape; margin: 1cm; }"
+        html += "</style>"
+        html += "</head><body>"
+
+        # Créer directement le tableau
+        html += "<table>"
+
+        # En-tête du tableau
+        html += "<tr>"
+        for jour in jours:
+            html += f"<th>{jour}</th>"
+        html += "</tr>"
+
+        # Contenu du tableau
+        html += "<tr>"
+        for jour in jours:
+            html += "<td>"
+
+            for repas in repas_semaine[jour]:
+                html += f"<div class='repas'>"
+                html += f"<div class='repas-title'>{repas['nom']}</div>"
+
+                if repas["aliments"]:
+                    for aliment in repas["aliments"]:
+                        html += f"<div class='aliment'>• {aliment['nom']} ({aliment['quantite']}g)</div>"
+                else:
+                    html += "<div class='aliment'>Aucun aliment</div>"
+
+                html += "</div>"
+
+            html += "</td>"
+
+        html += "</tr>"
+        html += "</table>"
+        html += "</body></html>"
+
+        return html
 
     def on_aliment_supprime(self, aliment_id):
         """Appelé lorsqu'un aliment est supprimé"""
