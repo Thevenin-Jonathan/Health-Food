@@ -342,26 +342,6 @@ class NutritionComparison(QWidget):
                 + repas_nouveau["total_lipides"]
             )
 
-            # Fibres totales
-            # D'abord calculer les fibres actuelles du repas
-            total_fibres_actuel = sum(
-                (a.get("fibres", 0) * a["quantite"] / 100)
-                for a in repas_actuel["aliments"]
-            )
-            total_fibres_nouveau = sum(
-                (a.get("fibres", 0) * a["quantite"] / 100)
-                for a in repas_nouveau["aliments"]
-            )
-
-            # Si les fibres sont disponibles dans les totaux, les utiliser, sinon les estimer
-            if "fibres" in totaux_jour:
-                new_fibre = (
-                    totaux_jour["fibres"] - total_fibres_actuel + total_fibres_nouveau
-                )
-            else:
-                # Si pas de totaux disponibles, utiliser juste la valeur du nouveau repas
-                new_fibre = total_fibres_nouveau
-
             # Objectifs nutritionnels (à personnaliser ou à récupérer des préférences utilisateur)
             cal_target = 2500
             prot_target = 180
