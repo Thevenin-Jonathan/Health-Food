@@ -287,7 +287,7 @@ class RemplacerRepasDialog(QDialog):
         main_splitter.addWidget(nouveau_repas_group)
 
         # PANNEAU DROIT: Comparaison nutritionnelle
-        self.nutrition_comparison = NutritionComparison()
+        self.nutrition_comparison = NutritionComparison(db_manager=self.db_manager)
         main_splitter.addWidget(self.nutrition_comparison)
 
         # Définir les proportions relatives des panneaux

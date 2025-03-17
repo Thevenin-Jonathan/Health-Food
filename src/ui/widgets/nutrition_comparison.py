@@ -48,9 +48,30 @@ class CustomProgressBar(QProgressBar):
 class NutritionComparison(QWidget):
     """Widget pour comparer les valeurs nutritionnelles entre deux repas"""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, db_manager=None):
         super().__init__(parent)
+        self.db_manager = db_manager
+        # Valeurs par défaut au cas où aucun objectif utilisateur n'est disponible
+        self.user_cal_target = 2500
+        self.user_prot_target = 180
+        self.user_gluc_target = 250
+        self.user_lip_target = 70
+        # Charger les objectifs de l'utilisateur
+        self.load_user_targets()
         self.setup_ui()
+
+    def load_user_targets(self):
+        """Charge les objectifs nutritionnels depuis le profil utilisateur"""
+        if not self.db_manager:
+            return
+
+        user_data = self.db_manager.get_utilisateur()
+        if user_data:
+            # Récupérer les objectifs caloriques et macros
+            self.user_cal_target = user_data.get("objectif_calories", 2500) or 2500
+            self.user_prot_target = user_data.get("objectif_proteines", 180) or 180
+            self.user_gluc_target = user_data.get("objectif_glucides", 250) or 250
+            self.user_lip_target = user_data.get("objectif_lipides", 70) or 70
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -342,11 +363,11 @@ class NutritionComparison(QWidget):
                 + repas_nouveau["total_lipides"]
             )
 
-            # Objectifs nutritionnels (à personnaliser ou à récupérer des préférences utilisateur)
-            cal_target = 2500
-            prot_target = 180
-            gluc_target = 250
-            lip_target = 70
+            # Utiliser les objectifs nutritionnels de l'utilisateur
+            cal_target = self.user_cal_target
+            prot_target = self.user_prot_target
+            gluc_target = self.user_gluc_target
+            lip_target = self.user_lip_target
 
             # Mise à jour des barres avec un maximum fixe
             def update_progress_bar(bar, value, target):
