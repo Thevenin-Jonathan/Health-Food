@@ -24,6 +24,10 @@ class MainWindow(QMainWindow):
         # Connecter le changement d'onglet pour actualiser la liste des courses
         self.tabs.currentChanged.connect(self.on_tab_changed)
 
+        # Onglet de planification des repas
+        self.planning_tab = PlanningTab(self.db_manager)
+        self.tabs.addTab(self.planning_tab, "Planning des repas")
+
         # Onglet de gestion des aliments
         self.aliments_tab = AlimentsTab(self.db_manager)
         self.tabs.addTab(self.aliments_tab, "Liste des aliments")
@@ -31,10 +35,6 @@ class MainWindow(QMainWindow):
         # Onglet des recettes (repas types)
         self.recettes_tab = RecettesTab(self.db_manager)
         self.tabs.addTab(self.recettes_tab, "Recettes")
-
-        # Onglet de planification des repas
-        self.planning_tab = PlanningTab(self.db_manager)
-        self.tabs.addTab(self.planning_tab, "Planning des repas")
 
         # Onglet de liste de courses
         self.courses_tab = CoursesTab(self.db_manager)
