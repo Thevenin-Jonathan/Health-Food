@@ -796,7 +796,6 @@ class UtilisateurTab(TabBase):
             "proteines_g_kg": self.prot_min_spin.value(),
             "glucides_g_kg": self.gluc_min_spin.value(),
             "lipides_g_kg": self.lip_min_spin.value(),
-            # Nouvelles valeurs pour les objectifs
             "objectif_calories": objectif_calories,
             "objectif_proteines": macros["proteines_g"],
             "objectif_glucides": macros["glucides_g"],

@@ -41,8 +41,8 @@ class DatabaseManager:
             niveau_activite TEXT,
             objectif TEXT,
             taux_variation REAL,
-            calories_personnalisees INTEGER,
-            repartition_macros TEXT,
+            calories_personnalisees INTEGER,        
+            regime_alimentaire TEXT DEFAULT 'Régime équilibré',
             proteines_g_kg REAL,
             glucides_g_kg REAL,
             lipides_g_kg REAL,
@@ -777,8 +777,8 @@ class DatabaseManager:
                 """
                 INSERT INTO utilisateur (
                     nom, sexe, age, taille, poids, niveau_activite, 
-                    objectif, taux_variation, calories_personnalisees, repartition_macros,
-                    proteines_g_kg, glucides_g_kg, lipides_g_kg,
+                    objectif, taux_variation, calories_personnalisees,
+                    regime_alimentaire, proteines_g_kg, glucides_g_kg, lipides_g_kg,
                     objectif_calories, objectif_proteines, objectif_glucides, objectif_lipides
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
@@ -792,7 +792,7 @@ class DatabaseManager:
                     data.get("objectif", "Maintien"),
                     data.get("taux_variation", 0),
                     data.get("calories_personnalisees", 0),
-                    data.get("repartition_macros", "Standard"),
+                    data.get("regime_alimentaire", "Régime équilibré"),
                     data.get("proteines_g_kg", 1.2),
                     data.get("glucides_g_kg", 3.0),
                     data.get("lipides_g_kg", 0.8),
@@ -812,9 +812,8 @@ class DatabaseManager:
                 UPDATE utilisateur SET
                     nom = ?, sexe = ?, age = ?, taille = ?, poids = ?,
                     niveau_activite = ?, objectif = ?, taux_variation = ?,
-                    calories_personnalisees = ?, repartition_macros = ?,
-                    proteines_g_kg = ?, glucides_g_kg = ?, lipides_g_kg = ?,
-                    objectif_calories = ?, objectif_proteines = ?, objectif_glucides = ?, objectif_lipides = ?
+                    calories_personnalisees = ?, regime_alimentaire = ?, proteines_g_kg = ?, glucides_g_kg = ?,
+                    lipides_g_kg = ?, objectif_calories = ?, objectif_proteines = ?, objectif_glucides = ?, objectif_lipides = ?
                 WHERE id = ?
                 """,
                 (
@@ -827,7 +826,7 @@ class DatabaseManager:
                     data.get("objectif", "Maintien"),
                     data.get("taux_variation", 0),
                     data.get("calories_personnalisees", 0),
-                    data.get("repartition_macros", "Standard"),
+                    data.get("regime_alimentaire", "Régime équilibré"),
                     data.get("proteines_g_kg", 1.2),
                     data.get("glucides_g_kg", 3.0),
                     data.get("lipides_g_kg", 0.8),
@@ -861,7 +860,7 @@ class DatabaseManager:
                 "objectif": "Maintien",
                 "taux_variation": 0,
                 "calories_personnalisees": 0,
-                "repartition_macros": "Standard",
+                "regime_alimentaire": "Régime équilibré",
                 "proteines_g_kg": 1.2,
                 "glucides_g_kg": 3.0,
                 "lipides_g_kg": 0.8,
@@ -929,29 +928,35 @@ class DatabaseManager:
         else:
             calories_finales = calories_objectif
 
-        # Calculer la répartition des macros
-        repartition = user_data.get("repartition_macros", "Standard")
-        if repartition == "Standard":
+        # Utiliser le régime alimentaire pour déterminer la répartition des macros
+        regime = user_data.get("regime_alimentaire", "Régime équilibré")
+
+        # Mapper les régimes aux répartitions
+        if regime == "Régime équilibré":
             proteines_pct = 0.3
             glucides_pct = 0.4
             lipides_pct = 0.3
-        elif repartition == "Low-carb":
+        elif regime == "Régime hypocalorique":
             proteines_pct = 0.35
-            glucides_pct = 0.25
-            lipides_pct = 0.4
-        elif repartition == "Hyperprotéiné":
+            glucides_pct = 0.35
+            lipides_pct = 0.3
+        elif regime == "Régime hyperprotéiné":
             proteines_pct = 0.45
             glucides_pct = 0.35
             lipides_pct = 0.2
-        elif repartition == "Faible en gras":
-            proteines_pct = 0.35
-            glucides_pct = 0.5
-            lipides_pct = 0.15
-        elif repartition == "Cétogène":
+        elif regime == "Régime cétogène":
             proteines_pct = 0.30
             glucides_pct = 0.05
             lipides_pct = 0.65
-        elif repartition == "Personnalisé":
+        elif regime == "Régime de prise de masse":
+            proteines_pct = 0.35
+            glucides_pct = 0.45
+            lipides_pct = 0.2
+        elif regime == "Régime végétarien / vegan":
+            proteines_pct = 0.25
+            glucides_pct = 0.5
+            lipides_pct = 0.25
+        elif regime == "Personnalisé":
             # Ces valeurs seraient stockées ailleurs dans un cas réel
             proteines_pct = user_data.get("proteines_pct", 0.3)
             glucides_pct = user_data.get("glucides_pct", 0.4)
