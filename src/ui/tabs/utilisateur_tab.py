@@ -12,14 +12,37 @@ from PySide6.QtWidgets import (
     QRadioButton,
     QSlider,
     QGridLayout,
+    QButtonGroup,
+    QWidget,
+    QStackedWidget,
+    QAbstractSpinBox,
 )
-from PySide6.QtCore import Qt, QMargins, Signal
+from PySide6.QtCore import Qt, QMargins, Signal, QTimer
 from PySide6.QtGui import QFont, QColor
 
 from .tab_base import TabBase
 
 
 class UtilisateurTab(TabBase):
+    # Style pour les spin boxes - flèches verticales simples
+    spin_style = """
+            QSpinBox, QDoubleSpinBox {
+                padding-right: 5px;
+            }
+            QSpinBox::up-button, QDoubleSpinBox::up-button {
+                subcontrol-origin: border;
+                subcontrol-position: top right;
+                width: 20px;
+                height: 15px;
+            }
+            QSpinBox::down-button, QDoubleSpinBox::down-button {
+                subcontrol-origin: border;
+                subcontrol-position: bottom right;
+                width: 20px;
+                height: 15px;
+            }
+        """
+
     def __init__(self, db_manager):
         super().__init__(db_manager)
         self.setup_ui()
@@ -28,6 +51,31 @@ class UtilisateurTab(TabBase):
     def setup_ui(self):
         main_layout = QVBoxLayout()
         main_layout.setSpacing(20)
+
+        # Style minimal pour les boutons radio
+        radio_style = """
+        QRadioButton::indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            border: 2px solid #6ab04c;
+            background-color: white;
+        }
+
+        QRadioButton::indicator:checked {
+            background-color: #6ab04c;
+            border: 2px solid #6ab04c;
+        }
+
+        QRadioButton::indicator:checked {
+            image: url(src/ui/icons/checkmark.svg);
+            background-color: #6ab04c;
+        }
+
+        QRadioButton {
+            spacing: 5px;
+        }
+        """
 
         # Titre
         title = QLabel("<h1>Profil Utilisateur</h1>")
@@ -63,6 +111,8 @@ class UtilisateurTab(TabBase):
         self.age_spin = QSpinBox()
         self.age_spin.setRange(15, 100)
         self.age_spin.setValue(30)
+        self.age_spin.setStyleSheet(self.spin_style)
+        self.age_spin.setButtonSymbols(QDoubleSpinBox.UpDownArrows)
         self.age_spin.valueChanged.connect(self.calculer_calories)
         personal_layout.addRow("Âge:", self.age_spin)
 
@@ -72,6 +122,9 @@ class UtilisateurTab(TabBase):
         self.taille_spin.setSuffix(" cm")
         self.taille_spin.setDecimals(1)
         self.taille_spin.setSingleStep(0.5)
+        self.taille_spin.setButtonSymbols(QDoubleSpinBox.UpDownArrows)
+        # Style pour améliorer les boutons up/down
+        self.taille_spin.setStyleSheet(self.spin_style)
         self.taille_spin.valueChanged.connect(self.calculer_calories)
         personal_layout.addRow("Taille:", self.taille_spin)
 
@@ -81,6 +134,8 @@ class UtilisateurTab(TabBase):
         self.poids_spin.setSuffix(" kg")
         self.poids_spin.setDecimals(1)
         self.poids_spin.setSingleStep(0.1)
+        self.poids_spin.setStyleSheet(self.spin_style)
+        self.poids_spin.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
         self.poids_spin.valueChanged.connect(self.calculer_calories)
         personal_layout.addRow("Poids:", self.poids_spin)
 
@@ -135,23 +190,53 @@ class UtilisateurTab(TabBase):
         # Colonne de droite: Objectifs et calculs
         right_column = QVBoxLayout()
 
-        # Groupe des objectifs
-        objectif_group = QGroupBox("Objectifs")
-        objectif_layout = QFormLayout()
+        # Sélection du mode de calcul (nouveau)
+        mode_group = QGroupBox("Mode de calcul")
+        mode_layout = QHBoxLayout()
+
+        self.mode_auto_radio = QRadioButton("Calcul automatique")
+        self.mode_auto_radio.setChecked(True)
+        self.mode_auto_radio.setStyleSheet(radio_style)
+
+        self.mode_manuel_radio = QRadioButton("Entrée manuelle")
+        self.mode_manuel_radio.setStyleSheet(radio_style)
+
+        self.mode_group = QButtonGroup()
+        self.mode_group.addButton(self.mode_auto_radio, 0)
+        self.mode_group.addButton(self.mode_manuel_radio, 1)
+        self.mode_group.buttonClicked.connect(self.on_mode_changed)
+
+        mode_layout.addWidget(self.mode_auto_radio)
+        mode_layout.addWidget(self.mode_manuel_radio)
+        mode_group.setLayout(mode_layout)
+        right_column.addWidget(mode_group)
+
+        # Widget empilé pour les deux modes
+        self.stacked_widget = QStackedWidget()
+
+        # Page 1: Mode automatique
+        auto_widget = QWidget()
+        auto_layout = QVBoxLayout(auto_widget)
+
+        # Groupe des objectifs (mode auto)
+        objectif_group_auto = QGroupBox("Objectifs")
+        objectif_layout_auto = QFormLayout()
 
         self.objectif_combo = QComboBox()
         self.objectif_combo.addItems(["Maintien", "Perte de poids", "Prise de masse"])
         self.objectif_combo.currentIndexChanged.connect(self.on_objectif_changed)
-        objectif_layout.addRow("Objectif:", self.objectif_combo)
+        objectif_layout_auto.addRow("Objectif:", self.objectif_combo)
 
+        # Nouveau champ de variation en g/semaine
         variation_layout = QHBoxLayout()
-        self.variation_spin = QDoubleSpinBox()
-        self.variation_spin.setRange(0, 10)
-        self.variation_spin.setValue(5)
-        self.variation_spin.setDecimals(1)
-        self.variation_spin.setSingleStep(0.1)
-        self.variation_spin.setSuffix(" g/100g/semaine")
+        self.variation_spin = QSpinBox()
+        self.variation_spin.setRange(0, 2000)  # 0 à 2kg par semaine
+        self.variation_spin.setValue(500)  # 500g par défaut
+        self.variation_spin.setSingleStep(100)  # Pas de 100g
+        self.variation_spin.setSuffix(" g/semaine")
         self.variation_spin.setEnabled(False)
+        self.variation_spin.setStyleSheet(self.spin_style)
+        self.variation_spin.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
         self.variation_spin.valueChanged.connect(self.calculer_calories)
         variation_layout.addWidget(self.variation_spin)
         variation_layout.addStretch()
@@ -159,24 +244,43 @@ class UtilisateurTab(TabBase):
         self.variation_label = QLabel("≈ 0 kcal/jour")
         variation_layout.addWidget(self.variation_label)
 
-        objectif_layout.addRow("Variation:", variation_layout)
+        objectif_layout_auto.addRow(
+            "Perte de poids cible à la semaine :", variation_layout
+        )
+        objectif_group_auto.setLayout(objectif_layout_auto)
+        auto_layout.addWidget(objectif_group_auto)
 
-        # Calorie personnalisées
-        custom_cal_layout = QHBoxLayout()
-        self.custom_calories_spin = QSpinBox()
-        self.custom_calories_spin.setRange(0, 10000)
-        self.custom_calories_spin.setValue(0)
-        self.custom_calories_spin.setSuffix(" kcal")
-        self.custom_calories_spin.setSpecialValueText("Auto (calculé)")
-        self.custom_calories_spin.valueChanged.connect(self.calculer_calories)
-        custom_cal_layout.addWidget(self.custom_calories_spin)
+        # Ajouter le widget auto au stacked widget
+        self.stacked_widget.addWidget(auto_widget)
 
-        objectif_layout.addRow("Calories personnalisées:", custom_cal_layout)
+        # Page 2: Mode manuel
+        manuel_widget = QWidget()
+        manuel_layout = QVBoxLayout(manuel_widget)
 
-        objectif_group.setLayout(objectif_layout)
-        right_column.addWidget(objectif_group)
+        # Groupe des calories manuelles
+        calories_group = QGroupBox("Calories personnalisées")
+        calories_layout = QFormLayout()
 
-        # Groupe de la répartition des macros
+        self.calories_manuelles_spin = QSpinBox()
+        self.calories_manuelles_spin.setRange(500, 10000)
+        self.calories_manuelles_spin.setValue(2000)
+        self.calories_manuelles_spin.setSuffix(" kcal")
+        self.calories_manuelles_spin.setSingleStep(50)
+        self.calories_manuelles_spin.setStyleSheet(self.spin_style)
+        self.calories_manuelles_spin.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+        self.calories_manuelles_spin.valueChanged.connect(self.calculer_calories)
+        calories_layout.addRow("Calories journalières:", self.calories_manuelles_spin)
+
+        calories_group.setLayout(calories_layout)
+        manuel_layout.addWidget(calories_group)
+
+        # Ajouter le widget manuel au stacked widget
+        self.stacked_widget.addWidget(manuel_widget)
+
+        # Ajouter le stacked widget à la colonne de droite
+        right_column.addWidget(self.stacked_widget)
+
+        # Groupe de la répartition des macros (commun aux deux modes)
         macros_group = QGroupBox("Répartition des macronutriments")
         macros_layout = QVBoxLayout()
 
@@ -197,7 +301,7 @@ class UtilisateurTab(TabBase):
         presets_layout.addRow("Préréglage:", self.macro_combo)
         macros_layout.addLayout(presets_layout)
 
-        # Sliders pour les pourcentages
+        # Sliders pour les pourcentages avec champs de saisie en grammes
         self.proteines_slider = self.create_macro_slider("Protéines", 30)
         self.glucides_slider = self.create_macro_slider("Glucides", 40)
         self.lipides_slider = self.create_macro_slider("Lipides", 30)
@@ -276,6 +380,9 @@ class UtilisateurTab(TabBase):
 
         self.setLayout(main_layout)
 
+        # Initialiser l'état des champs selon le mode
+        self.on_mode_changed()
+
     def create_macro_slider(self, name, default_value):
         """Crée un slider pour les macronutriments avec son label et sa valeur"""
         layout = QHBoxLayout()
@@ -298,10 +405,22 @@ class UtilisateurTab(TabBase):
         value_label = QLabel(f"{default_value}%")
         layout.addWidget(value_label)
 
+        # Champ pour saisie directe en grammes
+        gram_spin = QSpinBox()
+        gram_spin.setRange(0, 500)
+        gram_spin.setValue(0)  # Sera mis à jour lors du calcul
+        gram_spin.setSuffix(" g")
+        gram_spin.setEnabled(False)  # Désactivé par défaut
+        gram_spin.setStyleSheet(self.spin_style)
+        gram_spin.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+        gram_spin.valueChanged.connect(lambda: self.on_macro_gram_changed(name))
+        layout.addWidget(gram_spin)
+
         return {
             "label": label,
             "slider": slider,
             "value_label": value_label,
+            "gram_spin": gram_spin,
             "layout": layout,
         }
 
@@ -315,70 +434,70 @@ class UtilisateurTab(TabBase):
         # Calculer le total
         total = p_val + g_val + l_val
 
-        # Si le total n'est pas 100%, ajuster le dernier slider modifié
+        # Si le total n'est pas 100%, ajuster selon le slider modifié
         if total != 100:
-            # Déterminer quel slider a été modifié (celui qui a le focus)
+            # Déterminer quel slider a été modifié
             sender = self.sender()
 
             if sender == self.proteines_slider["slider"]:
-                # Ajuster les glucides et lipides proportionnellement
-                if g_val + l_val > 0:
-                    ratio = (100 - p_val) / (g_val + l_val)
-                    new_g = int(g_val * ratio)
+                # Ajuster uniquement les glucides
+                new_g = 100 - p_val - l_val
+                if new_g < 5:  # Respecter la valeur minimale
+                    new_g = 5
+                    new_p = 100 - new_g - l_val
+                    if new_p < 5:  # Si impossible, ajuster les lipides aussi
+                        new_p = 5
+                        new_l = 100 - new_p - new_g
+                        self.lipides_slider["slider"].blockSignals(True)
+                        self.lipides_slider["slider"].setValue(new_l)
+                        self.lipides_slider["slider"].blockSignals(False)
+                    self.proteines_slider["slider"].blockSignals(True)
+                    self.proteines_slider["slider"].setValue(new_p)
+                    self.proteines_slider["slider"].blockSignals(False)
+
+                self.glucides_slider["slider"].blockSignals(True)
+                self.glucides_slider["slider"].setValue(new_g)
+                self.glucides_slider["slider"].blockSignals(False)
+
+            elif sender == self.lipides_slider["slider"]:
+                # Ajuster uniquement les glucides
+                new_g = 100 - p_val - l_val
+                if new_g < 5:  # Respecter la valeur minimale
+                    new_g = 5
                     new_l = 100 - p_val - new_g
-
-                    # Bloquer temporairement les signaux pour éviter les boucles
-                    self.glucides_slider["slider"].blockSignals(True)
+                    if new_l < 5:  # Si impossible, ajuster les protéines aussi
+                        new_l = 5
+                        new_p = 100 - new_l - new_g
+                        self.proteines_slider["slider"].blockSignals(True)
+                        self.proteines_slider["slider"].setValue(new_p)
+                        self.proteines_slider["slider"].blockSignals(False)
                     self.lipides_slider["slider"].blockSignals(True)
-
-                    self.glucides_slider["slider"].setValue(new_g)
                     self.lipides_slider["slider"].setValue(new_l)
-
-                    self.glucides_slider["slider"].blockSignals(False)
                     self.lipides_slider["slider"].blockSignals(False)
-                else:
-                    # Si les deux autres sont à 0, mettre le reste dans glucides
-                    self.glucides_slider["slider"].setValue(100 - p_val)
+
+                self.glucides_slider["slider"].blockSignals(True)
+                self.glucides_slider["slider"].setValue(new_g)
+                self.glucides_slider["slider"].blockSignals(False)
 
             elif sender == self.glucides_slider["slider"]:
-                # Ajuster les protéines et lipides proportionnellement
-                if p_val + l_val > 0:
-                    ratio = (100 - g_val) / (p_val + l_val)
-                    new_p = int(p_val * ratio)
-                    new_l = 100 - g_val - new_p
-
-                    # Bloquer temporairement les signaux pour éviter les boucles
-                    self.proteines_slider["slider"].blockSignals(True)
-                    self.lipides_slider["slider"].blockSignals(True)
-
-                    self.proteines_slider["slider"].setValue(new_p)
-                    self.lipides_slider["slider"].setValue(new_l)
-
-                    self.proteines_slider["slider"].blockSignals(False)
-                    self.lipides_slider["slider"].blockSignals(False)
-                else:
-                    # Si les deux autres sont à 0, mettre le reste dans lipides
-                    self.lipides_slider["slider"].setValue(100 - g_val)
-
-            else:  # Lipides slider
-                # Ajuster les protéines et glucides proportionnellement
-                if p_val + g_val > 0:
-                    ratio = (100 - l_val) / (p_val + g_val)
-                    new_p = int(p_val * ratio)
-                    new_g = 100 - l_val - new_p
-
-                    # Bloquer temporairement les signaux pour éviter les boucles
-                    self.proteines_slider["slider"].blockSignals(True)
+                # Ajuster uniquement les protéines
+                new_p = 100 - g_val - l_val
+                if new_p < 5:  # Respecter la valeur minimale
+                    new_p = 5
+                    new_g = 100 - new_p - l_val
+                    if new_g < 5:  # Si impossible, ajuster les lipides aussi
+                        new_g = 5
+                        new_l = 100 - new_p - new_g
+                        self.lipides_slider["slider"].blockSignals(True)
+                        self.lipides_slider["slider"].setValue(new_l)
+                        self.lipides_slider["slider"].blockSignals(False)
                     self.glucides_slider["slider"].blockSignals(True)
-
-                    self.proteines_slider["slider"].setValue(new_p)
                     self.glucides_slider["slider"].setValue(new_g)
-
-                    self.proteines_slider["slider"].blockSignals(False)
                     self.glucides_slider["slider"].blockSignals(False)
-                else:
-                    # Si les deux autres sont à 0, mettre le reste dans protéines
-                    self.proteines_slider["slider"].setValue(100 - l_val)
+
+                self.proteines_slider["slider"].blockSignals(True)
+                self.proteines_slider["slider"].setValue(new_p)
+                self.proteines_slider["slider"].blockSignals(False)
 
         # Mettre à jour les labels
         self.proteines_slider["value_label"].setText(
@@ -390,6 +509,91 @@ class UtilisateurTab(TabBase):
         self.lipides_slider["value_label"].setText(
             f"{self.lipides_slider['slider'].value()}%"
         )
+
+        # Recalculer les calories et mettre à jour les champs en grammes
+        self.calculer_calories()
+        self.update_macro_grams_from_pct()
+
+    def on_macro_gram_changed(self, macro_name):
+        """Appelé quand un champ de grammes est modifié pour mettre à jour les pourcentages"""
+        # Récupérer les valeurs en grammes
+        p_gram = self.proteines_slider["gram_spin"].value()
+        g_gram = self.glucides_slider["gram_spin"].value()
+        l_gram = self.lipides_slider["gram_spin"].value()
+
+        # Calculer les calories totales des macros
+        total_calories = (p_gram * 4) + (g_gram * 4) + (l_gram * 9)
+
+        if total_calories > 0:
+            # Calculer les nouveaux pourcentages
+            p_pct = int((p_gram * 4 / total_calories) * 100)
+            g_pct = int((g_gram * 4 / total_calories) * 100)
+            l_pct = int((l_gram * 9 / total_calories) * 100)
+
+            # Ajuster pour s'assurer que le total est 100%
+            total_pct = p_pct + g_pct + l_pct
+            if total_pct != 100:
+                # Ajuster selon le macro modifié
+                if macro_name == "Protéines":
+                    g_pct = 100 - p_pct - l_pct
+                elif macro_name == "Lipides":
+                    g_pct = 100 - p_pct - l_pct
+                elif macro_name == "Glucides":
+                    p_pct = 100 - g_pct - l_pct
+
+            # Mettre à jour les sliders
+            self.update_macro_sliders(p_pct, g_pct, l_pct)
+
+            # Mettre à jour les calories objectif
+            if self.mode_manuel_radio.isChecked():
+                self.calories_manuelles_spin.setValue(int(total_calories))
+
+            # Recalculer pour mettre à jour l'interface
+            self.calculer_calories()
+
+    def update_macro_grams_from_pct(self):
+        """Met à jour les champs de grammes en fonction des pourcentages et des calories totales"""
+        # Récupérer les calories totales
+        if self.mode_auto_radio.isChecked():
+            calories = int(self.objectif_label.text())
+        else:
+            calories = self.calories_manuelles_spin.value()
+
+        # Récupérer les pourcentages
+        p_pct = self.proteines_slider["slider"].value() / 100
+        g_pct = self.glucides_slider["slider"].value() / 100
+        l_pct = self.lipides_slider["slider"].value() / 100
+
+        # Calculer les grammes
+        p_gram = int((calories * p_pct) / 4)  # 4 kcal par gramme de protéines
+        g_gram = int((calories * g_pct) / 4)  # 4 kcal par gramme de glucides
+        l_gram = int((calories * l_pct) / 9)  # 9 kcal par gramme de lipides
+
+        # Mettre à jour les champs sans déclencher les signaux
+        self.proteines_slider["gram_spin"].blockSignals(True)
+        self.glucides_slider["gram_spin"].blockSignals(True)
+        self.lipides_slider["gram_spin"].blockSignals(True)
+
+        self.proteines_slider["gram_spin"].setValue(p_gram)
+        self.glucides_slider["gram_spin"].setValue(g_gram)
+        self.lipides_slider["gram_spin"].setValue(l_gram)
+
+        self.proteines_slider["gram_spin"].blockSignals(False)
+        self.glucides_slider["gram_spin"].blockSignals(False)
+        self.lipides_slider["gram_spin"].blockSignals(False)
+
+    def on_mode_changed(self, button=None):
+        """Gère le changement de mode (auto/manuel)"""
+        is_auto = self.mode_auto_radio.isChecked()
+
+        # Changer la page du stacked widget
+        self.stacked_widget.setCurrentIndex(0 if is_auto else 1)
+
+        # Activer/désactiver les champs de grammes selon le mode
+        is_custom = self.macro_combo.currentText() == "Personnalisé"
+        self.proteines_slider["gram_spin"].setEnabled(is_custom)
+        self.glucides_slider["gram_spin"].setEnabled(is_custom)
+        self.lipides_slider["gram_spin"].setEnabled(is_custom)
 
         # Recalculer les calories
         self.calculer_calories()
@@ -404,11 +608,14 @@ class UtilisateurTab(TabBase):
         """Gère le changement de préréglage des macros"""
         preset = self.macro_combo.currentText()
 
-        # Activer les sliders uniquement en mode personnalisé
+        # Activer les sliders et les champs de grammes uniquement en mode personnalisé
         is_custom = preset == "Personnalisé"
         self.proteines_slider["slider"].setEnabled(is_custom)
         self.glucides_slider["slider"].setEnabled(is_custom)
         self.lipides_slider["slider"].setEnabled(is_custom)
+        self.proteines_slider["gram_spin"].setEnabled(is_custom)
+        self.glucides_slider["gram_spin"].setEnabled(is_custom)
+        self.lipides_slider["gram_spin"].setEnabled(is_custom)
 
         # Mettre à jour les valeurs selon le préréglage
         if preset == "Standard":
@@ -423,6 +630,7 @@ class UtilisateurTab(TabBase):
             self.update_macro_sliders(30, 5, 65)
 
         self.calculer_calories()
+        self.update_macro_grams_from_pct()
 
     def update_macro_sliders(self, p, g, l):
         """Met à jour les valeurs des sliders sans déclencher les signaux"""
@@ -456,13 +664,25 @@ class UtilisateurTab(TabBase):
 
         # Objectifs
         self.objectif_combo.setCurrentText(user_data.get("objectif", "Maintien"))
-        self.variation_spin.setValue(user_data.get("taux_variation", 5))
+
+        # Convertir l'ancienne valeur (g/100g/semaine) en g/semaine
+        old_variation = user_data.get("taux_variation", 5)
+        new_variation = int(old_variation * 100)  # Convertir en grammes entiers
+        self.variation_spin.setValue(new_variation)
+
         self.variation_spin.setEnabled(
             user_data.get("objectif", "Maintien") != "Maintien"
         )
 
         # Calories personnalisées
-        self.custom_calories_spin.setValue(user_data.get("calories_personnalisees", 0))
+        calories_perso = user_data.get("calories_personnalisees", 0)
+        if calories_perso > 0:
+            self.mode_manuel_radio.setChecked(True)
+            self.calories_manuelles_spin.setValue(calories_perso)
+            self.on_mode_changed()
+        else:
+            self.mode_auto_radio.setChecked(True)
+            self.on_mode_changed()
 
         # Répartition des macros
         self.macro_combo.setCurrentText(user_data.get("repartition_macros", "Standard"))
@@ -470,9 +690,13 @@ class UtilisateurTab(TabBase):
         self.proteines_slider["slider"].setEnabled(is_custom)
         self.glucides_slider["slider"].setEnabled(is_custom)
         self.lipides_slider["slider"].setEnabled(is_custom)
+        self.proteines_slider["gram_spin"].setEnabled(is_custom)
+        self.glucides_slider["gram_spin"].setEnabled(is_custom)
+        self.lipides_slider["gram_spin"].setEnabled(is_custom)
 
         # Calculer les calories
         self.calculer_calories()
+        self.update_macro_grams_from_pct()
 
     def sauvegarder_profil(self):
         """Sauvegarde le profil utilisateur dans la base de données"""
@@ -485,8 +709,13 @@ class UtilisateurTab(TabBase):
             "poids": self.poids_spin.value(),
             "niveau_activite": self.activite_combo.currentText(),
             "objectif": self.objectif_combo.currentText(),
-            "taux_variation": self.variation_spin.value(),
-            "calories_personnalisees": self.custom_calories_spin.value(),
+            "taux_variation": self.variation_spin.value()
+            / 100,  # Convertir en g/100g/semaine pour compatibilité
+            "calories_personnalisees": (
+                self.calories_manuelles_spin.value()
+                if self.mode_manuel_radio.isChecked()
+                else 0
+            ),
             "repartition_macros": self.macro_combo.currentText(),
         }
 
@@ -503,8 +732,8 @@ class UtilisateurTab(TabBase):
         self.save_button.setText("Profil sauvegardé!")
         self.save_button.setStyleSheet("background-color: #4CAF50; color: white;")
 
-        # Réinitialiser le bouton après un délai (dans une application réelle, utiliser QTimer)
-        # QTimer.singleShot(2000, self.reset_save_button)
+        # Réinitialiser le bouton après un délai de 2 secondes
+        QTimer.singleShot(2000, self.reset_save_button)
 
     def reset_save_button(self):
         """Réinitialise l'apparence du bouton de sauvegarde"""
@@ -521,8 +750,13 @@ class UtilisateurTab(TabBase):
             "poids": self.poids_spin.value(),
             "niveau_activite": self.activite_combo.currentText(),
             "objectif": self.objectif_combo.currentText(),
-            "taux_variation": self.variation_spin.value(),
-            "calories_personnalisees": self.custom_calories_spin.value(),
+            "taux_variation": self.variation_spin.value()
+            / 100,  # Convertir en g/100g/semaine pour compatibilité
+            "calories_personnalisees": (
+                self.calories_manuelles_spin.value()
+                if self.mode_manuel_radio.isChecked()
+                else 0
+            ),
             "repartition_macros": self.macro_combo.currentText(),
         }
 
@@ -557,18 +791,21 @@ class UtilisateurTab(TabBase):
 
         # Mettre à jour le label de variation
         objectif = self.objectif_combo.currentText()
-        taux = self.variation_spin.value()
+        taux = self.variation_spin.value()  # En grammes par semaine
 
         if objectif == "Perte de poids":
             # Convertir g/semaine en déficit calorique journalier
-            # 1 kg de graisse = environ 7700 kcal
-            deficit = round((taux * 7700) / (7 * 100))
+            # 100g de graisse = environ 770 kcal
+            deficit = round((taux * 770) / (7 * 100))  # Utiliser 770 kcal pour 100g
             self.variation_label.setText(f"≈ -{deficit} kcal/jour")
         elif objectif == "Prise de masse":
-            surplus = round((taux * 7700) / (7 * 100))
+            surplus = round((taux * 770) / (7 * 100))  # Utiliser 770 kcal pour 100g
             self.variation_label.setText(f"≈ +{surplus} kcal/jour")
         else:
             self.variation_label.setText("≈ 0 kcal/jour")
+
+        # Mettre à jour les champs de grammes
+        self.update_macro_grams_from_pct()
 
     def refresh_data(self):
         """Implémentation de la méthode de base pour actualiser les données"""
