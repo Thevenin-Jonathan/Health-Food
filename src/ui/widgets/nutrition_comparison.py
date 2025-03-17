@@ -367,7 +367,6 @@ class NutritionComparison(QWidget):
             prot_target = 180
             gluc_target = 250
             lip_target = 70
-            fibre_target = 30
 
             # Mise à jour des barres avec un maximum fixe
             def update_progress_bar(bar, value, target):
