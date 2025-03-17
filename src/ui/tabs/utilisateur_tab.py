@@ -413,7 +413,20 @@ class UtilisateurTab(TabBase):
         gram_spin.setEnabled(False)  # Désactivé par défaut
         gram_spin.setStyleSheet(self.spin_style)
         gram_spin.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
-        gram_spin.valueChanged.connect(lambda: self.on_macro_gram_changed(name))
+
+        if name == "Protéines":
+            gram_spin.valueChanged.connect(
+                lambda: self.on_macro_gram_changed("Protéines")
+            )
+        elif name == "Glucides":
+            gram_spin.valueChanged.connect(
+                lambda: self.on_macro_gram_changed("Glucides")
+            )
+        elif name == "Lipides":
+            gram_spin.valueChanged.connect(
+                lambda: self.on_macro_gram_changed("Lipides")
+            )
+
         layout.addWidget(gram_spin)
 
         return {
@@ -513,9 +526,13 @@ class UtilisateurTab(TabBase):
         # Recalculer les calories et mettre à jour les champs en grammes
         self.calculer_calories()
         self.update_macro_grams_from_pct()
+        self.proteines_g_label.setText(f"{p_gram} g")
+        self.glucides_g_label.setText(f"{g_gram} g")
+        self.lipides_g_label.setText(f"{l_gram} g")
 
     def on_macro_gram_changed(self, macro_name):
         """Appelé quand un champ de grammes est modifié pour mettre à jour les pourcentages"""
+
         # Récupérer les valeurs en grammes
         p_gram = self.proteines_slider["gram_spin"].value()
         g_gram = self.glucides_slider["gram_spin"].value()
@@ -535,11 +552,11 @@ class UtilisateurTab(TabBase):
             if total_pct != 100:
                 # Ajuster selon le macro modifié
                 if macro_name == "Protéines":
-                    g_pct = 100 - p_pct - l_pct
+                    p_pct = 100 - g_pct - l_pct
                 elif macro_name == "Lipides":
                     g_pct = 100 - p_pct - l_pct
                 elif macro_name == "Glucides":
-                    p_pct = 100 - g_pct - l_pct
+                    l_pct = 100 - p_pct - g_pct
 
             # Mettre à jour les sliders
             self.update_macro_sliders(p_pct, g_pct, l_pct)
