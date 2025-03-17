@@ -148,7 +148,6 @@ class PlanningTab(QWidget):
         self.mettre_a_jour_noms_onglets()
 
         # Émettre les signaux pour notifier les autres composants
-        print(f"PlanningTab: Émission du signal semaine_ajoutee({semaine_id})")
         self.semaine_ajoutee.emit(semaine_id)
         event_bus.semaine_ajoutee.emit(semaine_id)
         event_bus.semaines_modifiees.emit()

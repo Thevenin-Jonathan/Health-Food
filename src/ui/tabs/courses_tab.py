@@ -94,7 +94,6 @@ class CoursesTab(TabBase):
 
     def charger_semaines(self):
         """Charge les semaines disponibles dans le sélecteur"""
-        print("CoursesTab: Mise à jour des semaines dans la liste de courses")
 
         # Sauvegarder la semaine actuellement sélectionnée
         current_id = self.current_semaine_id
@@ -121,7 +120,6 @@ class CoursesTab(TabBase):
         # Ajouter chaque semaine au combobox
         for semaine in semaines:
             semaine_id = semaine[0]
-            print(f"CoursesTab: Ajout de la semaine {semaine_id} au combobox")
             self.semaine_combo.addItem(f"Semaine {semaine_id}", semaine_id)
 
         # Restaurer la sélection précédente si possible
@@ -129,19 +127,16 @@ class CoursesTab(TabBase):
             index = self.semaine_combo.findData(current_id)
             if index >= 0:
                 self.semaine_combo.setCurrentIndex(index)
-                print(f"CoursesTab: Sélection restaurée à la semaine {current_id}")
             else:
                 # Si la semaine n'existe plus, revenir à "Toutes les semaines"
                 self.current_semaine_id = None
                 self.semaine_combo.setCurrentIndex(0)
-                print("CoursesTab: Sélection restaurée à 'Toutes les semaines'")
 
         # Réactiver les signaux
         self.semaine_combo.blockSignals(False)
 
         # Charger les données avec la sélection courante
         self.load_data()
-        print("CoursesTab: Données rechargées")
 
     def on_semaine_changed(self, index):
         """Appelé lorsqu'une semaine différente est sélectionnée"""
@@ -297,10 +292,8 @@ class CoursesTab(TabBase):
 
     def on_semaine_ajoutee(self, semaine_id):
         """Appelé quand une semaine est ajoutée via le bus d'événements"""
-        print(f"CoursesTab: Notification d'ajout de semaine {semaine_id}")
         self.charger_semaines()
 
     def on_semaine_supprimee(self, semaine_id):
         """Appelé quand une semaine est supprimée via le bus d'événements"""
-        print(f"CoursesTab: Notification de suppression de semaine {semaine_id}")
         self.charger_semaines()
