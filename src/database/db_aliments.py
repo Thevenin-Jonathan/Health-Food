@@ -122,8 +122,8 @@ class AlimentsManager(DBConnector):
                 if recherche:
                     query += " AND "
             if recherche:
-                query += "(nom LIKE ? OR categorie LIKE ?)"
-                params.extend([f"%{recherche}%", f"%{recherche}%"])
+                query += "(nom LIKE ? OR marque LIKE ? OR magasin LIKE ?)"
+                params.extend([f"%{recherche}%", f"%{recherche}%", f"%{recherche}%"])
 
         # Appliquer le tri si demandé
         if sort_column:
