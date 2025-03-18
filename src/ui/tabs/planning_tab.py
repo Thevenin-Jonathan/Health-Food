@@ -269,6 +269,23 @@ class PlanningTab(QWidget):
 
         return True
 
+    def charger_semaines_existantes(self):
+        """Charge les semaines existantes depuis la base de données"""
+        # Récupérer les IDs de semaines depuis le gestionnaire de DB
+        semaines_ids = self.db_manager.get_semaines_existantes()
+
+        # Si aucune semaine trouvée, retourner False
+        if not semaines_ids:
+            return False
+
+        # Ajouter chaque semaine à l'interface
+        for semaine in semaines_ids:
+            semaine_id = semaine
+            self.ajouter_semaine_avec_id(semaine_id)
+
+        # Au moins une semaine a été chargée
+        return True
+
     def supprimer_onglet_semaine(self, index):
         """Supprime un onglet de semaine"""
         # Si c'est la dernière semaine, ne pas permettre la fermeture
