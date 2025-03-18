@@ -51,6 +51,18 @@ class DatabaseManager(DBConnector):
         """Délègue la suppression d'un aliment à l'AlimentManager"""
         return self.aliment_manager.supprimer_aliment(aliment_id)
 
+    def get_marques_uniques(self):
+        """Délègue la récupération des marques uniques à l'AlimentManager"""
+        return self.aliment_manager.get_marques_uniques()
+
+    def get_magasins_uniques(self):
+        """Délègue la récupération des magasins uniques à l'AlimentManager"""
+        return self.aliment_manager.get_magasins_uniques()
+
+    def get_categories_uniques(self):
+        """Délègue la récupération des catégories uniques à l'AlimentManager"""
+        return self.aliment_manager.get_categories_uniques()
+
     # =========== MÉTHODES DÉLÉGUÉES À RepasManager ===========
     def ajouter_repas(self, nom, jour, ordre, semaine_id=None):
         """Délègue l'ajout de repas au RepasManager"""
