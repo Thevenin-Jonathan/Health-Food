@@ -105,11 +105,27 @@ class AlimentsManager(DBConnector):
         self.conn.commit()
         self.disconnect()
 
-    def get_aliments(self, sort_column=None, sort_order=None):
-        """Récupère tous les aliments avec tri optionnel"""
+    def get_aliments(
+        self, categorie=None, recherche=None, sort_column=None, sort_order=None
+    ):
+        """Récupère tous les aliments avec options de filtrage et de tri"""
         self.connect()
         query = "SELECT * FROM aliments"
+        params = []
 
+        # Appliquer les filtres si fournis
+        if categorie or recherche:
+            query += " WHERE "
+            if categorie:
+                query += "categorie = ?"
+                params.append(categorie)
+                if recherche:
+                    query += " AND "
+            if recherche:
+                query += "(nom LIKE ? OR categorie LIKE ?)"
+                params.extend([f"%{recherche}%", f"%{recherche}%"])
+
+        # Appliquer le tri si demandé
         if sort_column:
             # Gestion spéciale pour les colonnes numériques pour assurer un tri correct
             numeric_columns = [
@@ -127,7 +143,7 @@ class AlimentsManager(DBConnector):
                 # Pour les colonnes texte, utiliser COLLATE NOCASE pour ignorer la casse
                 query += f' ORDER BY {sort_column} COLLATE NOCASE {"ASC" if sort_order else "DESC"}'
 
-        self.cursor.execute(query)
+        self.cursor.execute(query, params)
         result = [dict(row) for row in self.cursor.fetchall()]
         self.disconnect()
         return result

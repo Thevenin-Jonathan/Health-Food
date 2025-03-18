@@ -39,9 +39,13 @@ class DatabaseManager(DBConnector):
         """Délègue l'ajout d'aliment à l'AlimentManager"""
         return self.aliment_manager.ajouter_aliment(data)
 
-    def get_aliments(self, categorie=None, recherche=None):
-        """Délègue la récupération des aliments à l'AlimentManager"""
-        return self.aliment_manager.get_aliments(categorie, recherche)
+    def get_aliments(
+        self, categorie=None, recherche=None, sort_column=None, sort_order=None
+    ):
+        """Délègue la récupération des aliments avec options de tri"""
+        return self.aliment_manager.get_aliments(
+            categorie, recherche, sort_column, sort_order
+        )
 
     def get_aliment(self, aliment_id):
         """Délègue la récupération d'un aliment à l'AlimentManager"""
