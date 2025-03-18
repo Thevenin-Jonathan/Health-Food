@@ -20,6 +20,7 @@ from ..dialogs.aliment_repas_dialog import AlimentRepasDialog
 from ..dialogs.remplacer_repas_dialog import RemplacerRepasDialog
 from ..dialogs.print_preview_dialog import PrintPreviewDialog
 from ...utils.events import event_bus
+from ...utils.config import JOURS_SEMAINE, BUTTON_STYLES
 
 
 class SemaineWidget(QWidget):
@@ -101,29 +102,27 @@ class SemaineWidget(QWidget):
         # Récupérer les données des repas pour la semaine
         repas_semaine = self.db_manager.get_repas_semaine(self.semaine_id)
 
-        jours = [
-            "Lundi",
-            "Mardi",
-            "Mercredi",
-            "Jeudi",
-            "Vendredi",
-            "Samedi",
-            "Dimanche",
-        ]
-
-        for col, jour in enumerate(jours):
+        for col, jour in enumerate(JOURS_SEMAINE):
             # Créer un widget pour le jour
             day_widget = QWidget()
-            day_widget.setMaximumWidth(
-                350
-            )  # Ajouter cette ligne pour limiter la largeur
+            day_widget.setMaximumWidth(350)
             day_layout = QVBoxLayout()
             day_widget.setLayout(day_layout)
 
-            # Titre du jour
+            # Titre du jour avec bouton d'ajout
+            jour_header = QHBoxLayout()
             titre_jour = QLabel(f"<h2>{jour}</h2>")
-            titre_jour.setAlignment(Qt.AlignCenter)
-            day_layout.addWidget(titre_jour)
+            jour_header.addWidget(titre_jour)
+
+            # Bouton pour ajouter un repas à ce jour
+            btn_add_day = QPushButton("+")
+            btn_add_day.setFixedSize(30, 30)
+            btn_add_day.setStyleSheet(BUTTON_STYLES["add"])
+            btn_add_day.setToolTip(f"Ajouter un repas le {jour}")
+            btn_add_day.clicked.connect(lambda checked, j=jour: self.add_meal(j))
+            jour_header.addWidget(btn_add_day)
+
+            day_layout.addLayout(jour_header)
 
             # Ajouter les repas du jour
             total_cal = 0
@@ -148,21 +147,7 @@ class SemaineWidget(QWidget):
                 # Bouton pour ajouter des aliments
                 btn_add = QPushButton("+")
                 btn_add.setFixedSize(24, 24)  # Taille fixe pour cohérence
-                btn_add.setStyleSheet(
-                    """
-                    QPushButton { 
-                        color: white; 
-                        background-color: #4CAF50; 
-                        font-weight: bold; 
-                        font-size: 16px;
-                        padding: 0px;
-                        margin: 0px;
-                    }
-                    QPushButton:hover { 
-                        background-color: #45a049; 
-                    }
-                """
-                )
+                btn_add.setStyleSheet(BUTTON_STYLES["add"])
                 btn_add.setToolTip("Ajouter un aliment à ce repas")
                 btn_add.clicked.connect(
                     lambda checked, r_id=repas["id"]: self.add_food_to_meal(r_id)
@@ -171,21 +156,7 @@ class SemaineWidget(QWidget):
                 # Bouton pour remplacer le repas par une recette
                 btn_replace = QPushButton("⇄")
                 btn_replace.setFixedSize(24, 24)
-                btn_replace.setStyleSheet(
-                    """
-                    QPushButton { 
-                        color: white; 
-                        background-color: #3498db; 
-                        font-weight: bold; 
-                        font-size: 12px;
-                        padding: 0px;
-                        margin: 0px;
-                    }
-                    QPushButton:hover { 
-                        background-color: #2980b9; 
-                    }
-                """
-                )
+                btn_replace.setStyleSheet(BUTTON_STYLES["replace"])
                 btn_replace.setToolTip("Remplacer par une recette")
                 btn_replace.clicked.connect(
                     lambda checked, r_id=repas["id"]: self.remplacer_repas_par_recette(
@@ -196,20 +167,7 @@ class SemaineWidget(QWidget):
                 # Bouton pour supprimer le repas (croix rouge simplifiée)
                 btn_delete = QPushButton("×")
                 btn_delete.setFixedSize(24, 24)
-                btn_delete.setStyleSheet(
-                    """
-                    QPushButton { 
-                        color: white; 
-                        background-color: #e74c3c; 
-                        font-weight: bold; 
-                        font-size: 16px;
-                        padding: 0px;
-                    }
-                    QPushButton:hover { 
-                        background-color: #c0392b; 
-                    }
-                """
-                )
+                btn_delete.setStyleSheet(BUTTON_STYLES["delete"])
                 btn_delete.setToolTip("Supprimer ce repas")
                 btn_delete.clicked.connect(
                     lambda checked, r_id=repas["id"]: self.delete_meal(r_id)
@@ -256,20 +214,7 @@ class SemaineWidget(QWidget):
                         # Bouton pour supprimer l'aliment (croix rouge simplifiée)
                         btn_remove = QPushButton("×")
                         btn_remove.setFixedSize(20, 20)  # Plus petit pour les aliments
-                        btn_remove.setStyleSheet(
-                            """
-                            QPushButton { 
-                                color: white; 
-                                background-color: #e74c3c; 
-                                font-weight: bold; 
-                                font-size: 12px;
-                                padding: 0px;
-                            }
-                            QPushButton:hover { 
-                                background-color: #c0392b; 
-                            }
-                        """
-                        )
+                        btn_remove.setStyleSheet(BUTTON_STYLES["delete"])
                         btn_remove.setToolTip("Supprimer cet aliment")
                         btn_remove.clicked.connect(
                             lambda checked, r_id=repas["id"], a_id=aliment[
@@ -458,9 +403,11 @@ class SemaineWidget(QWidget):
 
         return progress
 
-    def add_meal(self):
-        """Ajoute un repas à cette semaine"""
-        dialog = RepasDialog(self, self.db_manager, self.semaine_id)
+    def add_meal(self, jour=None):
+        """Ajoute un repas à cette semaine, avec jour optionnel prédéfini"""
+        dialog = RepasDialog(
+            self, self.db_manager, self.semaine_id, jour_predefini=jour
+        )
         if dialog.exec():
             nom, jour, ordre, repas_type_id = dialog.get_data()
 

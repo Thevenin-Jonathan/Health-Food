@@ -9,150 +9,98 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QWidget,
     QMessageBox,
+    QLabel,
 )
+from PySide6.QtCore import Qt
+
+from ...utils.config import JOURS_SEMAINE
 
 
 class RepasDialog(QDialog):
-    def __init__(self, parent=None, db_manager=None, semaine_id=None):
+    def __init__(
+        self, parent=None, db_manager=None, semaine_id=None, jour_predefini=None
+    ):
         super().__init__(parent)
         self.db_manager = db_manager
         self.semaine_id = semaine_id
+        self.jour_predefini = jour_predefini
+
         self.setup_ui()
+        self.load_data()
 
     def setup_ui(self):
         self.setWindowTitle("Ajouter un repas")
-        self.setMinimumWidth(300)
+        self.setMinimumWidth(400)
 
-        layout = QFormLayout()
+        self.layout = QFormLayout()
 
-        # Option pour choisir entre un nouveau repas ou une recette existante
-        self.type_choix = QComboBox()
-        self.type_choix.addItems(["Nouveau repas", "Utiliser une recette existante"])
-        self.type_choix.currentIndexChanged.connect(self.toggle_mode)
-        layout.addRow("Type:", self.type_choix)
-
-        # Widget pour contenir les champs spécifiques au mode
-        self.mode_widget = QWidget()
-        self.mode_layout = QFormLayout(self.mode_widget)
-
-        # Mode nouveau repas
+        # Nom du repas
         self.nom_input = QLineEdit()
-        self.mode_layout.addRow("Nom du repas:", self.nom_input)
+        self.layout.addRow("Nom du repas:", self.nom_input)
 
-        # Mode recette
-        self.recette_combo = QComboBox()
-        self.recette_combo.hide()
-        self.charger_recettes()
-        self.mode_layout.addRow("Recette:", self.recette_combo)
-
-        layout.addRow(self.mode_widget)
-
-        # Sélection du jour (commun aux deux modes)
+        # Jour - visible uniquement si jour_predefini n'est pas spécifié
         self.jour_input = QComboBox()
-        self.jour_input.addItems(
-            ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
-        )
-        layout.addRow("Jour:", self.jour_input)
+        if self.jour_predefini is None:
+            self.jour_input.addItems(JOURS_SEMAINE)
+            self.layout.addRow("Jour:", self.jour_input)
+        else:
+            # Créer le combobox mais le cacher, afin que la même méthode get_data() fonctionne
+            self.jour_input.addItems(JOURS_SEMAINE)
+            self.jour_input.setCurrentText(self.jour_predefini)
+            self.jour_input.hide()
 
-        # Ordre dans la journée (commun aux deux modes) - Avec style amélioré
+        # Ordre dans la journée
         self.ordre_input = QSpinBox()
         self.ordre_input.setMinimum(1)
         self.ordre_input.setValue(1)
-        self.ordre_input.setFixedHeight(30)  # Augmenter la hauteur
-        self.ordre_input.setStyleSheet(
-            """
-            QSpinBox { 
-                padding-right: 15px; /* Espace pour les flèches */
-            }
-            QSpinBox::up-button, QSpinBox::down-button {
-                width: 20px; /* Augmenter la largeur des boutons */
-                height: 14px; /* Définir la hauteur des boutons */
-                padding: 0px;
-            }
-            QSpinBox::up-button {
-                subcontrol-position: top right;
-            }
-            QSpinBox::down-button {
-                subcontrol-position: bottom right;
-            }
-        """
-        )
-        layout.addRow("Ordre:", self.ordre_input)
+        self.layout.addRow("Position dans la journée:", self.ordre_input)
 
-        # Boutons
-        buttons_layout = QHBoxLayout()
+        # Utiliser une recette existante
+        self.repas_type_label = QLabel("Utiliser une recette existante (optionnel):")
+        self.layout.addRow(self.repas_type_label)
+
+        self.repas_type_input = QComboBox()
+        self.repas_type_input.addItem(
+            "Aucune", None
+        )  # Option pour ne pas utiliser de recette
+        self.layout.addRow(self.repas_type_input)
+
+        # Boutons d'action
+        btn_layout = QHBoxLayout()
         self.btn_cancel = QPushButton("Annuler")
         self.btn_cancel.clicked.connect(self.reject)
 
-        self.btn_save = QPushButton("Enregistrer")
-        self.btn_save.clicked.connect(self.validate_and_accept)
+        self.btn_save = QPushButton("Ajouter")
+        self.btn_save.clicked.connect(self.accept)
 
-        buttons_layout.addWidget(self.btn_cancel)
-        buttons_layout.addWidget(self.btn_save)
+        btn_layout.addWidget(self.btn_cancel)
+        btn_layout.addWidget(self.btn_save)
+        self.layout.addRow(btn_layout)
 
-        layout.addRow(buttons_layout)
-        self.setLayout(layout)
+        self.setLayout(self.layout)
 
-        # Initialiser le mode
-        self.toggle_mode(0)
+    def load_data(self):
+        """Charge les recettes existantes"""
+        repas_types = self.db_manager.get_repas_types()
 
-    def charger_recettes(self):
-        """Charge les recettes disponibles dans le combobox"""
-        if not self.db_manager:
-            return
-
-        self.recette_combo.clear()
-        self.recettes = self.db_manager.get_repas_types()
-
-        self.recette_ids = [recette["id"] for recette in self.recettes]
-
-        for recette in self.recettes:
-            self.recette_combo.addItem(recette["nom"])
-
-    def toggle_mode(self, index):
-        """Change le mode entre nouveau repas et recette existante"""
-        if index == 0:  # Nouveau repas
-            self.nom_input.show()
-            self.recette_combo.hide()
-        else:  # Recette existante
-            self.nom_input.hide()
-            self.recette_combo.show()
-
-    def validate_and_accept(self):
-        """Valide les données avant d'accepter"""
-        if self.type_choix.currentIndex() == 0 and not self.nom_input.text().strip():
-            QMessageBox.warning(
-                self, "Champ obligatoire", "Le nom du repas est obligatoire."
+        for repas_type in repas_types:
+            self.repas_type_input.addItem(
+                f"{repas_type['nom']} ({repas_type['total_calories']:.0f} kcal)",
+                repas_type["id"],
             )
-            return
-        elif self.type_choix.currentIndex() == 1 and self.recette_combo.count() == 0:
-            QMessageBox.warning(
-                self,
-                "Aucune recette",
-                "Aucune recette disponible. Veuillez en créer une d'abord.",
-            )
-            return
-
-        self.accept()
 
     def get_data(self):
-        """Retourne les données du formulaire"""
-        if self.type_choix.currentIndex() == 0:
-            # Nouveau repas
-            return (
-                self.nom_input.text().strip(),
-                self.jour_input.currentText(),
-                self.ordre_input.value(),
-                None,  # Pas de recette sélectionnée
-            )
-        else:
-            # Recette existante
-            if self.recette_combo.count() > 0:
-                recette_id = self.recette_ids[self.recette_combo.currentIndex()]
-                return (
-                    None,  # Pas besoin de nom, on utilise celui de la recette
-                    self.jour_input.currentText(),
-                    self.ordre_input.value(),
-                    recette_id,
-                )
-            return (None, None, None, None)
+        """Récupère les données saisies"""
+        # Utiliser le jour prédéfini si disponible, sinon prendre celui du combobox
+        jour = (
+            self.jour_predefini
+            if self.jour_predefini
+            else self.jour_input.currentText()
+        )
+
+        return (
+            self.nom_input.text().strip(),
+            jour,
+            self.ordre_input.value(),
+            self.repas_type_input.currentData(),
+        )

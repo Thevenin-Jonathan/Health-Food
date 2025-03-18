@@ -90,10 +90,8 @@ class PlanningTab(QWidget):
 
         main_layout.addWidget(self.tabs_semaines, 1)
 
-        # Bouton pour ajouter un repas
-        self.btn_add_meal = QPushButton("Ajouter un repas")
-        self.btn_add_meal.clicked.connect(self.add_meal)
-        main_layout.addWidget(self.btn_add_meal)
+        # Suppression du bouton global pour ajouter un repas
+        # Chaque jour a maintenant son propre bouton d'ajout
 
         self.setLayout(main_layout)
 
@@ -103,7 +101,7 @@ class PlanningTab(QWidget):
         has_tab = index >= 0
         self.btn_remove_week.setEnabled(has_tab)
         self.btn_rename_week.setEnabled(has_tab)
-        self.btn_add_meal.setEnabled(has_tab)
+        # On ne modifie plus le bouton d'ajout global car il a été supprimé
 
     def on_tab_moved(self, from_index, to_index):
         """Méthode appelée lorsqu'un onglet est déplacé"""
@@ -188,7 +186,7 @@ class PlanningTab(QWidget):
             nom_actuel = self.tabs_semaines.tabText(current_index)
 
             # Ouvrir une boîte de dialogue pour saisir le nouveau nom
-            nouveau_nom, ok = QInputDialog.getText(
+            (nouveau_nom, ok) = QInputDialog.getText(
                 self,
                 "Renommer la semaine",
                 "Entrez un nouveau nom pour cette semaine:",
@@ -224,37 +222,6 @@ class PlanningTab(QWidget):
                     # Onglet non personnalisé, utiliser la numérotation séquentielle
                     self.tabs_semaines.setTabText(index, f"Semaine {position_counter}")
                     position_counter += 1
-
-    def add_meal(self):
-        """Ajoute un repas à la semaine courante"""
-        current_semaine_widget = self.tabs_semaines.currentWidget()
-        if current_semaine_widget:
-            current_semaine_widget.add_meal()
-
-    def charger_semaines_existantes(self):
-        """Charge les semaines existantes depuis la base de données"""
-        self.db_manager.connect()
-        self.db_manager.cursor.execute(
-            """
-            SELECT DISTINCT semaine_id FROM repas
-            WHERE semaine_id IS NOT NULL
-            ORDER BY semaine_id
-            """
-        )
-        semaines = self.db_manager.cursor.fetchall()
-        self.db_manager.disconnect()
-
-        # Si aucune semaine trouvée, retourner False
-        if not semaines:
-            return False
-
-        # Ajouter chaque semaine à l'interface
-        for semaine in semaines:
-            semaine_id = semaine[0]
-            self.ajouter_semaine_avec_id(semaine_id)
-
-        # Au moins une semaine a été chargée
-        return True
 
     def ajouter_onglet_semaine(self, semaine_id, emit_signal=True):
         """Ajoute un nouvel onglet pour une semaine spécifique"""
