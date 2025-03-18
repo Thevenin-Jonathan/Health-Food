@@ -96,3 +96,9 @@ class JourWidget(QWidget):
             parent = self.parent()
             if parent and hasattr(parent, "load_data"):
                 parent.load_data()
+
+    def update_objectifs(self, nouveaux_objectifs):
+        """Met à jour les objectifs et recalcule les pourcentages"""
+        self.objectifs = nouveaux_objectifs
+        # Mettre à jour l'affichage des totaux avec les nouveaux objectifs
+        self.update_totals_display()

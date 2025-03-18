@@ -16,12 +16,10 @@ from PySide6.QtWidgets import (
     QStackedWidget,
     QAbstractSpinBox,
     QFrame,
-    QSizePolicy,
 )
-from PySide6.QtCore import Qt, QMargins, Signal, QTimer
-from PySide6.QtGui import QFont, QColor
-
+from PySide6.QtCore import Qt, QTimer
 from .tab_base import TabBase
+from ...utils.events import event_bus
 
 
 class UtilisateurTab(TabBase):
@@ -804,6 +802,9 @@ class UtilisateurTab(TabBase):
 
         # Sauvegarder dans la base de données
         self.db_manager.sauvegarder_utilisateur(user_data)
+
+        # Émettre le signal pour notifier de la modification du profil utilisateur
+        event_bus.utilisateur_modifie.emit()
 
         # Afficher confirmation
         self.save_button.setText("Profil sauvegardé!")

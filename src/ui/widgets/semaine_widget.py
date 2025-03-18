@@ -33,9 +33,8 @@ class SemaineWidget(QWidget):
         self.load_data()
 
         # S'abonner aux événements
+        event_bus.utilisateur_modifie.connect(self.update_objectifs_utilisateur)
         event_bus.aliment_supprime.connect(self.on_aliment_supprime)
-        if hasattr(event_bus, "utilisateur_modifie"):
-            event_bus.utilisateur_modifie.connect(self.update_objectifs_utilisateur)
         event_bus.repas_modifies.connect(self.on_repas_modifies)
 
     def charger_objectifs_utilisateur(self):
@@ -51,7 +50,8 @@ class SemaineWidget(QWidget):
     def update_objectifs_utilisateur(self):
         """Met à jour les objectifs quand le profil utilisateur est modifié"""
         self.objectifs_utilisateur = self.charger_objectifs_utilisateur()
-        self.load_data()
+        for jour_widget in self.jour_widgets:
+            jour_widget.update_objectifs(self.objectifs_utilisateur)
 
     def setup_ui(self):
         main_layout = QVBoxLayout()
@@ -130,3 +130,8 @@ class SemaineWidget(QWidget):
         """Appelé lorsqu'un repas est modifié dans la semaine"""
         if semaine_id == self.semaine_id:
             self.load_data()
+
+    def update_objectifs_utilisateur(self):
+        """Met à jour les objectifs quand le profil utilisateur est modifié"""
+        self.objectifs_utilisateur = self.charger_objectifs_utilisateur()
+        self.load_data()  # Recharger les données pour mettre à jour les affichages

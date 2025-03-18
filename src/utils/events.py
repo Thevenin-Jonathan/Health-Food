@@ -27,6 +27,10 @@ class EventBus(QObject):
         int
     )  # Signal émis quand des repas sont modifiés (semaine_id)
 
+    utilisateur_modifie = (
+        Signal()
+    )  # Signal émis quand le profil utilisateur est modifié
+
     # Instance unique (singleton)
     _instance = None
 
