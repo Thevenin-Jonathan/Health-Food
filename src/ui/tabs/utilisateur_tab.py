@@ -669,8 +669,7 @@ class UtilisateurTab(TabBase):
             "poids": self.poids_spin.value(),
             "niveau_activite": self.activite_combo.currentText(),
             "objectif": self.objectif_combo.currentText(),
-            "taux_variation": self.variation_spin.value()
-            / 100,  # Convertir en g/100g/semaine pour compatibilité
+            "taux_variation": self.variation_spin.value(),
             "calories_personnalisees": (
                 self.calories_manuelles_spin.value()
                 if self.mode_manuel_radio.isChecked()
@@ -698,10 +697,13 @@ class UtilisateurTab(TabBase):
         taux = self.variation_spin.value()  # En grammes par semaine
 
         if objectif == "Perte de poids":
-            deficit = round((taux * 770) / (7 * 100))  # Utiliser 770 kcal pour 100g
+            # Utiliser la même formule que db_utilisateur.py
+            # 1kg de graisse = 7700 kcal, donc 1g = 7.7 kcal
+            deficit = round((taux * 7.7) / 7)  # Déficit journalier
             self.variation_label.setText(f"≈ -{deficit} kcal/jour")
         elif objectif == "Prise de masse":
-            surplus = round((taux * 770) / (7 * 100))  # Utiliser 770 kcal pour 100g
+            # Même formule pour le surplus
+            surplus = round((taux * 7.7) / 7)  # Surplus journalier
             self.variation_label.setText(f"≈ +{surplus} kcal/jour")
         else:
             self.variation_label.setText("≈ 0 kcal/jour")
@@ -728,10 +730,9 @@ class UtilisateurTab(TabBase):
         # Objectifs
         self.objectif_combo.setCurrentText(user_data.get("objectif", "Maintien"))
 
-        # Convertir l'ancienne valeur (g/100g/semaine) en g/semaine
-        old_variation = user_data.get("taux_variation", 5)
-        new_variation = int(old_variation * 100)  # Convertir en grammes entiers
-        self.variation_spin.setValue(new_variation)
+        # Taux en g/semaine
+        variation = user_data.get("taux_variation", 0)
+        self.variation_spin.setValue(variation)
 
         self.variation_spin.setEnabled(
             user_data.get("objectif", "Maintien") != "Maintien"
@@ -783,8 +784,7 @@ class UtilisateurTab(TabBase):
             "poids": self.poids_spin.value(),
             "niveau_activite": self.activite_combo.currentText(),
             "objectif": self.objectif_combo.currentText(),
-            "taux_variation": self.variation_spin.value()
-            / 100,  # Convertir en g/100g/semaine pour compatibilité
+            "taux_variation": self.variation_spin.value(),
             "calories_personnalisees": (
                 self.calories_manuelles_spin.value()
                 if self.mode_manuel_radio.isChecked()

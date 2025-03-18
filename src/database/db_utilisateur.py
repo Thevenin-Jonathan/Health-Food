@@ -179,11 +179,13 @@ class UserManager(DBConnector):
         taux_variation = user_data.get("taux_variation", 0)  # en g/semaine
         ajustement_calories = 0
         if objectif == "Perte de poids":
-            # Convertir g/semaine en déficit calorique journalier
-            # 100g de graisse = environ 770 kcal (mis à jour selon les nouvelles valeurs)
-            ajustement_calories = -(taux_variation * 110) / 7
+            # taux_variation est en g/semaine
+            # 1kg de graisse = 7700 kcal, donc 1g = 7.7 kcal
+            # Division par 7 pour obtenir le déficit journalier
+            ajustement_calories = -(taux_variation * 7.7) / 7
         elif objectif == "Prise de masse":
-            ajustement_calories = (taux_variation * 110) / 7
+            # Même calcul pour le surplus calorique
+            ajustement_calories = (taux_variation * 7.7) / 7
 
         calories_objectif = calories_maintien + ajustement_calories
 
