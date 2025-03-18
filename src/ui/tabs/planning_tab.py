@@ -191,24 +191,31 @@ class PlanningTab(QWidget):
                 self.tabs_semaines.setTabText(current_index, nouveau_nom)
 
     def mettre_a_jour_noms_onglets(self):
-        """Met à jour les noms des onglets non personnalisés en fonction de leur position réelle"""
-        position_counter = 1  # Compteur pour les onglets non personnalisés
+        """Met à jour les noms des onglets non personnalisés"""
+        position_counter = 1
 
-        # Créer un mapping temporaire entre l'index d'onglet et l'ID de semaine
-        index_to_id = {}
+        # Pour chaque onglet, mettre à jour le texte si nécessaire
         for index in range(self.tabs_semaines.count()):
             semaine_widget = self.tabs_semaines.widget(index)
-            for id, widget in self.semaines.items():
-                if widget == semaine_widget:
-                    index_to_id[index] = id
-                    break
 
-        # Mettre à jour les noms des onglets non personnalisés
-        for index in range(self.tabs_semaines.count()):
-            if index in index_to_id:
-                semaine_id = index_to_id[index]
-                if semaine_id not in self.onglets_personnalises:
-                    # Onglet non personnalisé, utiliser la numérotation séquentielle
+            # Trouver l'ID correspondant
+            semaine_id = next(
+                (
+                    sid
+                    for sid, widget in self.semaines.items()
+                    if widget == semaine_widget
+                ),
+                None,
+            )
+
+            if semaine_id is not None:
+                if semaine_id in self.onglets_personnalises:
+                    # Conserver le nom personnalisé
+                    self.tabs_semaines.setTabText(
+                        index, self.onglets_personnalises[semaine_id]
+                    )
+                else:
+                    # Utiliser la numérotation séquentielle
                     self.tabs_semaines.setTabText(index, f"Semaine {position_counter}")
                     position_counter += 1
 
