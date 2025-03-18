@@ -6,19 +6,31 @@ class DBConnector:
     """Classe de base pour la gestion des connexions à la base de données"""
 
     def __init__(self, db_file="nutrition_sportive.db"):
+        # Calculer le chemin absolu vers le répertoire de projet
+        project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+
         # S'assurer que le dossier data existe
-        os.makedirs("data", exist_ok=True)
-        self.db_file = os.path.join("data", db_file)
+        data_dir = os.path.join(project_dir, "data")
+        os.makedirs(data_dir, exist_ok=True)
+
+        # Chemin absolu vers le fichier de la base de données
+        self.db_file = os.path.join(data_dir, db_file)
+
         self.conn = None
         self.cursor = None
 
     def connect(self):
         """Établit une connexion à la base de données"""
-        self.conn = sqlite3.connect(self.db_file)
-        self.conn.row_factory = sqlite3.Row
-        # Activer les contraintes de clés étrangères à chaque connexion
-        self.conn.execute("PRAGMA foreign_keys = ON")
-        self.cursor = self.conn.cursor()
+        try:
+            self.conn = sqlite3.connect(self.db_file)
+            self.conn.row_factory = sqlite3.Row
+            # Activer les contraintes de clés étrangères à chaque connexion
+            self.conn.execute("PRAGMA foreign_keys = ON")
+            self.cursor = self.conn.cursor()
+        except sqlite3.Error as e:
+            print(f"Erreur de connexion à la base de données: {e}")
+            print(f"Chemin de la base de données: {self.db_file}")
+            raise
 
     def disconnect(self):
         """Ferme la connexion à la base de données"""

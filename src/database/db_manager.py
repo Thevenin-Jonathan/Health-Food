@@ -16,10 +16,10 @@ class DatabaseManager(DBConnector):
         super().__init__(db_file)
 
         # Initialisation des gestionnaires spécialisés
-        self.user_manager = UserManager(db_file)
-        self.aliment_manager = AlimentsManager(db_file)
-        self.repas_manager = RepasManager(db_file)
-        self.repas_types_manager = RepasTypesManager(db_file)
+        self.user_manager = UserManager(self.db_file)
+        self.aliment_manager = AlimentsManager(self.db_file)
+        self.repas_manager = RepasManager(self.db_file)
+        self.repas_types_manager = RepasTypesManager(self.db_file)
 
     # =========== MÉTHODES DÉLÉGUÉES À UserManager ===========
     def sauvegarder_utilisateur(self, data):
