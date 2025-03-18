@@ -57,17 +57,29 @@ class PlanningTab(QWidget):
         # Panel de contrôle des semaines
         control_layout = QHBoxLayout()
 
+        # Style commun pour les boutons verts
+        button_style = """
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                font-weight: bold;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """
+
         self.btn_add_week = QPushButton("Ajouter une semaine")
         self.btn_add_week.clicked.connect(self.ajouter_semaine)
+        self.btn_add_week.setStyleSheet(button_style)
         control_layout.addWidget(self.btn_add_week)
-
-        self.btn_remove_week = QPushButton("Supprimer la semaine courante")
-        self.btn_remove_week.clicked.connect(self.supprimer_semaine_courante)
-        control_layout.addWidget(self.btn_remove_week)
 
         # Ajout du bouton pour renommer la semaine courante
         self.btn_rename_week = QPushButton("Renommer la semaine courante")
         self.btn_rename_week.clicked.connect(self.renommer_semaine_courante)
+        self.btn_rename_week.setStyleSheet(button_style)
         control_layout.addWidget(self.btn_rename_week)
 
         control_layout.addStretch()
@@ -89,18 +101,13 @@ class PlanningTab(QWidget):
 
         main_layout.addWidget(self.tabs_semaines, 1)
 
-        # Suppression du bouton global pour ajouter un repas
-        # Chaque jour a maintenant son propre bouton d'ajout
-
         self.setLayout(main_layout)
 
     def on_tab_changed(self, index):
         """Méthode appelée quand l'onglet actif change"""
         # Activer/désactiver les boutons en fonction de si un onglet est sélectionné
         has_tab = index >= 0
-        self.btn_remove_week.setEnabled(has_tab)
         self.btn_rename_week.setEnabled(has_tab)
-        # On ne modifie plus le bouton d'ajout global car il a été supprimé
 
     def on_tab_moved(self, from_index, to_index):
         """Méthode appelée lorsqu'un onglet est déplacé"""
@@ -148,23 +155,6 @@ class PlanningTab(QWidget):
         self.semaine_ajoutee.emit(semaine_id)
         event_bus.semaine_ajoutee.emit(semaine_id)
         event_bus.semaines_modifiees.emit()
-
-    def fermer_semaine(self, index):
-        """Ferme une semaine à l'index donné"""
-        # Si c'est la dernière semaine, ne pas permettre la fermeture
-        if self.tabs_semaines.count() <= 1:
-            QMessageBox.warning(
-                self, "Impossible", "Vous devez garder au moins une semaine."
-            )
-            return
-
-        # Utiliser la méthode supprimer_onglet_semaine pour assurer la suppression en DB
-        self.supprimer_onglet_semaine(index)
-
-    def supprimer_semaine_courante(self):
-        """Supprime la semaine actuellement affichée"""
-        current_index = self.tabs_semaines.currentIndex()
-        self.fermer_semaine(current_index)
 
     def renommer_semaine_courante(self):
         """Ouvre un dialogue pour renommer la semaine courante"""
@@ -259,8 +249,7 @@ class PlanningTab(QWidget):
             return False
 
         # Ajouter chaque semaine à l'interface
-        for semaine in semaines_ids:
-            semaine_id = semaine
+        for semaine_id in semaines_ids:
             self.ajouter_semaine_avec_id(semaine_id)
 
         # Au moins une semaine a été chargée
