@@ -20,6 +20,13 @@ class EventBus(QObject):
     aliment_ajoute = Signal(int)  # Signal émis quand un aliment est ajouté (ID)
     aliments_modifies = Signal()  # Signal général pour toute modification des aliments
 
+    # Nouveaux signaux pour les repas
+    repas_ajoute = Signal(int)  # Signal émis quand un repas est ajouté (ID)
+    repas_supprime = Signal(int)  # Signal émis quand un repas est supprimé (ID)
+    repas_modifies = Signal(
+        int
+    )  # Signal émis quand des repas sont modifiés (semaine_id)
+
     # Instance unique (singleton)
     _instance = None
 

@@ -36,6 +36,7 @@ class SemaineWidget(QWidget):
         event_bus.aliment_supprime.connect(self.on_aliment_supprime)
         if hasattr(event_bus, "utilisateur_modifie"):
             event_bus.utilisateur_modifie.connect(self.update_objectifs_utilisateur)
+        event_bus.repas_modifies.connect(self.on_repas_modifies)
 
     def charger_objectifs_utilisateur(self):
         """Récupère les objectifs nutritionnels de l'utilisateur"""
@@ -124,3 +125,8 @@ class SemaineWidget(QWidget):
         """Appelé lorsqu'un aliment est supprimé"""
         # Rafraîchir les données de cette semaine
         self.load_data()
+
+    def on_repas_modifies(self, semaine_id):
+        """Appelé lorsqu'un repas est modifié dans la semaine"""
+        if semaine_id == self.semaine_id:
+            self.load_data()

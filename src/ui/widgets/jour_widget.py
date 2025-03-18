@@ -10,6 +10,7 @@ from ...utils.config import BUTTON_STYLES
 from ..dialogs.repas_dialog import RepasDialog
 from .repas_widget import RepasWidget
 from .totaux_macros_widget import TotauxMacrosWidget
+from ...utils.events import event_bus
 
 
 class JourWidget(QWidget):
@@ -87,6 +88,9 @@ class JourWidget(QWidget):
             else:
                 # Créer un nouveau repas vide
                 self.db_manager.ajouter_repas(nom, jour, ordre, self.semaine_id)
+
+            # Émettre le signal pour notifier que les repas ont été modifiés
+            event_bus.repas_modifies.emit(self.semaine_id)
 
             # Notifier le widget parent pour recharger les données
             parent = self.parent()
