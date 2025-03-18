@@ -222,25 +222,6 @@ class PlanningTab(QWidget):
                     self.tabs_semaines.setTabText(index, f"Semaine {position_counter}")
                     position_counter += 1
 
-    def ajouter_onglet_semaine(self, semaine_id, emit_signal=True):
-        """Ajoute un nouvel onglet pour une semaine spécifique"""
-        # Créer un widget de planning pour la semaine
-        semaine_widget = SemainePlanningWidget(self.db_manager, semaine_id)
-
-        # Ajouter l'onglet au TabWidget des semaines
-        tab_index = self.semaines_tab_widget.addTab(
-            semaine_widget, f"Semaine {semaine_id}"
-        )
-
-        # Garder une trace de cet onglet
-        self.semaine_tabs[semaine_id] = tab_index
-
-        # Émettre le signal si nécessaire
-        if emit_signal:
-            self.semaine_ajoutee.emit(semaine_id)
-
-        return tab_index
-
     def ajouter_semaine_avec_id(self, semaine_id):
         """Ajoute une semaine avec un ID spécifique"""
         # Vérifier si cette semaine_id est déjà utilisée
