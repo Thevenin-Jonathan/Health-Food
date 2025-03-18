@@ -120,7 +120,108 @@ class AlimentsManager(DBConnector):
         params = []
         conditions = []
 
-        # Collecter les conditions de filtrage
+        # Collecter les conditions de filtrage standard
+        if categorie:
+            conditions.append("categorie = ?")
+            params.append(categorie)
+
+        if marque:
+            conditions.append("marque = ?")
+            params.append(marque)
+
+        if magasin:
+            conditions.append("magasin = ?")
+            params.append(magasin)
+
+        # Récupérer tous les aliments avec les filtres exacts
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        # Appliquer le tri
+        if sort_column:
+            numeric_columns = [
+                "calories",
+                "proteines",
+                "glucides",
+                "lipides",
+                "fibres",
+                "prix_kg",
+            ]
+            if sort_column in numeric_columns:
+                query += f' ORDER BY CAST({sort_column} AS REAL) {"ASC" if sort_order else "DESC"}'
+            else:
+                query += f' ORDER BY {sort_column} COLLATE NOCASE {"ASC" if sort_order else "DESC"}'
+
+        # Exécuter la requête
+        self.cursor.execute(query, params)
+        results = [dict(row) for row in self.cursor.fetchall()]
+
+        # Filtrer par recherche texte en Python
+        if recherche:
+            # Normaliser la recherche (supprimer accents et passer en minuscules)
+            recherche_norm = self.normalize_text(recherche)
+
+            # Liste pour stocker les résultats filtrés
+            filtered_results = []
+
+            # Filtrer chaque aliment
+            for item in results:
+                # Normaliser tous les champs de texte
+                nom_norm = self.normalize_text(item["nom"])
+                marque_norm = self.normalize_text(
+                    item["marque"] if item["marque"] else ""
+                )
+                magasin_norm = self.normalize_text(
+                    item["magasin"] if item["magasin"] else ""
+                )
+                categorie_norm = self.normalize_text(
+                    item["categorie"] if item["categorie"] else ""
+                )
+
+                # Ajouter l'aliment s'il contient le terme dans n'importe quel champ
+                if (
+                    recherche_norm in nom_norm
+                    or recherche_norm in marque_norm
+                    or recherche_norm in magasin_norm
+                    or recherche_norm in categorie_norm
+                ):
+                    filtered_results.append(item)
+
+            # Remplacer les résultats par les résultats filtrés
+            results = filtered_results
+
+        self.disconnect()
+        return results
+
+    def normalize_text(self, text):
+        import unicodedata
+
+        """Normalise le texte en enlevant les accents et en convertissant en minuscules"""
+        if not text:
+            return ""
+        # Décompose les caractères accentués
+        text = unicodedata.normalize("NFD", text)
+        # Supprime les marques diacritiques
+        text = "".join([c for c in text if not unicodedata.combining(c)])
+        # Convertit en minuscules
+        return text.lower()
+
+    def get_aliments_fallback(
+        self,
+        categorie=None,
+        marque=None,
+        magasin=None,
+        recherche=None,
+        sort_column=None,
+        sort_order=None,
+    ):
+        """Version de secours pour get_aliments sans gestion des accents"""
+        self.connect()
+        query = "SELECT * FROM aliments"
+        params = []
+        conditions = []
+
+        # Filtres basiques
         if categorie:
             conditions.append("categorie = ?")
             params.append(categorie)
@@ -145,9 +246,8 @@ class AlimentsManager(DBConnector):
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
 
-        # Appliquer le tri si demandé
+        # Tri standard
         if sort_column:
-            # Gestion spéciale pour les colonnes numériques pour assurer un tri correct
             numeric_columns = [
                 "calories",
                 "proteines",
@@ -157,14 +257,13 @@ class AlimentsManager(DBConnector):
                 "prix_kg",
             ]
             if sort_column in numeric_columns:
-                # Utiliser CAST pour forcer le tri numérique
                 query += f' ORDER BY CAST({sort_column} AS REAL) {"ASC" if sort_order else "DESC"}'
             else:
-                # Pour les colonnes texte, utiliser COLLATE NOCASE pour ignorer la casse
                 query += f' ORDER BY {sort_column} COLLATE NOCASE {"ASC" if sort_order else "DESC"}'
 
         self.cursor.execute(query, params)
         result = [dict(row) for row in self.cursor.fetchall()]
+
         self.disconnect()
         return result
 
