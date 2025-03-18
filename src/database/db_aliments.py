@@ -106,24 +106,44 @@ class AlimentsManager(DBConnector):
         self.disconnect()
 
     def get_aliments(
-        self, categorie=None, recherche=None, sort_column=None, sort_order=None
+        self,
+        categorie=None,
+        marque=None,
+        magasin=None,
+        recherche=None,
+        sort_column=None,
+        sort_order=None,
     ):
         """Récupère tous les aliments avec options de filtrage et de tri"""
         self.connect()
         query = "SELECT * FROM aliments"
         params = []
+        conditions = []
 
-        # Appliquer les filtres si fournis
-        if categorie or recherche:
-            query += " WHERE "
-            if categorie:
-                query += "categorie = ?"
-                params.append(categorie)
-                if recherche:
-                    query += " AND "
-            if recherche:
-                query += "(nom LIKE ? OR marque LIKE ? OR magasin LIKE ?)"
-                params.extend([f"%{recherche}%", f"%{recherche}%", f"%{recherche}%"])
+        # Collecter les conditions de filtrage
+        if categorie:
+            conditions.append("categorie = ?")
+            params.append(categorie)
+
+        if marque:
+            conditions.append("marque = ?")
+            params.append(marque)
+
+        if magasin:
+            conditions.append("magasin = ?")
+            params.append(magasin)
+
+        if recherche:
+            conditions.append(
+                "(nom LIKE ? OR marque LIKE ? OR magasin LIKE ? OR categorie LIKE ?)"
+            )
+            params.extend(
+                [f"%{recherche}%", f"%{recherche}%", f"%{recherche}%", f"%{recherche}%"]
+            )
+
+        # Ajouter les conditions à la requête
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
 
         # Appliquer le tri si demandé
         if sort_column:

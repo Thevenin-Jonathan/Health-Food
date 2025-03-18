@@ -7,11 +7,13 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QAbstractItemView,
     QMenu,
-    QDialog,
     QMessageBox,
     QWidget,
     QSpacerItem,
     QSizePolicy,
+    QLabel,
+    QLineEdit,
+    QComboBox,
 )
 from PySide6.QtCore import Qt, QPoint
 from PySide6.QtGui import QAction, QIcon
@@ -101,10 +103,66 @@ class AlimentsTab(TabBase):
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
 
-        # En-tête avec le bouton d'ajout à droite
-        header_layout = QHBoxLayout()
-        header_spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-        header_layout.addItem(header_spacer)
+        # Ajouter une zone de filtrage
+        filter_layout = QHBoxLayout()
+
+        # Recherche par texte
+        self.search_label = QLabel("Recherche:")
+        filter_layout.addWidget(self.search_label)
+
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Entrez un nom ou mot-clé...")
+        self.search_input.setClearButtonEnabled(True)
+        self.search_input.textChanged.connect(self.apply_filters)
+        filter_layout.addWidget(self.search_input)
+
+        # Filtre par catégorie
+        self.category_label = QLabel("Catégorie:")
+        filter_layout.addWidget(self.category_label)
+
+        self.category_combo = QComboBox()
+        self.category_combo.setMinimumWidth(120)
+        self.category_combo.addItem("Toutes", "")
+        categories = self.db_manager.get_categories_uniques()
+        for cat in categories:
+            self.category_combo.addItem(cat, cat)
+        self.category_combo.currentIndexChanged.connect(self.apply_filters)
+        filter_layout.addWidget(self.category_combo)
+
+        # Filtre par marque
+        self.marque_label = QLabel("Marque:")
+        filter_layout.addWidget(self.marque_label)
+
+        self.marque_combo = QComboBox()
+        self.marque_combo.setMinimumWidth(120)
+        self.marque_combo.addItem("Toutes", "")
+        marques = self.db_manager.get_marques_uniques()
+        for marque in marques:
+            if marque:  # Éviter les valeurs vides
+                self.marque_combo.addItem(marque, marque)
+        self.marque_combo.currentIndexChanged.connect(self.apply_filters)
+        filter_layout.addWidget(self.marque_combo)
+
+        # Filtre par magasin
+        self.magasin_label = QLabel("Magasin:")
+        filter_layout.addWidget(self.magasin_label)
+
+        self.magasin_combo = QComboBox()
+        self.magasin_combo.setMinimumWidth(120)
+        self.magasin_combo.addItem("Tous", "")
+        magasins = self.db_manager.get_magasins_uniques()
+        for magasin in magasins:
+            if magasin:  # Éviter les valeurs vides
+                self.magasin_combo.addItem(magasin, magasin)
+        self.magasin_combo.currentIndexChanged.connect(self.apply_filters)
+        filter_layout.addWidget(self.magasin_combo)
+
+        # Bouton pour réinitialiser les filtres
+        self.reset_filter_btn = QPushButton("Réinitialiser")
+        self.reset_filter_btn.clicked.connect(self.reset_filters)
+        filter_layout.addWidget(self.reset_filter_btn)
+
+        filter_layout.addStretch()
 
         self.btn_add = QPushButton("Ajouter un aliment")
         self.btn_add.setStyleSheet(
@@ -122,9 +180,9 @@ class AlimentsTab(TabBase):
         """
         )
         self.btn_add.clicked.connect(self.add_aliment)
-        header_layout.addWidget(self.btn_add)
+        filter_layout.addWidget(self.btn_add)
 
-        main_layout.addLayout(header_layout)
+        main_layout.addLayout(filter_layout)
 
         # Tableau des aliments avec les colonnes de boutons d'action
         self.table = QTableWidget()
@@ -207,6 +265,25 @@ class AlimentsTab(TabBase):
 
     def load_data(self, sort_column="nom", sort_order=True):
         """Charge les aliments dans le tableau avec option de tri"""
+        self.load_data_filtered(
+            None,  # category
+            None,  # marque
+            None,  # magasin
+            None,  # search_text
+            sort_column,
+            sort_order,
+        )
+
+    def load_data_filtered(
+        self,
+        category=None,
+        marque=None,
+        magasin=None,
+        search_text=None,
+        sort_column="nom",
+        sort_order=True,
+    ):
+        """Charge les aliments filtrés dans le tableau"""
         # Désactiver temporairement le tri pendant le chargement
         self.table.setSortingEnabled(False)
 
@@ -214,7 +291,7 @@ class AlimentsTab(TabBase):
         current_sort_column = self.table.horizontalHeader().sortIndicatorSection()
         current_sort_order = self.table.horizontalHeader().sortIndicatorOrder()
 
-        # Si le tri est activé et diffère des paramètres par défaut
+        # Déterminer la colonne et l'ordre de tri
         if self.table.isSortingEnabled() and current_sort_column > 0:
             sort_column_name = {
                 1: "nom",
@@ -233,8 +310,15 @@ class AlimentsTab(TabBase):
         # Vider le tableau
         self.table.setRowCount(0)
 
-        # Charger les aliments triés
-        aliments = self.db_manager.get_aliments(sort_column, sort_order)
+        # Charger les aliments avec les filtres
+        aliments = self.db_manager.get_aliments(
+            categorie=category,
+            marque=marque,
+            magasin=magasin,
+            recherche=search_text if search_text else None,
+            sort_column=sort_column,
+            sort_order=sort_order,
+        )
 
         # Remplir le tableau
         self.table.setRowCount(len(aliments))
@@ -287,6 +371,7 @@ class AlimentsTab(TabBase):
                 prix_item.setText(f"{prix_val:.2f} €")
             self.table.setItem(i, 10, prix_item)
 
+            # Ajouter les boutons comme avant...
             # Bouton Modifier
             btn_edit = ActionButton("Modifier")
             btn_edit.setStyleSheet(
@@ -301,7 +386,7 @@ class AlimentsTab(TabBase):
                 QPushButton:hover {
                     background-color: #2980b9;
                 }
-            """
+                """
             )
             btn_edit.clicked.connect(
                 lambda checked, row=i: self.edit_aliment_from_button(row)
@@ -324,7 +409,7 @@ class AlimentsTab(TabBase):
                 QPushButton:hover {
                     background-color: #c0392b;
                 }
-            """
+                """
             )
             btn_delete.clicked.connect(
                 lambda checked, row=i: self.delete_aliment_from_button(row)
@@ -337,6 +422,24 @@ class AlimentsTab(TabBase):
         self.table.setSortingEnabled(True)
         if current_sort_column > 0:
             self.table.sortItems(current_sort_column, current_sort_order)
+
+    def apply_filters(self):
+        """Applique les filtres sélectionnés"""
+        search_text = self.search_input.text().strip()
+        category = self.category_combo.currentData()
+        marque = self.marque_combo.currentData()
+        magasin = self.magasin_combo.currentData()
+
+        # Charger les données filtrées
+        self.load_data_filtered(category, marque, magasin, search_text)
+
+    def reset_filters(self):
+        """Réinitialise les filtres"""
+        self.search_input.clear()
+        self.category_combo.setCurrentIndex(0)
+        self.marque_combo.setCurrentIndex(0)
+        self.magasin_combo.setCurrentIndex(0)
+        self.load_data()
 
     def edit_aliment_from_button(self, row):
         """Éditer un aliment depuis le bouton dans le tableau"""
