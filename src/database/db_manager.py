@@ -39,12 +39,27 @@ class DatabaseManager(DBConnector):
         """Délègue l'ajout d'aliment à l'AlimentManager"""
         return self.aliment_manager.ajouter_aliment(data)
 
+    def modifier_aliment(self, id, data):
+        """Délègue la modification d'un aliment à l'AlimentManager"""
+        return self.aliment_manager.modifier_aliment(id, data)
+
     def get_aliments(
-        self, categorie=None, recherche=None, sort_column=None, sort_order=None
+        self,
+        categorie=None,
+        marque=None,
+        magasin=None,
+        recherche=None,
+        sort_column=None,
+        sort_order=None,
     ):
         """Délègue la récupération des aliments avec options de tri"""
         return self.aliment_manager.get_aliments(
-            categorie, recherche, sort_column, sort_order
+            categorie=categorie,
+            marque=marque,
+            magasin=magasin,
+            recherche=recherche,
+            sort_column=sort_column,
+            sort_order=sort_order,
         )
 
     def get_aliment(self, aliment_id):
@@ -79,6 +94,10 @@ class DatabaseManager(DBConnector):
     def supprimer_aliment_repas(self, repas_id, aliment_id):
         """Délègue la suppression d'un aliment d'un repas au RepasManager"""
         return self.repas_manager.supprimer_aliment_repas(repas_id, aliment_id)
+
+    def get_aliments_repas(self, repas_id):
+        """Délègue la récupération des aliments d'un repas au RepasManager"""
+        return self.repas_manager.get_aliments_repas(repas_id)
 
     def get_repas(self, repas_id):
         """Délègue la récupération d'un repas au RepasManager"""
@@ -137,4 +156,30 @@ class DatabaseManager(DBConnector):
         """Délègue l'application d'un repas type à un jour au RepasTypesManager"""
         return self.repas_types_manager.appliquer_repas_type_au_jour(
             repas_type_id, jour, ordre, semaine_id
+        )
+
+    def modifier_quantite_aliment_repas_type(self, repas_type_id, aliment_id, quantite):
+        """Délègue la modification de la quantité d'un aliment dans un repas type"""
+        return self.repas_types_manager.modifier_quantite_aliment_repas_type(
+            repas_type_id, aliment_id, quantite
+        )
+
+    def modifier_repas_type(self, id, nom, description):
+        """Délègue la modification d'un repas type au RepasTypesManager"""
+        return self.repas_types_manager.modifier_repas_type(id, nom, description)
+
+    def appliquer_repas_type_au_jour_avec_facteurs(
+        self, repas_type_id, jour, ordre, semaine_id=None, facteurs_quantite=None
+    ):
+        """Délègue l'application d'un repas type à un jour avec des facteurs d'ajustement"""
+        return self.repas_types_manager.appliquer_repas_type_au_jour_avec_facteurs(
+            repas_type_id, jour, ordre, semaine_id, facteurs_quantite
+        )
+
+    def appliquer_recette_modifiee_au_jour(
+        self, recette_base_id, liste_ingredients, jour, ordre, semaine_id=None
+    ):
+        """Délègue l'application d'une recette modifiée à un jour"""
+        return self.repas_types_manager.appliquer_recette_modifiee_au_jour(
+            recette_base_id, liste_ingredients, jour, ordre, semaine_id
         )
