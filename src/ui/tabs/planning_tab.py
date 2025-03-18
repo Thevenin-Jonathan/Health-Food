@@ -8,10 +8,9 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QInputDialog,
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 
 from ..widgets.semaine_widget import SemaineWidget
-from ..dialogs.remplacer_repas_dialog import RemplacerRepasDialog
 from ...utils.events import event_bus
 
 
