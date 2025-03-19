@@ -1,34 +1,80 @@
 from PySide6.QtWidgets import (
+    QFrame,
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
-    QFrame,
     QProgressBar,
 )
-from PySide6.QtGui import QPalette, QColor
+from PySide6.QtCore import Qt
 
 
 class TotauxMacrosWidget(QFrame):
     """Widget affichant les totaux nutritionnels avec barres de progression"""
 
-    def __init__(self, total_cal, total_prot, total_gluc, total_lip, objectifs):
+    def __init__(
+        self, total_cal, total_prot, total_gluc, total_lip, objectifs, compact=False
+    ):
         super().__init__()
         self.total_cal = total_cal
         self.total_prot = total_prot
         self.total_gluc = total_gluc
         self.total_lip = total_lip
         self.objectifs = objectifs
+        self.compact = compact
 
         # Configuration visuelle
         self.setFrameShape(QFrame.StyledPanel)
         self.setProperty("class", "day-total")
+
+        # Appliquer un style plus compact si demandé
+        if compact:
+            self.setStyleSheet(
+                """
+                QFrame.day-total {
+                    background-color: #f8f8f8;
+                    border-radius: 4px;
+                    padding: 5px;
+                    margin-bottom: 4px;
+                }
+                QProgressBar {
+                    max-height: 8px;
+                    margin-top: 2px;
+                    margin-bottom: 2px;
+                }
+                QLabel {
+                    font-size: 10px;
+                }
+            """
+            )
+        else:
+            self.setStyleSheet(
+                """
+                QFrame.day-total {
+                    background-color: #f8f8f8;
+                    border-radius: 4px;
+                    padding: 10px;
+                    margin-top: 10px;
+                }
+            """
+            )
 
         self.setup_ui()
 
     def setup_ui(self):
         # Layout principal
         total_layout = QVBoxLayout(self)
-        total_layout.addWidget(QLabel("<h3>Total du jour</h3>"))
+        total_layout.setContentsMargins(
+            8, 4 if self.compact else 8, 8, 4 if self.compact else 8
+        )
+        total_layout.setSpacing(2 if self.compact else 5)
+
+        # Titre plus compact si demandé
+        if self.compact:
+            title = QLabel("<b>Total du jour</b>")
+            title.setAlignment(Qt.AlignCenter)
+            total_layout.addWidget(title)
+        else:
+            total_layout.addWidget(QLabel("<h3>Total du jour</h3>"))
 
         # Calories
         self.add_macro_row(
@@ -50,62 +96,98 @@ class TotauxMacrosWidget(QFrame):
             total_layout, "Lipides", self.total_lip, self.objectifs["lipides"], "g"
         )
 
-    def add_macro_row(self, parent_layout, name, value, target, unit):
-        """Ajoute une ligne pour un macro-nutriment avec sa barre de progression"""
-        # Layout pour cette ligne
-        row_layout = QHBoxLayout()
+    def add_macro_row(self, layout, label_text, value, target, unit=""):
+        """Ajoute une ligne avec un label, une valeur et une barre de progression"""
+        # En mode compact, utiliser une mise en page horizontale
+        if self.compact:
+            row_layout = QHBoxLayout()
+            row_layout.setSpacing(5)
 
-        # Label avec nom et valeur
-        value_label = QLabel(f"<b>{name}:</b> {value:.1f}{unit}")
-        row_layout.addWidget(value_label)
+            # Label - en mode compact est plus petit
+            label = QLabel(f"{label_text}:")
+            label.setFixedWidth(55)
+            row_layout.addWidget(label)
 
-        # Calculer le pourcentage de l'objectif
-        pct = int((value / target) * 100) if target > 0 else 0
-        obj_label = QLabel(f"/ {target}{unit} ({pct}%)")
-        row_layout.addWidget(obj_label)
+            # Valeur - en mode compact, formaté "valeur/cible"
+            value_label = QLabel(f"<b>{value:.0f}</b>/{target:.0f}{unit}")
+            value_label.setFixedWidth(70)
+            row_layout.addWidget(value_label)
 
-        # Ajouter le layout au parent
-        parent_layout.addLayout(row_layout)
+            # Barre de progression
+            progress = QProgressBar()
+            progress.setRange(0, int(target * 1.2))  # 120% de l'objectif comme maximum
+            progress.setValue(int(value))
+            progress.setTextVisible(False)  # Pas de texte en mode compact
 
-        # Créer et ajouter la barre de progression
-        progress_bar = self.create_background_progress_bar(value, target)
-        parent_layout.addWidget(progress_bar)
+            # Colorer la barre selon le pourcentage
+            self._set_progress_bar_color(progress, value / target)
 
-    def create_background_progress_bar(self, value, max_value):
-        """Crée une barre de progression stylisée"""
-        progress = QProgressBar()
-        progress.setMinimum(0)
+            row_layout.addWidget(progress, 1)  # Étirer la barre de progression
 
-        # Pour l'affichage visuel de la barre
-        if value > max_value:
-            progress.setMaximum(int(value * 1.1))
+            layout.addLayout(row_layout)
         else:
-            progress.setMaximum(max_value)
+            # Version non-compacte originale
+            row_layout = QVBoxLayout()
 
-        progress.setValue(value)
-        progress.setTextVisible(False)
-        progress.setFixedHeight(10)
+            # En-tête avec label et valeur
+            header_layout = QHBoxLayout()
+            header_layout.addWidget(QLabel(f"<b>{label_text}</b>"))
+            header_layout.addStretch()
+            header_layout.addWidget(QLabel(f"{value:.0f} / {target:.0f} {unit}"))
+            row_layout.addLayout(header_layout)
 
-        # Coloration de la barre selon l'atteinte de l'objectif
-        palette = QPalette()
-        if value < max_value * 0.8:
-            palette.setColor(QPalette.Highlight, QColor("orange"))  # En dessous
-        elif value <= max_value * 1.05:
-            palette.setColor(QPalette.Highlight, QColor("#4CAF50"))  # Dans la cible
+            # Barre de progression
+            progress = QProgressBar()
+            progress.setRange(0, int(target * 1.2))
+            progress.setValue(int(value))
+
+            # Colorer la barre selon le pourcentage
+            self._set_progress_bar_color(progress, value / target)
+
+            row_layout.addWidget(progress)
+            layout.addLayout(row_layout)
+
+    def _set_progress_bar_color(self, progress_bar, percentage):
+        """Définit la couleur de la barre de progression en fonction du pourcentage"""
+        # Cadre rouge - plus de 110%
+        if percentage > 1.1:
+            progress_bar.setStyleSheet(
+                """
+                QProgressBar {
+                    border: 1px solid #E0E0E0;
+                    border-radius: 4px;
+                    text-align: center;
+                }
+                QProgressBar::chunk {
+                    background-color: #FF5252;  /* Rouge */
+                }
+                """
+            )
+        # Cadre jaune - entre 90% et 110%
+        elif 0.9 <= percentage <= 1.1:
+            progress_bar.setStyleSheet(
+                """
+                QProgressBar {
+                    border: 1px solid #E0E0E0;
+                    border-radius: 4px;
+                    text-align: center;
+                }
+                QProgressBar::chunk {
+                    background-color: #4CAF50;  /* Vert */
+                }
+                """
+            )
+        # Cadre orange - en dessous de 90%
         else:
-            palette.setColor(QPalette.Highlight, QColor("#F44336"))  # Au-dessus
-
-        progress.setPalette(palette)
-
-        # Style CSS pour une apparence discrète
-        progress.setStyleSheet(
-            """
-            QProgressBar {
-                border: none;
-                background-color: #f0f0f0;
-                margin: 2px 0px;
-            }
-        """
-        )
-
-        return progress
+            progress_bar.setStyleSheet(
+                """
+                QProgressBar {
+                    border: 1px solid #E0E0E0;
+                    border-radius: 4px;
+                    text-align: center;
+                }
+                QProgressBar::chunk {
+                    background-color: #FFC107;  /* Orange */
+                }
+                """
+            )

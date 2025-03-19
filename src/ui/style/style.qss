@@ -87,6 +87,133 @@ QPushButton:pressed {
     background-color: #4c8c2d;
 }
 
+/* Styles pour les boutons spécifiques */
+
+/* Bouton primaire */
+QPushButton#primaryButton {
+    background-color: #4CAF50;
+    color: white;
+    font-weight: bold;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+
+QPushButton#primaryButton:hover {
+    background-color: #388E3C;
+}
+
+QPushButton#primaryButton:pressed {
+    background-color: #3d8b40;
+}
+
+/* Bouton d'ajout */
+QPushButton#addButton {
+    background-color: #4CAF50;
+    color: white;
+    font-weight: bold;
+    border-radius: 4px;
+    min-width: 30px;
+    min-height: 30px;
+    max-width: 30px;
+    max-height: 30px;
+    padding: 0px;
+    font-size: 14px;
+}
+
+QPushButton#addButton:hover {
+    background-color: #388E3C;
+}
+
+QPushButton#addButton:pressed {
+    background-color: #3d8b40;
+}
+
+/* Bouton de suppression */
+QPushButton#deleteButton, QPushButton#deleteBigButton {
+    background-color: transparent;
+    color: #e74c3c;
+    font-weight: bold;
+    border-radius: 4px;
+    padding: 0px;
+    font-size: 15px;
+}
+
+QPushButton#deleteButton {
+    font-size: 15px;
+    min-width: 20px;
+    min-height: 20px;
+    max-width: 20px; 
+    max-height: 20px;
+}
+
+QPushButton#deleteBigButton {
+    font-size: 20px; 
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px; 
+    max-height: 28px;
+}
+
+QPushButton#deleteButton:hover, QPushButton#deleteBigButton:hover {
+    background-color: #e74c3c;
+    color: white;
+}
+
+QPushButton#deleteButton:pressed, QPushButton#deleteBigButton:hover {
+    background-color: #b71c1c;
+    color: white;
+}
+
+/* Bouton d'édition */
+QPushButton#editButton {
+    background-color: transparent;
+    color: #f39c12;
+    font-weight: bold;
+    border-radius: 4px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+    padding: 0px;
+    font-size: 20px;
+}
+
+QPushButton#editButton:hover {
+    background-color: #f39c12;
+    color: white;
+}
+
+QPushButton#editButton:pressed {
+    background-color: #e65100;
+    color: white;
+}
+
+/* Bouton de remplacement */
+QPushButton#replaceButton {
+    background-color: transparent;
+    color: #3498db;
+    font-weight: bold;
+    border-radius: 4px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+    padding: 0px;
+    font-size: 25px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+QPushButton#replaceButton:hover {
+    background-color: #3498db;
+    color: white;
+}
+
+QPushButton#replaceButton:pressed {
+    background-color: #2980b9;
+    color: white;
+}
+
 /* Champs de texte */
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
     border: 1px solid #a0d6a0;

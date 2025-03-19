@@ -5,63 +5,86 @@ from PySide6.QtWidgets import (
     QLabel,
     QFrame,
     QMessageBox,
+    QApplication,
 )
-from src.utils.config import BUTTON_STYLES
+from PySide6.QtCore import Qt, QMimeData, QByteArray
+from PySide6.QtGui import QDrag
 from src.ui.dialogs.aliment_repas_dialog import AlimentRepasDialog
 from src.ui.dialogs.remplacer_repas_dialog import RemplacerRepasDialog
+from src.ui.dialogs.repas_edition_dialog import RepasEditionDialog
+from src.utils.events import EVENT_BUS
 
 
 class RepasWidget(QFrame):
     """Widget représentant un repas dans le planning"""
 
-    def __init__(self, db_manager, repas_data, semaine_id):
+    def __init__(self, db_manager, repas_data, semaine_id, jour=None):
         super().__init__()
         self.db_manager = db_manager
         self.repas_data = repas_data
         self.semaine_id = semaine_id
+        self.jour = jour if jour else repas_data.get("jour", "")
 
-        # Configuration visuelle du cadre
+        # Configuration pour drag and drop
+        self.setMouseTracking(True)
+
+        # Style visuel
         self.setFrameShape(QFrame.StyledPanel)
-        self.setFrameShadow(QFrame.Raised)
+        self.setStyleSheet(
+            """
+            QFrame {
+                background-color: white;
+                border-radius: 5px;
+                border: 1px solid #E0E0E0;
+                padding: 5px;
+                margin: 3px 0px;
+            }
+            QFrame:hover {
+                background-color: #F5F5F5;
+                border: 1px solid #BDBDBD;
+            }
+            """
+        )
 
         self.setup_ui()
 
     def setup_ui(self):
         # Layout principal
         repas_layout = QVBoxLayout(self)
+        repas_layout.setContentsMargins(10, 8, 10, 8)
+        repas_layout.setSpacing(5)
 
-        # Titre du repas avec boutons
-        repas_header = QHBoxLayout()
-        repas_title = QLabel(f"<h3>{self.repas_data['nom']}</h3>")
-        repas_header.addWidget(repas_title)
-        repas_header.addStretch()  # Ajouter un espace extensible pour pousser les boutons à droite
+        # En-tête du repas avec titre et boutons
+        header_layout = QHBoxLayout()
 
-        # Bouton pour ajouter des aliments
-        btn_add = QPushButton("+")
-        btn_add.setFixedSize(24, 24)
-        btn_add.setStyleSheet(BUTTON_STYLES["add"])
-        btn_add.setToolTip("Ajouter un aliment à ce repas")
-        btn_add.clicked.connect(self.add_food_to_meal)
+        # Titre du repas
+        titre_repas = QLabel(f"<b>{self.repas_data['nom']}</b>")
+        header_layout.addWidget(titre_repas)
+
+        header_layout.addStretch()
+
+        # Bouton d'édition
+        btn_edit = QPushButton("✐")
+        btn_edit.setObjectName("editButton")
+        btn_edit.setToolTip("Modifier ce repas")
+        btn_edit.clicked.connect(self.edit_repas)
+        header_layout.addWidget(btn_edit)
 
         # Bouton pour remplacer le repas par une recette
         btn_replace = QPushButton("⇄")
-        btn_replace.setFixedSize(24, 24)
-        btn_replace.setStyleSheet(BUTTON_STYLES["replace"])
+        btn_replace.setObjectName("replaceButton")
         btn_replace.setToolTip("Remplacer par une recette")
         btn_replace.clicked.connect(self.remplacer_repas_par_recette)
+        header_layout.addWidget(btn_replace)
 
-        # Bouton pour supprimer le repas
-        btn_delete = QPushButton("×")
-        btn_delete.setFixedSize(24, 24)
-        btn_delete.setStyleSheet(BUTTON_STYLES["delete"])
+        # Bouton de suppression
+        btn_delete = QPushButton("〤")
+        btn_delete.setObjectName("deleteBigButton")
         btn_delete.setToolTip("Supprimer ce repas")
-        btn_delete.clicked.connect(self.delete_meal)
+        btn_delete.clicked.connect(self.delete_repas)
+        header_layout.addWidget(btn_delete)
 
-        # Ajouter les boutons au layout
-        repas_header.addWidget(btn_add)
-        repas_header.addWidget(btn_replace)
-        repas_header.addWidget(btn_delete)
-        repas_layout.addLayout(repas_header)
+        repas_layout.addLayout(header_layout)
 
         # Ajouter les aliments du repas
         if self.repas_data["aliments"]:
@@ -83,11 +106,20 @@ class RepasWidget(QFrame):
     def add_aliment_to_layout(self, aliment, parent_layout):
         """Ajoute un aliment au layout avec son bouton de suppression"""
         alim_layout = QHBoxLayout()
+        alim_layout.setSpacing(2)  # Réduit l'espacement entre les éléments
+        alim_layout.setContentsMargins(0, 0, 0, 0)  # Supprime les marges
+
+        # Bouton pour supprimer l'aliment
+        btn_remove = QPushButton("〤")
+        btn_remove.setObjectName("deleteButton")
+        btn_remove.setToolTip("Supprimer")
+        btn_remove.clicked.connect(lambda: self.remove_food_from_meal(aliment["id"]))
+        alim_layout.addWidget(btn_remove)
 
         # Texte de base de l'aliment
         alim_text = f"{aliment['nom']} ({aliment['quantite']}g) - {aliment['calories'] * aliment['quantite'] / 100:.0f} kcal"
         alim_label = QLabel(alim_text)
-        alim_label.setWordWrap(True)
+        # alim_label.setWordWrap(True)
         alim_layout.addWidget(alim_label)
         alim_layout.addStretch()
 
@@ -109,14 +141,6 @@ class RepasWidget(QFrame):
             tooltip_text += f"<br><b>Fibres:</b> {fibres:.1f}g"
 
         alim_label.setToolTip(tooltip_text)
-
-        # Bouton pour supprimer l'aliment
-        btn_remove = QPushButton("×")
-        btn_remove.setFixedSize(20, 20)
-        btn_remove.setStyleSheet(BUTTON_STYLES["delete"])
-        btn_remove.setToolTip("Supprimer cet aliment")
-        btn_remove.clicked.connect(lambda: self.remove_food_from_meal(aliment["id"]))
-        alim_layout.addWidget(btn_remove)
 
         parent_layout.addLayout(alim_layout)
 
@@ -196,3 +220,69 @@ class RepasWidget(QFrame):
                 parent.load_data()
                 break
             parent = parent.parent()
+
+    def edit_repas(self):
+        """Ouvre la boîte de dialogue d'édition du repas"""
+        dialog = RepasEditionDialog(self, self.db_manager, self.repas_data["id"])
+        if dialog.exec():
+            # Notifier que les repas ont été modifiés pour déclencher le rechargement
+            EVENT_BUS.repas_modifies.emit(self.semaine_id)
+
+    def delete_repas(self):
+        """Supprime le repas après confirmation"""
+        confirm = QMessageBox.question(
+            self,
+            "Confirmation",
+            f"Voulez-vous vraiment supprimer le repas {self.repas_data['nom']} ?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+
+        if confirm == QMessageBox.Yes:
+            self.db_manager.supprimer_repas(self.repas_data["id"])
+            # Notifier que les repas ont été modifiés
+            EVENT_BUS.repas_modifies.emit(self.semaine_id)
+
+    def enterEvent(self, event):
+        """Se déclenche quand la souris entre dans le widget"""
+        # Changer le curseur en main ouverte pour indiquer qu'on peut faire un drag
+        self.setCursor(Qt.OpenHandCursor)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        """Se déclenche quand la souris quitte le widget"""
+        # Restaurer le curseur par défaut
+        self.setCursor(Qt.ArrowCursor)
+        super().leaveEvent(event)
+
+    def mousePressEvent(self, event):
+        """Gère le clic de souris pour initier le drag and drop"""
+        if event.button() == Qt.LeftButton:
+            # Démarrer l'opération de drag
+            self.setCursor(Qt.ClosedHandCursor)  # Changer le curseur en main fermée
+
+            # Créer un drag
+            drag = QDrag(self)
+            mime_data = QMimeData()
+
+            # Format des données: repas_id|jour
+            data = QByteArray(f"{self.repas_data['id']}|{self.jour}".encode())
+            mime_data.setData("application/x-repas", data)
+
+            drag.setMimeData(mime_data)
+
+            # Définir un feedback visuel (ici, une copie du widget)
+            pixmap = self.grab()
+            drag.setPixmap(pixmap)
+            drag.setHotSpot(event.pos())
+
+            # Exécuter le drag
+            drop_action = drag.exec_(Qt.MoveAction)
+
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        """Gère le relâchement du bouton de la souris"""
+        if event.button() == Qt.LeftButton:
+            self.setCursor(Qt.OpenHandCursor)
+            QApplication.restoreOverrideCursor()
+        super().mouseReleaseEvent(event)

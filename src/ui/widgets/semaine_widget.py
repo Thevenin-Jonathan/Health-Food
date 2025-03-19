@@ -42,6 +42,10 @@ class SemaineWidget(QWidget):
 
     def setup_ui(self):
         main_layout = QVBoxLayout()
+        main_layout.setSpacing(5)  # Réduire l'espacement vertical entre éléments
+        main_layout.setContentsMargins(
+            5, 5, 5, 5
+        )  # Réduire les marges autour du widget principal
 
         # Bouton pour imprimer le planning
         print_layout = QHBoxLayout()
@@ -58,10 +62,15 @@ class SemaineWidget(QWidget):
         # Conteneur pour les jours avec scroll
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setContentsMargins(0, 0, 0, 0)
 
         # Widget contenant les jours
         self.days_container = QWidget()
         self.days_layout = QGridLayout()
+        self.days_layout.setSpacing(5)  # Réduire l'espacement entre les jours
+        self.days_layout.setContentsMargins(
+            2, 2, 2, 2
+        )  # Réduire les marges du conteneur
 
         # Définir une largeur maximum pour les colonnes des jours
         self.days_layout.setColumnMinimumWidth(0, 300)  # Largeur minimum

@@ -225,3 +225,82 @@ class RepasManager(DBConnector):
         self.disconnect()
 
         return rows_affected
+
+    def changer_jour_repas(self, repas_id, nouveau_jour, nouvel_ordre):
+        """Change le jour et l'ordre d'un repas"""
+        self.connect()
+        self.cursor.execute(
+            """
+            UPDATE repas
+            SET jour = ?, ordre = ?
+            WHERE id = ?
+            """,
+            (nouveau_jour, nouvel_ordre, repas_id),
+        )
+        # Stocker le nombre de lignes affectées avant de fermer la connexion
+        rows_affected = self.cursor.rowcount
+        self.conn.commit()
+        self.disconnect()
+        return rows_affected > 0
+
+    def modifier_nom_repas(self, repas_id, nouveau_nom):
+        """Modifie le nom d'un repas existant"""
+        self.connect()
+        self.cursor.execute(
+            """
+            UPDATE repas
+            SET nom = ?
+            WHERE id = ?
+            """,
+            (nouveau_nom, repas_id),
+        )
+        # Stocker le nombre de lignes affectées avant de fermer la connexion
+        rows_affected = self.cursor.rowcount
+        self.conn.commit()
+        self.disconnect()
+        return rows_affected > 0
+
+    def get_repas(self, repas_id):
+        """Récupère un repas par son ID avec ses informations et aliments"""
+        self.connect()
+
+        # Récupérer les informations de base du repas
+        self.cursor.execute("SELECT * FROM repas WHERE id = ?", (repas_id,))
+        result = self.cursor.fetchone()
+
+        if not result:
+            self.disconnect()
+            return None
+
+        repas = dict(result)
+
+        # Récupérer les aliments pour ce repas
+        self.cursor.execute(
+            """
+            SELECT ra.quantite, a.* 
+            FROM repas_aliments ra
+            JOIN aliments a ON ra.aliment_id = a.id
+            WHERE ra.repas_id = ?
+            """,
+            (repas_id,),
+        )
+
+        aliments = [dict(row) for row in self.cursor.fetchall()]
+        repas["aliments"] = aliments
+
+        # Calculer les totaux du repas
+        repas["total_calories"] = sum(
+            a["calories"] * a["quantite"] / 100 for a in aliments
+        )
+        repas["total_proteines"] = sum(
+            a["proteines"] * a["quantite"] / 100 for a in aliments
+        )
+        repas["total_glucides"] = sum(
+            a["glucides"] * a["quantite"] / 100 for a in aliments
+        )
+        repas["total_lipides"] = sum(
+            a["lipides"] * a["quantite"] / 100 for a in aliments
+        )
+
+        self.disconnect()
+        return repas
