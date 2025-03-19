@@ -39,9 +39,9 @@ class DatabaseManager(DBConnector):
         """Délègue l'ajout d'aliment à l'AlimentManager"""
         return self.aliment_manager.ajouter_aliment(data)
 
-    def modifier_aliment(self, id, data):
+    def modifier_aliment(self, aliment_id, data):
         """Délègue la modification d'un aliment à l'AlimentManager"""
-        return self.aliment_manager.modifier_aliment(id, data)
+        return self.aliment_manager.modifier_aliment(aliment_id, data)
 
     def get_aliments(
         self,
@@ -99,10 +99,6 @@ class DatabaseManager(DBConnector):
         """Délègue la récupération des aliments d'un repas au RepasManager"""
         return self.repas_manager.get_aliments_repas(repas_id)
 
-    def get_repas(self, repas_id):
-        """Délègue la récupération d'un repas au RepasManager"""
-        return self.repas_manager.get_repas(repas_id)
-
     def get_repas_semaine(self, semaine_id=None):
         """Délègue la récupération des repas d'une semaine au RepasManager"""
         return self.repas_manager.get_repas_semaine(semaine_id)
@@ -144,13 +140,13 @@ class DatabaseManager(DBConnector):
         """Délègue la récupération de tous les repas types au RepasTypesManager"""
         return self.repas_types_manager.get_repas_types()
 
-    def get_repas_type(self, id):
+    def get_repas_type(self, repas_id):
         """Délègue la récupération d'un repas type au RepasTypesManager"""
-        return self.repas_types_manager.get_repas_type(id)
+        return self.repas_types_manager.get_repas_type(repas_id)
 
-    def supprimer_repas_type(self, id):
+    def supprimer_repas_type(self, repas_type_id):
         """Délègue la suppression d'un repas type au RepasTypesManager"""
-        return self.repas_types_manager.supprimer_repas_type(id)
+        return self.repas_types_manager.supprimer_repas_type(repas_type_id)
 
     def appliquer_repas_type_au_jour(self, repas_type_id, jour, ordre, semaine_id=None):
         """Délègue l'application d'un repas type à un jour au RepasTypesManager"""
@@ -164,9 +160,11 @@ class DatabaseManager(DBConnector):
             repas_type_id, aliment_id, quantite
         )
 
-    def modifier_repas_type(self, id, nom, description):
+    def modifier_repas_type(self, repas_type_id, nom, description):
         """Délègue la modification d'un repas type au RepasTypesManager"""
-        return self.repas_types_manager.modifier_repas_type(id, nom, description)
+        return self.repas_types_manager.modifier_repas_type(
+            repas_type_id, nom, description
+        )
 
     def appliquer_repas_type_au_jour_avec_facteurs(
         self, repas_type_id, jour, ordre, semaine_id=None, facteurs_quantite=None

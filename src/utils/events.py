@@ -42,4 +42,4 @@ class EventBus(QObject):
 
 
 # Créer l'instance unique accessible globalement
-event_bus = EventBus.instance()
+EVENT_BUS = EventBus.instance()

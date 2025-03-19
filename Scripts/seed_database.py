@@ -1,10 +1,9 @@
 import os
 import sys
+from src.database.db_manager import DatabaseManager
 
 # Ajouter le chemin parent au path pour importer les modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from src.database.db_manager import DatabaseManager
 
 
 def seed_database():

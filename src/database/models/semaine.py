@@ -1,12 +1,11 @@
 from src.utils.config import JOURS_SEMAINE
-from src.database.models.repas import Repas
 
 
 class Semaine:
     """Représente une semaine contenant des repas pour chaque jour"""
 
-    def __init__(self, id):
-        self.id = id
+    def __init__(self, semaine_id):
+        self.id = semaine_id
         self.repas = {jour: [] for jour in JOURS_SEMAINE}
         self.nom_personnalise = None
 

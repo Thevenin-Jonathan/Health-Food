@@ -1,3 +1,4 @@
+import unicodedata
 from .db_connector import DBConnector
 
 
@@ -32,7 +33,7 @@ class AlimentsManager(DBConnector):
         self.disconnect()
         return last_id
 
-    def modifier_aliment(self, id, data):
+    def modifier_aliment(self, aliment_id, data):
         """Modifie un aliment existant"""
         self.connect()
         self.cursor.execute(
@@ -53,13 +54,13 @@ class AlimentsManager(DBConnector):
                 data["lipides"],
                 data["fibres"],
                 data["prix_kg"],
-                id,
+                aliment_id,
             ),
         )
         self.conn.commit()
         self.disconnect()
 
-    def supprimer_aliment(self, id):
+    def supprimer_aliment(self, aliment_id):
         """Supprime un aliment et toutes ses références dans les repas"""
         self.connect()
 
@@ -69,7 +70,7 @@ class AlimentsManager(DBConnector):
             SELECT COUNT(*) FROM repas_aliments
             WHERE aliment_id = ?
             """,
-            (id,),
+            (aliment_id,),
         )
         count_repas = self.cursor.fetchone()[0]
 
@@ -78,28 +79,28 @@ class AlimentsManager(DBConnector):
             SELECT COUNT(*) FROM repas_types_aliments
             WHERE aliment_id = ?
             """,
-            (id,),
+            (aliment_id,),
         )
         count_repas_types = self.cursor.fetchone()[0]
 
         # Supprimer d'abord les références dans les repas_aliments
         if count_repas > 0:
             self.cursor.execute(
-                "DELETE FROM repas_aliments WHERE aliment_id = ?", (id,)
+                "DELETE FROM repas_aliments WHERE aliment_id = ?", (aliment_id,)
             )
 
         # Supprimer les références dans les repas_types_aliments
         if count_repas_types > 0:
             self.cursor.execute(
-                "DELETE FROM repas_types_aliments WHERE aliment_id = ?", (id,)
+                "DELETE FROM repas_types_aliments WHERE aliment_id = ?", (aliment_id,)
             )
 
         # Enfin, supprimer l'aliment lui-même
-        self.cursor.execute("DELETE FROM aliments WHERE id = ?", (id,))
+        self.cursor.execute("DELETE FROM aliments WHERE id = ?", (aliment_id,))
 
         # Afficher des informations de débogage
         print(
-            f"Suppression de l'aliment {id}. Références supprimées: {count_repas} dans repas, {count_repas_types} dans recettes."
+            f"Suppression de l'aliment {aliment_id}. Références supprimées: {count_repas} dans repas, {count_repas_types} dans recettes."
         )
 
         self.conn.commit()
@@ -194,8 +195,6 @@ class AlimentsManager(DBConnector):
         return results
 
     def normalize_text(self, text):
-        import unicodedata
-
         """Normalise le texte en enlevant les accents et en convertissant en minuscules"""
         if not text:
             return ""
@@ -267,10 +266,10 @@ class AlimentsManager(DBConnector):
         self.disconnect()
         return result
 
-    def get_aliment(self, id):
+    def get_aliment(self, aliment_id):
         """Récupère un aliment par son ID"""
         self.connect()
-        self.cursor.execute("SELECT * FROM aliments WHERE id = ?", (id,))
+        self.cursor.execute("SELECT * FROM aliments WHERE id = ?", (aliment_id,))
         result = dict(self.cursor.fetchone())
         self.disconnect()
         return result

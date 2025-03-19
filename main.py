@@ -21,7 +21,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     # Appliquer un style global à l'application
-    with open("src/ui/style/style.qss", "r") as f:
+    with open("src/ui/style/style.qss", "r", encoding="utf-8") as f:
         app.setStyleSheet(f.read())
 
     # Initialiser la base de données

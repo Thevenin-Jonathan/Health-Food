@@ -8,8 +8,8 @@ from PySide6.QtWidgets import (
     QStyle,
 )
 
-from ...utils.events import event_bus
-from ...utils.config import JOURS_SEMAINE
+from src.utils.events import EVENT_BUS
+from src.utils.config import JOURS_SEMAINE
 from .jour_widget import JourWidget
 from .print_manager import PrintManager
 
@@ -18,6 +18,9 @@ class SemaineWidget(QWidget):
     """Widget représentant une semaine de planning"""
 
     def __init__(self, db_manager, semaine_id):
+        """
+        Configure la disposition principale des widgets.
+        """
         super().__init__()
         self.db_manager = db_manager
         self.semaine_id = semaine_id  # Identifiant numérique de la semaine
@@ -33,25 +36,9 @@ class SemaineWidget(QWidget):
         self.load_data()
 
         # S'abonner aux événements
-        event_bus.utilisateur_modifie.connect(self.update_objectifs_utilisateur)
-        event_bus.aliment_supprime.connect(self.on_aliment_supprime)
-        event_bus.repas_modifies.connect(self.on_repas_modifies)
-
-    def charger_objectifs_utilisateur(self):
-        """Récupère les objectifs nutritionnels de l'utilisateur"""
-        user_data = self.db_manager.get_utilisateur()
-        return {
-            "calories": user_data.get("objectif_calories", 2500),
-            "proteines": user_data.get("objectif_proteines", 180),
-            "glucides": user_data.get("objectif_glucides", 250),
-            "lipides": user_data.get("objectif_lipides", 70),
-        }
-
-    def update_objectifs_utilisateur(self):
-        """Met à jour les objectifs quand le profil utilisateur est modifié"""
-        self.objectifs_utilisateur = self.charger_objectifs_utilisateur()
-        for jour_widget in self.jour_widgets:
-            jour_widget.update_objectifs(self.objectifs_utilisateur)
+        EVENT_BUS.utilisateur_modifie.connect(self.update_objectifs_utilisateur)
+        EVENT_BUS.aliment_supprime.connect(self.on_aliment_supprime)
+        EVENT_BUS.repas_modifies.connect(self.on_repas_modifies)
 
     def setup_ui(self):
         main_layout = QVBoxLayout()
@@ -88,6 +75,10 @@ class SemaineWidget(QWidget):
         self.setLayout(main_layout)
 
     def load_data(self):
+        """
+        Charge les données des repas pour la semaine et crée les widgets jour correspondants.
+        Cette méthode nettoie d'abord l'interface existante avant de recharger toutes les données.
+        """
         # Nettoyer la disposition existante
         while self.days_layout.count():
             item = self.days_layout.takeAt(0)
@@ -121,7 +112,7 @@ class SemaineWidget(QWidget):
         """Imprime le planning de la semaine actuelle"""
         self.print_manager.print_planning(self.semaine_id)
 
-    def on_aliment_supprime(self, aliment_id):
+    def on_aliment_supprime(self):
         """Appelé lorsqu'un aliment est supprimé"""
         # Rafraîchir les données de cette semaine
         self.load_data()
@@ -131,7 +122,18 @@ class SemaineWidget(QWidget):
         if semaine_id == self.semaine_id:
             self.load_data()
 
+    def charger_objectifs_utilisateur(self):
+        """Récupère les objectifs nutritionnels de l'utilisateur"""
+        user_data = self.db_manager.get_utilisateur()
+        return {
+            "calories": user_data.get("objectif_calories", 2500),
+            "proteines": user_data.get("objectif_proteines", 180),
+            "glucides": user_data.get("objectif_glucides", 250),
+            "lipides": user_data.get("objectif_lipides", 70),
+        }
+
     def update_objectifs_utilisateur(self):
         """Met à jour les objectifs quand le profil utilisateur est modifié"""
         self.objectifs_utilisateur = self.charger_objectifs_utilisateur()
-        self.load_data()  # Recharger les données pour mettre à jour les affichages
+        for jour_widget in self.jour_widgets:
+            jour_widget.update_objectifs(self.objectifs_utilisateur)

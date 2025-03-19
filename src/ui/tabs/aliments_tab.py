@@ -9,36 +9,32 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QWidget,
-    QSpacerItem,
-    QSizePolicy,
     QLabel,
     QLineEdit,
     QComboBox,
 )
-from PySide6.QtCore import Qt, QPoint
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon
 
+from src.ui.dialogs.aliment_dialog import AlimentDialog
+from src.utils.events import EVENT_BUS
 from .tab_base import TabBase
-from ..dialogs.aliment_dialog import AlimentDialog
-from ...database.models import Aliment
-from ...utils.config import BUTTON_STYLES
-from ...utils.events import event_bus
 
 
 # Classe personnalisée pour les éléments de tableau avec tri numérique correct
 class NumericTableItem(QTableWidgetItem):
     def __init__(self, value, text="", unit=""):
         super().__init__()
-        self.setValue(value)
+        self.set_value(value)
         if text:
             self.setText(text)
         else:
-            self.formatValue(value, unit)
+            self.format_value(value, unit)
 
-    def setValue(self, value):
+    def set_value(self, value):
         self.setData(Qt.UserRole, float(value) if value is not None else 0.0)
 
-    def formatValue(self, value, unit):
+    def format_value(self, value, unit):
         if value and value > 0:
             if unit:
                 self.setText(f"{value:.2f} {unit}")
@@ -293,7 +289,7 @@ class AlimentsTab(TabBase):
 
         # Déterminer la colonne et l'ordre de tri
         if self.table.isSortingEnabled() and current_sort_column > 0:
-            sort_column_name = {
+            sort_column = {
                 1: "nom",
                 2: "marque",
                 3: "magasin",
@@ -474,8 +470,8 @@ class AlimentsTab(TabBase):
             self.db_manager.modifier_aliment(aliment_id, data)
 
             # Émettre le signal pour notifier les autres composants
-            event_bus.aliment_modifie.emit(aliment_id)
-            event_bus.aliments_modifies.emit()
+            EVENT_BUS.aliment_modifie.emit(aliment_id)
+            EVENT_BUS.aliments_modifies.emit()
 
             self.load_data()
 
@@ -503,8 +499,8 @@ class AlimentsTab(TabBase):
             self.db_manager.supprimer_aliment(aliment_id)
 
             # Émettre le signal pour notifier les autres composants
-            event_bus.aliment_supprime.emit(aliment_id)
-            event_bus.aliments_modifies.emit()
+            EVENT_BUS.aliment_supprime.emit(aliment_id)
+            EVENT_BUS.aliments_modifies.emit()
 
             self.load_data()
 
@@ -524,8 +520,8 @@ class AlimentsTab(TabBase):
             aliment_id = self.db_manager.ajouter_aliment(data)
 
             # Émettre le signal pour notifier les autres composants
-            event_bus.aliment_ajoute.emit(aliment_id)
-            event_bus.aliments_modifies.emit()
+            EVENT_BUS.aliment_ajoute.emit(aliment_id)
+            EVENT_BUS.aliments_modifies.emit()
 
             self.load_data()
 

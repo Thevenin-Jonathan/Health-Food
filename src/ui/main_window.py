@@ -1,11 +1,11 @@
-from PySide6.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout, QMessageBox
-from PySide6.QtCore import QTimer  # Pour les délais
+from PySide6.QtWidgets import QMainWindow, QTabWidget
+from PySide6.QtCore import QTimer
+from src.utils.events import EVENT_BUS
 from .tabs.aliments_tab import AlimentsTab
 from .tabs.planning_tab import PlanningTab
 from .tabs.courses_tab import CoursesTab
 from .tabs.recettes_tab import RecettesTab
 from .tabs.utilisateur_tab import UtilisateurTab
-from ..utils.events import event_bus
 
 
 class MainWindow(QMainWindow):
@@ -52,8 +52,8 @@ class MainWindow(QMainWindow):
         self.planning_tab.semaine_ajoutee.connect(self.on_semaine_ajoutee)
 
         # Connexion aux signaux du bus d'événements (redondant mais pour sécurité)
-        event_bus.semaine_ajoutee.connect(self.on_semaine_ajoutee)
-        event_bus.semaine_supprimee.connect(self.on_semaine_supprimee)
+        EVENT_BUS.semaine_ajoutee.connect(self.on_semaine_ajoutee)
+        EVENT_BUS.semaine_supprimee.connect(self.on_semaine_supprimee)
 
     def on_tab_changed(self, index):
         """Appelé lorsque l'utilisateur change d'onglet"""
@@ -61,9 +61,8 @@ class MainWindow(QMainWindow):
         if index == 3:  # L'onglet des courses est le 4ème (index 3)
             QTimer.singleShot(50, self.courses_tab.charger_semaines)
 
-    def on_semaine_supprimee(self, semaine_id):
+    def on_semaine_supprimee(self):
         """Appelé lorsqu'une semaine est supprimée du planning"""
-        print(f"MainWindow: Semaine {semaine_id} supprimée")  # Log pour déboguer
 
         # Mettre à jour la liste des courses
         if hasattr(self, "courses_tab"):
@@ -73,9 +72,8 @@ class MainWindow(QMainWindow):
         else:
             print("Erreur: courses_tab n'est pas accessible")
 
-    def on_semaine_ajoutee(self, semaine_id):
+    def on_semaine_ajoutee(self):
         """Appelé lorsqu'une semaine est ajoutée au planning"""
-        print(f"MainWindow: Semaine {semaine_id} ajoutée")  # Log pour débogger
 
         # Mettre à jour la liste des courses
         if hasattr(self, "courses_tab"):

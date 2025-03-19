@@ -1,19 +1,15 @@
 from PySide6.QtWidgets import (
     QDialog,
-    QVBoxLayout,
     QHBoxLayout,
     QPushButton,
     QComboBox,
     QSpinBox,
     QFormLayout,
     QLineEdit,
-    QWidget,
-    QMessageBox,
     QLabel,
 )
-from PySide6.QtCore import Qt
 
-from ...utils.config import JOURS_SEMAINE
+from src.utils.config import JOURS_SEMAINE
 
 
 class RepasDialog(QDialog):

@@ -5,7 +5,7 @@ class Aliment:
 
     def __init__(
         self,
-        id=None,
+        aliment_id=None,
         nom="",
         marque="",
         magasin="",
@@ -17,7 +17,7 @@ class Aliment:
         fibres=0,
         prix_kg=0,
     ):
-        self.id = id
+        self.id = aliment_id
         self.nom = nom
         self.marque = marque
         self.magasin = magasin
@@ -33,7 +33,7 @@ class Aliment:
     def from_dict(cls, data):
         """Crée une instance à partir d'un dictionnaire"""
         return cls(
-            id=data.get("id"),
+            aliment_id=data.get("id"),
             nom=data.get("nom", ""),
             marque=data.get("marque", ""),
             magasin=data.get("magasin", ""),

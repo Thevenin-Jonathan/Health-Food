@@ -1,4 +1,5 @@
 from .db_connector import DBConnector
+from .db_repas import RepasManager
 
 
 class RepasTypesManager(DBConnector):
@@ -84,10 +85,10 @@ class RepasTypesManager(DBConnector):
         self.disconnect()
         return result
 
-    def get_repas_type(self, id):
+    def get_repas_type(self, repas_type_id):
         """Récupère un repas type par son ID avec ses aliments"""
         self.connect()
-        self.cursor.execute("SELECT * FROM repas_types WHERE id = ?", (id,))
+        self.cursor.execute("SELECT * FROM repas_types WHERE id = ?", (repas_type_id,))
         result = dict(self.cursor.fetchone())
 
         # Récupérer les aliments pour ce repas type
@@ -98,7 +99,7 @@ class RepasTypesManager(DBConnector):
         JOIN aliments a ON rta.aliment_id = a.id
         WHERE rta.repas_type_id = ?
         """,
-            (id,),
+            (repas_type_id,),
         )
 
         aliments = [dict(row) for row in self.cursor.fetchall()]
@@ -121,10 +122,10 @@ class RepasTypesManager(DBConnector):
         self.disconnect()
         return result
 
-    def supprimer_repas_type(self, id):
+    def supprimer_repas_type(self, repas_type_id):
         """Supprime un repas type et ses aliments associés"""
         self.connect()
-        self.cursor.execute("DELETE FROM repas_types WHERE id = ?", (id,))
+        self.cursor.execute("DELETE FROM repas_types WHERE id = ?", (repas_type_id,))
         self.conn.commit()
         self.disconnect()
 
@@ -142,7 +143,7 @@ class RepasTypesManager(DBConnector):
         self.conn.commit()
         self.disconnect()
 
-    def modifier_repas_type(self, id, nom, description):
+    def modifier_repas_type(self, repas_type_id, nom, description):
         """Modifie un repas type existant"""
         self.connect()
         self.cursor.execute(
@@ -151,14 +152,13 @@ class RepasTypesManager(DBConnector):
             SET nom = ?, description = ?
             WHERE id = ?
             """,
-            (nom, description, id),
+            (nom, description, repas_type_id),
         )
         self.conn.commit()
         self.disconnect()
 
     def appliquer_repas_type_au_jour(self, repas_type_id, jour, ordre, semaine_id=None):
         """Applique un repas type à un jour spécifique d'une semaine donnée"""
-        from .db_repas import RepasManager
 
         repas_manager = RepasManager(self.db_file)
         repas_type = self.get_repas_type(repas_type_id)
@@ -180,7 +180,6 @@ class RepasTypesManager(DBConnector):
         self, repas_type_id, jour, ordre, semaine_id=None, facteurs_quantite=None
     ):
         """Applique un repas type à un jour spécifique en ajustant les quantités"""
-        from .db_repas import RepasManager
 
         repas_manager = RepasManager(self.db_file)
 
@@ -210,7 +209,6 @@ class RepasTypesManager(DBConnector):
         self, recette_base_id, liste_ingredients, jour, ordre, semaine_id=None
     ):
         """Applique une recette modifiée à un jour spécifique"""
-        from .db_repas import RepasManager
 
         repas_manager = RepasManager(self.db_file)
 

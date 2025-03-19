@@ -24,8 +24,8 @@ class AlimentQuantifie:
 class Repas:
     """Représente un repas composé d'aliments avec quantités"""
 
-    def __init__(self, id=None, nom="", jour="", ordre=0, semaine_id=None):
-        self.id = id
+    def __init__(self, repas_id=None, nom="", jour="", ordre=0, semaine_id=None):
+        self.id = repas_id
         self.nom = nom
         self.jour = jour
         self.ordre = ordre
@@ -74,7 +74,7 @@ class Repas:
     def from_dict(cls, data, aliments=None):
         """Crée une instance à partir d'un dictionnaire et d'une liste d'aliments optionnelle"""
         repas = cls(
-            id=data.get("id"),
+            repas_id=data.get("id"),
             nom=data.get("nom", ""),
             jour=data.get("jour", ""),
             ordre=data.get("ordre", 0),

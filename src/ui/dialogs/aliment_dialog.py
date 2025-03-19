@@ -1,3 +1,4 @@
+import unicodedata
 from PySide6.QtWidgets import (
     QDialog,
     QFormLayout,
@@ -14,7 +15,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
 )
-from PySide6.QtCore import Qt, QStringListModel
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QDoubleValidator
 
 
@@ -184,8 +185,6 @@ class AlimentDialog(QDialog):
                 all_categories.add(cat)
 
         # Normaliser et trier les catégories (pour gérer correctement les accents)
-        import unicodedata
-
         def normalize_str(s):
             """Normalise une chaîne en supprimant les accents pour le tri"""
             if not s:

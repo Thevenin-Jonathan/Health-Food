@@ -1,15 +1,12 @@
+import traceback
 from PySide6.QtWidgets import (
     QDialog,
-    QVBoxLayout,
     QHBoxLayout,
-    QLabel,
     QComboBox,
     QPushButton,
     QLineEdit,
-    QSpinBox,
     QDoubleSpinBox,
     QFormLayout,
-    QMessageBox,
     QCompleter,
 )
 from PySide6.QtCore import Qt
@@ -158,8 +155,6 @@ class AjouterAlimentDialog(QDialog):
                 )
         except Exception as e:
             print(f"Erreur lors du chargement des suggestions: {e}")
-            import traceback
-
             traceback.print_exc()
 
     def ajouter_boutons_rapides(self, items, layout, target_input):

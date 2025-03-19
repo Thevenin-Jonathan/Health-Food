@@ -10,8 +10,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Signal
 
-from ..widgets.semaine_widget import SemaineWidget
-from ...utils.events import event_bus
+from src.ui.widgets.semaine_widget import SemaineWidget
+from src.utils.events import EVENT_BUS
 
 
 class PlanningTab(QWidget):
@@ -48,8 +48,8 @@ class PlanningTab(QWidget):
             self.ajouter_semaine()  # Ajouter la première semaine par défaut
 
         # S'abonner aux événements de modification des aliments
-        event_bus.aliment_supprime.connect(self.on_aliment_supprime)
-        event_bus.aliments_modifies.connect(self.refresh_planning)
+        EVENT_BUS.aliment_supprime.connect(self.on_aliment_supprime)
+        EVENT_BUS.aliments_modifies.connect(self.refresh_planning)
 
     def setup_ui(self):
         main_layout = QVBoxLayout()
@@ -109,7 +109,7 @@ class PlanningTab(QWidget):
         has_tab = index >= 0
         self.btn_rename_week.setEnabled(has_tab)
 
-    def on_tab_moved(self, from_index, to_index):
+    def on_tab_moved(self):
         """Méthode appelée lorsqu'un onglet est déplacé"""
         # Mettre à jour les noms d'onglets pour refléter l'ordre actuel
         self.mettre_a_jour_noms_onglets()
@@ -153,8 +153,8 @@ class PlanningTab(QWidget):
 
         # Émettre les signaux pour notifier les autres composants
         self.semaine_ajoutee.emit(semaine_id)
-        event_bus.semaine_ajoutee.emit(semaine_id)
-        event_bus.semaines_modifiees.emit()
+        EVENT_BUS.semaine_ajoutee.emit(semaine_id)
+        EVENT_BUS.semaines_modifiees.emit()
 
     def renommer_semaine_courante(self):
         """Ouvre un dialogue pour renommer la semaine courante"""
@@ -165,9 +165,9 @@ class PlanningTab(QWidget):
         # Trouver l'ID de la semaine courante
         semaine_widget = self.tabs_semaines.widget(current_index)
         semaine_id = None
-        for id, widget in self.semaines.items():
+        for semaine, widget in self.semaines.items():
             if widget == semaine_widget:
-                semaine_id = id
+                semaine_id = semaine
                 break
 
         if semaine_id is not None:
@@ -307,8 +307,8 @@ class PlanningTab(QWidget):
             # Émettre les signaux
             self.semaine_supprimee.emit(semaine_id)
             # Émettre également sur le bus d'événements centralisé
-            event_bus.semaine_supprimee.emit(semaine_id)
-            event_bus.semaines_modifiees.emit()
+            EVENT_BUS.semaine_supprimee.emit(semaine_id)
+            EVENT_BUS.semaines_modifiees.emit()
 
         # Supprimer l'onglet visuellement
         self.tabs_semaines.removeTab(index)
@@ -316,12 +316,12 @@ class PlanningTab(QWidget):
         # Mettre à jour les noms d'onglets par défaut
         self.mettre_a_jour_noms_onglets()
 
-    def on_aliment_supprime(self, aliment_id):
+    def on_aliment_supprime(self):
         """Appelé lorsqu'un aliment est supprimé"""
         # Rafraîchir tous les widgets de semaine
         self.refresh_planning()
 
     def refresh_planning(self):
         """Rafraîchit tous les widgets de semaine"""
-        for semaine_id, widget in self.semaines.items():
-            widget.load_data()
+        for semaine in self.semaines.values():
+            semaine.load_data()

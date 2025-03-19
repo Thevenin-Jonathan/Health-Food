@@ -1,5 +1,4 @@
 from PySide6.QtWidgets import (
-    QWidget,
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
@@ -29,7 +28,7 @@ class TotauxMacrosWidget(QFrame):
     def setup_ui(self):
         # Layout principal
         total_layout = QVBoxLayout(self)
-        total_layout.addWidget(QLabel(f"<h3>Total du jour</h3>"))
+        total_layout.addWidget(QLabel("<h3>Total du jour</h3>"))
 
         # Calories
         self.add_macro_row(

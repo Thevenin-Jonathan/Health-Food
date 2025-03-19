@@ -1,0 +1,30 @@
+[MASTER]
+# Spécifier le nombre de processus parallèles
+jobs=1
+
+[MESSAGES CONTROL]
+# Désactiver certaines vérifications inutiles ou trop strictes
+disable=raw-checker-failed,
+        bad-inline-option,
+        locally-disabled,
+        file-ignored,
+        suppressed-message,
+        useless-suppression,
+        deprecated-pragma,
+        use-symbolic-message-instead,
+        missing-module-docstring,
+        missing-class-docstring,
+        missing-function-docstring,
+        no-name-in-module
+
+[TYPECHECK]
+# Liste des modules à ignorer lors de la vérification d'import
+ignored-modules=PySide6,PySide6.QtWidgets,PySide6.QtCore,PySide6.QtGui,PySide6.QtPrintSupport
+
+[FORMAT]
+# Longueur maximum de ligne
+max-line-length=200
+
+[BASIC]
+# Nom des variables à un ou deux caractères autorisés
+variable-rgx=[a-z_][a-z0-9_]{0,30}$

@@ -4,13 +4,12 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QPushButton,
     QLabel,
-    QFrame,
 )
-from ...utils.config import BUTTON_STYLES
-from ..dialogs.repas_dialog import RepasDialog
+from src.utils.config import BUTTON_STYLES
+from src.ui.dialogs.repas_dialog import RepasDialog
+from src.utils.events import EVENT_BUS
 from .repas_widget import RepasWidget
 from .totaux_macros_widget import TotauxMacrosWidget
-from ...utils.events import event_bus
 
 
 class JourWidget(QWidget):
@@ -90,15 +89,9 @@ class JourWidget(QWidget):
                 self.db_manager.ajouter_repas(nom, jour, ordre, self.semaine_id)
 
             # Émettre le signal pour notifier que les repas ont été modifiés
-            event_bus.repas_modifies.emit(self.semaine_id)
+            EVENT_BUS.repas_modifies.emit(self.semaine_id)
 
             # Notifier le widget parent pour recharger les données
             parent = self.parent()
             if parent and hasattr(parent, "load_data"):
                 parent.load_data()
-
-    def update_objectifs(self, nouveaux_objectifs):
-        """Met à jour les objectifs et recalcule les pourcentages"""
-        self.objectifs = nouveaux_objectifs
-        # Mettre à jour l'affichage des totaux avec les nouveaux objectifs
-        self.update_totals_display()

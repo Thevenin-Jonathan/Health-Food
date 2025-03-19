@@ -16,4 +16,6 @@ class TabBase(QWidget):
 
     def refresh_data(self):
         """Méthode à implémenter dans les classes dérivées pour actualiser les données"""
-        pass
+        raise NotImplementedError(
+            "Cette méthode doit être implémentée dans les classes dérivées"
+        )

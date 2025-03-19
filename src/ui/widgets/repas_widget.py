@@ -1,5 +1,4 @@
 from PySide6.QtWidgets import (
-    QWidget,
     QVBoxLayout,
     QHBoxLayout,
     QPushButton,
@@ -7,9 +6,9 @@ from PySide6.QtWidgets import (
     QFrame,
     QMessageBox,
 )
-from ...utils.config import BUTTON_STYLES
-from ..dialogs.aliment_repas_dialog import AlimentRepasDialog
-from ..dialogs.remplacer_repas_dialog import RemplacerRepasDialog
+from src.utils.config import BUTTON_STYLES
+from src.ui.dialogs.aliment_repas_dialog import AlimentRepasDialog
+from src.ui.dialogs.remplacer_repas_dialog import RemplacerRepasDialog
 
 
 class RepasWidget(QFrame):

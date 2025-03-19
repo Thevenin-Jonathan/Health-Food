@@ -7,10 +7,6 @@ class UserManager(DBConnector):
     Cette classe gère le profil utilisateur et les calculs nutritionnels.
     """
 
-    def __init__(self, db_file="nutrition_sportive.db"):
-        """Initialise le gestionnaire d'utilisateurs"""
-        super().__init__(db_file)
-
     def sauvegarder_utilisateur(self, data):
         """
         Sauvegarde ou met à jour les informations utilisateur

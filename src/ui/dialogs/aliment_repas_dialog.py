@@ -1,6 +1,5 @@
 from PySide6.QtWidgets import (
     QDialog,
-    QVBoxLayout,
     QHBoxLayout,
     QPushButton,
     QComboBox,
@@ -15,6 +14,10 @@ class AlimentRepasDialog(QDialog):
     def __init__(self, parent=None, db_manager=None):
         super().__init__(parent)
         self.db_manager = db_manager
+        self.aliment_ids = []
+        self.aliment_combo = None
+        self.quantite_input = None
+        self.info_label = None
         self.setup_ui()
 
     def setup_ui(self):

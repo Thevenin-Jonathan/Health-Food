@@ -1,7 +1,7 @@
 from PySide6.QtGui import QTextDocument, QPageLayout
 from PySide6.QtPrintSupport import QPrinter, QPrintDialog
-from ..dialogs.print_preview_dialog import PrintPreviewDialog
-from ...utils.config import JOURS_SEMAINE
+from src.ui.dialogs.print_preview_dialog import PrintPreviewDialog
+from src.utils.config import JOURS_SEMAINE
 
 
 class PrintManager:
@@ -77,7 +77,7 @@ class PrintManager:
             html += "<td>"
 
             for repas in repas_semaine[jour]:
-                html += f"<div class='repas'>"
+                html += "<div class='repas'>"
                 html += f"<div class='repas-title'>{repas['nom']}</div>"
 
                 if repas["aliments"]:

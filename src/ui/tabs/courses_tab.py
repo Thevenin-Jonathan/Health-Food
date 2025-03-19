@@ -13,10 +13,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 from PySide6.QtGui import QTextDocument, QPageLayout
 
+from src.ui.dialogs.print_preview_dialog import PrintPreviewDialog
+from src.utils.events import EVENT_BUS
 from .tab_base import TabBase
-from ..dialogs.print_preview_dialog import PrintPreviewDialog
-from ...utils.events import event_bus
-from ...utils.config import JOURS_SEMAINE
 
 
 class CoursesTab(TabBase):
@@ -26,9 +25,9 @@ class CoursesTab(TabBase):
         self.setup_ui()
 
         # Se connecter aux signaux du bus d'événements
-        event_bus.semaine_ajoutee.connect(self.on_semaine_ajoutee)
-        event_bus.semaine_supprimee.connect(self.on_semaine_supprimee)
-        event_bus.semaines_modifiees.connect(self.refresh_data)
+        EVENT_BUS.semaine_ajoutee.connect(self.on_semaine_ajoutee)
+        EVENT_BUS.semaine_supprimee.connect(self.on_semaine_supprimee)
+        EVENT_BUS.semaines_modifiees.connect(self.refresh_data)
 
     def setup_ui(self):
         main_layout = QVBoxLayout()
@@ -138,7 +137,7 @@ class CoursesTab(TabBase):
         # Charger les données avec la sélection courante
         self.load_data()
 
-    def on_semaine_changed(self, index):
+    def on_semaine_changed(self):
         """Appelé lorsqu'une semaine différente est sélectionnée"""
         self.current_semaine_id = self.semaine_combo.currentData()
         self.load_data()
@@ -290,10 +289,10 @@ class CoursesTab(TabBase):
         html += "</body></html>"
         return html
 
-    def on_semaine_ajoutee(self, semaine_id):
+    def on_semaine_ajoutee(self):
         """Appelé quand une semaine est ajoutée via le bus d'événements"""
         self.charger_semaines()
 
-    def on_semaine_supprimee(self, semaine_id):
+    def on_semaine_supprimee(self):
         """Appelé quand une semaine est supprimée via le bus d'événements"""
         self.charger_semaines()

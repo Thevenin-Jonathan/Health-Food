@@ -8,26 +8,21 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QHeaderView,
-    QSlider,
-    QSpinBox,
     QDoubleSpinBox,
     QGroupBox,
-    QFrame,
     QSplitter,
     QFormLayout,
     QScrollArea,
     QWidget,
-    QTabWidget,
     QMessageBox,
     QListWidget,
     QGridLayout,
     QSizePolicy,
 )
-from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtGui import QColor, QBrush
+from PySide6.QtCore import Qt
 
-from ..widgets.aliment_slider_widget import AlimentSliderWidget
-from ..widgets.nutrition_comparison import NutritionComparison
+from src.ui.widgets.aliment_slider_widget import AlimentSliderWidget
+from src.ui.widgets.nutrition_comparison import NutritionComparison
 
 
 class AjouterIngredientDialog(QDialog):
@@ -36,6 +31,7 @@ class AjouterIngredientDialog(QDialog):
     def __init__(self, parent=None, db_manager=None):
         super().__init__(parent)
         self.db_manager = db_manager
+        self.aliment_ids = []
         self.setup_ui()
 
     def setup_ui(self):
@@ -206,7 +202,7 @@ class RemplacerRepasDialog(QDialog):
         self.recette_combo.setMinimumWidth(300)
         self.charger_recettes()
         # Connecter le changement de recette directement à la prévisualisation
-        self.recette_combo.currentIndexChanged.connect(self.prévisualiser_recette)
+        self.recette_combo.currentIndexChanged.connect(self.previsualiser_recette)
         header_layout.addWidget(self.recette_combo, 0, 2)
 
         # Configurer l'étirement des colonnes
@@ -356,7 +352,7 @@ class RemplacerRepasDialog(QDialog):
                 i, 3, QTableWidgetItem(f"{calories:.0f} kcal")
             )
 
-    def prévisualiser_recette(self):
+    def previsualiser_recette(self):
         """Affiche la prévisualisation de la recette sélectionnée"""
         recette_id = self.recette_combo.currentData()
         if not recette_id:
@@ -596,7 +592,7 @@ class RemplacerRepasDialog(QDialog):
                         QMessageBox.information(
                             self,
                             "Aliment déjà présent",
-                            f"Cet aliment est déjà présent. Sa quantité a été augmentée.",
+                            "Cet aliment est déjà présent. Sa quantité a été augmentée.",
                         )
                         return
 

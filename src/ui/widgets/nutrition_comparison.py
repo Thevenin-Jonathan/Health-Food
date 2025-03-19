@@ -5,11 +5,9 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QHeaderView,
-    QGroupBox,
     QProgressBar,
     QFrame,
     QFormLayout,
-    QGridLayout,
     QHBoxLayout,
 )
 from PySide6.QtCore import Qt, QTimer
@@ -23,6 +21,7 @@ class CustomProgressBar(QProgressBar):
         super().__init__(parent)
         self.target_value = 100  # Valeur cible (100%)
 
+    # pylint: disable=invalid-name
     def paintEvent(self, event):
         # Laisser la classe parente dessiner la barre de base
         super().paintEvent(event)
@@ -208,12 +207,12 @@ class NutritionComparison(QWidget):
 
     def _create_custom_progress_bar(self, style):
         """Crée une barre de progression personnalisée"""
-        bar = CustomProgressBar()
-        bar.setMaximum(140)  # Maximum fixe à 140%
-        bar.setTextVisible(True)
-        bar.setFormat("%v / %m")
-        bar.setStyleSheet(style)
-        return bar
+        progress_bar = CustomProgressBar()
+        progress_bar.setMaximum(140)  # Maximum fixe à 140%
+        progress_bar.setTextVisible(True)
+        progress_bar.setFormat("%v / %m")
+        progress_bar.setStyleSheet(style)
+        return progress_bar
 
     def update_comparison(self, repas_actuel, repas_nouveau, totaux_jour=None):
         """Met à jour la comparaison avec les données des deux repas"""
@@ -370,9 +369,9 @@ class NutritionComparison(QWidget):
             lip_target = self.user_lip_target
 
             # Mise à jour des barres avec un maximum fixe
-            def update_progress_bar(bar, value, target):
+            def update_progress_bar(progress_bar, value, target):
                 # Stocker les valeurs pour l'affichage et le tooltip
-                bar.target_value = int(target)
+                progress_bar.target_value = int(target)
 
                 # Calculer la valeur en pourcentage de l'objectif (100% = objectif atteint)
                 percentage_value = int((value / target) * 100)
@@ -381,10 +380,10 @@ class NutritionComparison(QWidget):
                 display_value = min(percentage_value, 140)
 
                 # Définir la valeur
-                bar.setValue(display_value)
+                progress_bar.setValue(display_value)
 
                 # Format texte personnalisé pour afficher la valeur réelle par rapport à l'objectif
-                bar.setFormat(f"{value:.0f} / {target:.0f}")
+                progress_bar.setFormat(f"{value:.0f} / {target:.0f}")
 
             # Appliquer les mises à jour
             update_progress_bar(self.cal_impact, new_cal, cal_target)
@@ -401,7 +400,7 @@ class NutritionComparison(QWidget):
             # Force le réajustement du marker 100%
             QTimer.singleShot(50, self.update)
 
-    def _set_progress_bar_color(self, bar, ratio):
+    def _set_progress_bar_color(self, progress_bar, ratio):
         """Configure la couleur de la barre de progression selon des seuils précis"""
         # Couleur de base pour la barre de progression
         base_style = """
@@ -448,7 +447,7 @@ class NutritionComparison(QWidget):
             tooltip_text = f"Très excessif ({ratio*100:.0f}%)"
 
         # Appliquer le style
-        bar.setStyleSheet(base_style + color_style)
+        progress_bar.setStyleSheet(base_style + color_style)
 
         # Définir le tooltip
-        bar.setToolTip(tooltip_text)
+        progress_bar.setToolTip(tooltip_text)

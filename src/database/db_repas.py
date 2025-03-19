@@ -213,22 +213,13 @@ class RepasManager(DBConnector):
 
     def supprimer_semaine(self, semaine_id):
         """Supprime tous les repas associés à une semaine spécifique"""
-        print(f"Suppression en DB de la semaine {semaine_id}")  # Log pour débugger
         self.connect()
-
-        # Compter le nombre de repas avant suppression
-        self.cursor.execute(
-            "SELECT COUNT(*) FROM repas WHERE semaine_id = ?", (semaine_id,)
-        )
-        count_before = self.cursor.fetchone()[0]
-        print(f"Nombre de repas à supprimer : {count_before}")  # Log pour débugger
 
         # Exécuter la suppression
         self.cursor.execute("DELETE FROM repas WHERE semaine_id = ?", (semaine_id,))
 
         # Vérifier le nombre de lignes affectées
         rows_affected = self.cursor.rowcount
-        print(f"Nombre de repas supprimés : {rows_affected}")  # Log pour débugger
 
         self.conn.commit()
         self.disconnect()

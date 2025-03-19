@@ -23,14 +23,13 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCursor
-from ...utils.events import event_bus
+from src.utils.events import EVENT_BUS
 
 
 # Délégué personnalisé pour permettre l'édition uniquement de la colonne quantité
 class QuantiteDelegate(QStyledItemDelegate):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
+    # pylint: disable=invalid-name
+    # pylint: disable=unused-argument
     def createEditor(self, parent, option, index):
         if index.column() == 1:  # Colonne quantité uniquement
             editor = QDoubleSpinBox(parent)
@@ -67,8 +66,8 @@ class RecettesTab(QWidget):
         self.load_data()
 
         # S'abonner aux événements de modification des aliments
-        event_bus.aliment_supprime.connect(self.on_aliment_supprime)
-        event_bus.aliments_modifies.connect(
+        EVENT_BUS.aliment_supprime.connect(self.on_aliment_supprime)
+        EVENT_BUS.aliments_modifies.connect(
             self.refresh_data
         )  # Cette ligne cause l'erreur
 
@@ -76,6 +75,7 @@ class RecettesTab(QWidget):
     quantite_modifiee = Signal(int, float)
 
     def setup_ui(self):
+        self.aliment_ids = []
         main_layout = QVBoxLayout()
 
         # Titre
@@ -248,9 +248,6 @@ class RecettesTab(QWidget):
 
         # Effacer et remplir le tableau d'ingrédients
         self.detail_ingredients.setRowCount(0)
-
-        # Stocker les IDs des aliments pour l'édition de quantité
-        self.aliment_ids = []
 
         for i, aliment in enumerate(recette["aliments"]):
             self.detail_ingredients.insertRow(i)
@@ -442,7 +439,7 @@ class RecettesTab(QWidget):
 
         # Afficher un message de confirmation
         QMessageBox.information(
-            self, "Quantité mise à jour", f"La quantité a été modifiée avec succès."
+            self, "Quantité mise à jour", "La quantité a été modifiée avec succès."
         )
 
     def modifier_recette(self):
@@ -478,7 +475,7 @@ class RecettesTab(QWidget):
                     self.recettes_list.setCurrentRow(i)
                     break
 
-    def on_aliment_supprime(self, aliment_id):
+    def on_aliment_supprime(self):
         """Appelé lorsqu'un aliment est supprimé"""
         # Rafraîchir les recettes qui pourraient contenir cet aliment
         self.refresh_data()
@@ -563,6 +560,7 @@ class IngredientRecetteDialog(QDialog):
     def __init__(self, parent=None, db_manager=None):
         super().__init__(parent)
         self.db_manager = db_manager
+        self.aliment_ids = []
         self.setup_ui()
 
     def setup_ui(self):
@@ -586,10 +584,6 @@ class IngredientRecetteDialog(QDialog):
         self.quantite_input.setSuffix(" g")
         self.quantite_input.valueChanged.connect(self.update_info)
         layout.addRow("Quantité:", self.quantite_input)
-
-        # Supprimer le label d'info pour les macros au 100g et garder seulement les macros proportionnelles
-        # self.info_label = QLabel("Sélectionnez un aliment pour voir ses informations")
-        # layout.addRow(self.info_label)
 
         # Label pour afficher les macros proportionnellement au poids
         self.macros_label = QLabel("")

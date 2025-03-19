@@ -71,8 +71,11 @@ def effacer_table_repas_aliments(confirmation=True):
     except sqlite3.Error as e:
         print(f"Erreur SQLite: {e}")
         return False
-    except Exception as e:
-        print(f"Erreur: {e}")
+    except FileNotFoundError as e:
+        print(f"Fichier introuvable: {e}")
+        return False
+    except PermissionError as e:
+        print(f"Erreur de permission: {e}")
         return False
 
 
