@@ -1,11 +1,8 @@
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
     QScrollArea,
     QGridLayout,
-    QStyle,
 )
 
 from src.utils.events import EVENT_BUS
@@ -47,17 +44,17 @@ class SemaineWidget(QWidget):
             5, 5, 5, 5
         )  # Réduire les marges autour du widget principal
 
-        # Bouton pour imprimer le planning
-        print_layout = QHBoxLayout()
-        self.btn_print = QPushButton("Imprimer le planning")
-        # Utiliser une icône standard disponible
-        self.btn_print.setIcon(
-            self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogListView)
-        )
-        self.btn_print.clicked.connect(self.print_planning)
-        print_layout.addStretch()
-        print_layout.addWidget(self.btn_print)
-        main_layout.addLayout(print_layout)
+        # # Bouton pour imprimer le planning
+        # print_layout = QHBoxLayout()
+        # self.btn_print = QPushButton("Imprimer le planning")
+        # # Utiliser une icône standard disponible
+        # self.btn_print.setIcon(
+        #     self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogListView)
+        # )
+        # self.btn_print.clicked.connect(self.print_planning)
+        # print_layout.addStretch()
+        # print_layout.addWidget(self.btn_print)
+        # main_layout.addLayout(print_layout)
 
         # Conteneur pour les jours avec scroll
         self.scroll_area = QScrollArea()

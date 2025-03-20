@@ -82,7 +82,16 @@ class PlanningTab(QWidget):
         self.btn_rename_week.setStyleSheet(button_style)
         control_layout.addWidget(self.btn_rename_week)
 
+        # Ajouter un espacement
         control_layout.addStretch()
+
+        # Ajouter le bouton d'impression
+        self.btn_print_planning = QPushButton("⎙ Imprimer")
+        self.btn_print_planning.clicked.connect(self.imprimer_planning_courant)
+        self.btn_print_planning.setStyleSheet(button_style)
+        self.btn_print_planning.setEnabled(False)  # Désactivé par défaut
+        control_layout.addWidget(self.btn_print_planning)
+
         main_layout.addLayout(control_layout)
 
         # Onglets pour les semaines
@@ -108,6 +117,7 @@ class PlanningTab(QWidget):
         # Activer/désactiver les boutons en fonction de si un onglet est sélectionné
         has_tab = index >= 0
         self.btn_rename_week.setEnabled(has_tab)
+        self.btn_print_planning.setEnabled(has_tab)
 
     def on_tab_moved(self):
         """Méthode appelée lorsqu'un onglet est déplacé"""
@@ -189,6 +199,29 @@ class PlanningTab(QWidget):
 
                 # Mettre à jour l'onglet
                 self.tabs_semaines.setTabText(current_index, nouveau_nom)
+
+    def imprimer_planning_courant(self):
+        """Imprime le planning de la semaine courante"""
+        current_index = self.tabs_semaines.currentIndex()
+        if current_index < 0:
+            return
+
+        # Récupérer le widget de la semaine courante
+        semaine_widget = self.tabs_semaines.widget(current_index)
+
+        # Récupérer l'ID de la semaine courante
+        semaine_id = None
+        for sid, widget in self.semaines.items():
+            if widget == semaine_widget:
+                semaine_id = sid
+                break
+
+        if semaine_id is not None:
+            # Utiliser le PrintManager pour imprimer
+            from src.ui.widgets.print_manager import PrintManager
+
+            print_manager = PrintManager(self.db_manager)
+            print_manager.print_planning(semaine_id)
 
     def mettre_a_jour_noms_onglets(self):
         """Met à jour les noms des onglets non personnalisés"""
