@@ -43,47 +43,39 @@ class AlimentRepasDialog(QDialog):
         self.quantite_input.setSingleStep(10)  # Incrément de 10g par défaut
         self.quantite_input.setButtonSymbols(QDoubleSpinBox.UpDownArrows)
         # Style pour les boutons verticaux
-        self.quantite_input.setStyleSheet(
-            """
-            QDoubleSpinBox {
-                padding-right: 5px;
-            }
-            QDoubleSpinBox::up-button {
-                subcontrol-origin: border;
-                subcontrol-position: top right;
-                width: 20px;
-                height: 15px;
-            }
-            QDoubleSpinBox::down-button {
-                subcontrol-origin: border;
-                subcontrol-position: bottom right;
-                width: 20px;
-                height: 15px;
-            }
-        """
-        )
+        self.quantite_input.setProperty("class", "spin-box-vertical")
         layout.addRow("Quantité:", self.quantite_input)
 
         # Informations sur l'aliment sélectionné
-        self.info_label = QLabel("Sélectionnez un aliment pour voir ses informations")
-        layout.addRow(self.info_label)
+        self.info_label = QLabel("")
+        self.info_label.setProperty("class", "nutrition-info")
+        self.info_label.setWordWrap(True)  # Permettre le retour à la ligne
+        layout.addRow("Valeurs nutritionnelles:", self.info_label)
 
         # Mettre à jour les informations quand on change d'aliment
         self.aliment_combo.currentIndexChanged.connect(self.update_info)
+        self.quantite_input.valueChanged.connect(self.update_info)
 
         # Boutons
         buttons_layout = QHBoxLayout()
         self.btn_cancel = QPushButton("Annuler")
+        self.btn_cancel.setObjectName("cancelButton")
         self.btn_cancel.clicked.connect(self.reject)
 
         self.btn_save = QPushButton("Ajouter")
+        self.btn_save.setObjectName("saveButton")
         self.btn_save.clicked.connect(self.validate_and_accept)
 
         buttons_layout.addWidget(self.btn_cancel)
+        buttons_layout.addStretch()
         buttons_layout.addWidget(self.btn_save)
 
         layout.addRow(buttons_layout)
         self.setLayout(layout)
+
+        # Mettre à jour les informations immédiatement si un aliment est disponible
+        if self.aliment_combo.count() > 0:
+            self.update_info()
 
     def load_aliments(self):
         aliments = self.db_manager.get_aliments(sort_column="nom", sort_order=True)
@@ -98,13 +90,28 @@ class AlimentRepasDialog(QDialog):
         if self.aliment_combo.currentIndex() >= 0:
             aliment_id = self.aliment_ids[self.aliment_combo.currentIndex()]
             aliment = self.db_manager.get_aliment(aliment_id)
+            quantite = self.quantite_input.value()
 
-            info_text = f"<b>Calories:</b> {aliment['calories']} kcal/100g | "
-            info_text += f"<b>P:</b> {aliment['proteines']}g | "
-            info_text += f"<b>G:</b> {aliment['glucides']}g | "
-            info_text += f"<b>L:</b> {aliment['lipides']}g"
+            # Calculer les valeurs pour la quantité spécifiée
+            calories = aliment["calories"] * quantite / 100
+            proteines = aliment["proteines"] * quantite / 100
+            glucides = aliment["glucides"] * quantite / 100
+            lipides = aliment["lipides"] * quantite / 100
+
+            # Affichage des valeurs uniquement pour la quantité sélectionnée
+            info_text = f"<b>Calories:</b> {calories:.0f} kcal<br>"
+            info_text += f"<b>Protéines:</b> {proteines:.1f}g<br>"
+            info_text += f"<b>Glucides:</b> {glucides:.1f}g<br>"
+            info_text += f"<b>Lipides:</b> {lipides:.1f}g"
+
+            # Ajouter les fibres si disponibles
+            if aliment.get("fibres"):
+                fibres = aliment["fibres"] * quantite / 100
+                info_text += f"<br><b>Fibres:</b> {fibres:.1f}g"
 
             self.info_label.setText(info_text)
+        else:
+            self.info_label.setText("Aucun aliment disponible")
 
     def validate_and_accept(self):
         if self.aliment_combo.currentIndex() < 0:

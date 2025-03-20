@@ -89,6 +89,20 @@ QPushButton:pressed {
 
 /* Styles pour les boutons spécifiques */
 
+/* Bouton d'enregistrement dans les dialogues */
+QPushButton#saveButton {
+    background-color: #4CAF50;
+    color: white;
+    padding: 6px 20px;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+QPushButton#saveButton:hover {
+    background-color: #388E3C;
+}
+
 /* Bouton primaire */
 QPushButton#primaryButton {
     background-color: #4CAF50;
@@ -304,4 +318,52 @@ QLabel[class="title"] {
 /* Dialogs */
 QDialog {
     background-color: #f5f9f5;
+}
+
+/* Style pour les spinbox verticaux */
+QDoubleSpinBox.spin-box-vertical, QSpinBox.spin-box-vertical {
+    padding-right: 5px;
+}
+
+QDoubleSpinBox.spin-box-vertical::up-button, QSpinBox.spin-box-vertical::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    width: 20px;
+    height: 15px;
+}
+
+QDoubleSpinBox.spin-box-vertical::down-button, QSpinBox.spin-box-vertical::down-button {
+    subcontrol-origin: border;
+    subcontrol-position: bottom right;
+    width: 20px;
+    height: 15px;
+}
+
+/* Style pour les informations nutritionnelles */
+QLabel.nutrition-info {
+    background-color: #f0f8ff;  /* Bleu très clair */
+    border: 1px solid #d0e0f0;
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    line-height: 150%;
+}
+
+/* Bouton d'annulation dans les dialogues */
+QPushButton#cancelButton {
+    background-color: #e74c3c;  /* Rouge */
+    color: white;
+    padding: 6px 20px;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+QPushButton#cancelButton:hover {
+    background-color: #c0392b;  /* Rouge plus foncé au survol */
+}
+
+QPushButton#cancelButton:pressed {
+    background-color: #a93226;  /* Rouge encore plus foncé lorsque pressé */
 }

@@ -122,8 +122,13 @@ class AlimentDialog(QDialog):
         input_field.setCompleter(completer)
         layout.addWidget(input_field)
 
+        # Stocker le QLineEdit comme attribut du container pour y accéder facilement
+        container.input_field = input_field
+
         # Ajouter la référence au champ comme attribut de la classe
-        setattr(self, input_name, input_field)
+        setattr(
+            self, f"_{input_name}_field", input_field
+        )  # Stocke le QLineEdit directement
 
         # Ajouter les boutons pour les valeurs récentes
         recent_items = items[:5] if len(items) >= 5 else items
@@ -236,23 +241,9 @@ class AlimentDialog(QDialog):
         self.btn_cancel.clicked.connect(self.reject)
 
         self.btn_save = QPushButton("Enregistrer")
+        self.btn_save.setObjectName("saveButton")
         self.btn_save.setDefault(True)
         self.btn_save.clicked.connect(self.accept)
-        self.btn_save.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                padding: 6px 20px;
-                border: none;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #388E3C;
-            }
-            """
-        )
 
         buttons_layout.addWidget(self.btn_cancel)
         buttons_layout.addStretch()
@@ -263,8 +254,8 @@ class AlimentDialog(QDialog):
     def fill_data_from_aliment(self):
         """Remplit les champs avec les données de l'aliment à modifier"""
         self.nom_input.setText(self.aliment["nom"])
-        self.marque_input.setText(self.aliment["marque"] or "")
-        self.magasin_input.setText(self.aliment["magasin"] or "")
+        self.marque_input.input_field.setText(self.aliment["marque"] or "")
+        self.magasin_input.input_field.setText(self.aliment["magasin"] or "")
 
         # Gestion spéciale pour la catégorie
         categorie = self.aliment["categorie"] or ""
@@ -295,10 +286,10 @@ class AlimentDialog(QDialog):
         if not self.nom_input.text().strip():
             missing_fields.append("Nom")
 
-        if not self.marque_input.text().strip():
+        if not self.marque_input.input_field.text().strip():
             missing_fields.append("Marque")
 
-        if not self.magasin_input.text().strip():
+        if not self.magasin_input.input_field.text().strip():
             missing_fields.append("Magasin")
 
         if not self.categorie_input.currentText().strip():
@@ -325,8 +316,8 @@ class AlimentDialog(QDialog):
 
         return {
             "nom": self.nom_input.text().strip(),
-            "marque": self.marque_input.text().strip(),
-            "magasin": self.magasin_input.text().strip(),
+            "marque": self.marque_input.input_field.text().strip(),
+            "magasin": self.magasin_input.input_field.text().strip(),
             "categorie": self.categorie_input.currentText().strip(),
             "calories": self.calories_input.value(),
             "proteines": self.proteines_input.value(),
