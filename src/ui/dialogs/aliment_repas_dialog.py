@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
 )
+from src.utils import AutoSelectDoubleSpinBox
 
 
 class AlimentRepasDialog(QDialog):
@@ -32,7 +33,7 @@ class AlimentRepasDialog(QDialog):
         layout.addRow("Aliment:", self.aliment_combo)
 
         # Quantité en grammes avec style amélioré pour une meilleure manipulation
-        self.quantite_input = QDoubleSpinBox()
+        self.quantite_input = AutoSelectDoubleSpinBox()
         self.quantite_input.setMinimum(1)
         self.quantite_input.setMaximum(5000)
         self.quantite_input.setValue(100)

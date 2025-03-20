@@ -3,6 +3,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QPushButton
 from src.ui.main_window import MainWindow
 from src.database.db_manager import DatabaseManager
+from src.utils.ui_helpers import apply_auto_select_to_widget
 
 
 class PointerCursorButton(QPushButton):
@@ -30,6 +31,9 @@ if __name__ == "__main__":
 
     # Créer et afficher la fenêtre principale
     window = MainWindow(db_manager)
+
+    # Appliquer la sélection automatique à tous les champs de saisie
+    apply_auto_select_to_widget(window)
 
     # Appliquer le curseur pointant à tous les boutons
     setup_cursor_for_buttons(window)
