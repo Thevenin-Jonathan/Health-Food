@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QApplication,
     QSizePolicy,
+    QWidget,
 )
 from PySide6.QtCore import Qt, QMimeData, QByteArray
 from PySide6.QtGui import QDrag
@@ -19,12 +20,16 @@ from src.utils.events import EVENT_BUS
 class RepasWidget(QFrame):
     """Widget représentant un repas dans le planning"""
 
-    def __init__(self, db_manager, repas_data, semaine_id, jour=None):
+    def __init__(
+        self, db_manager, repas_data, semaine_id, jour=None, compact_mode=True
+    ):
         super().__init__()
         self.db_manager = db_manager
         self.repas_data = repas_data
         self.semaine_id = semaine_id
         self.jour = jour if jour else repas_data.get("jour", "")
+        self.compact_mode = compact_mode
+        self.is_expanded = False
 
         # Configuration pour drag and drop
         self.setMouseTracking(True)
@@ -51,66 +56,124 @@ class RepasWidget(QFrame):
 
     def setup_ui(self):
         # Layout principal
-        repas_layout = QVBoxLayout(self)
-        repas_layout.setContentsMargins(10, 8, 10, 8)
-        repas_layout.setSpacing(5)
+        self.repas_layout = QVBoxLayout(self)
+        self.repas_layout.setContentsMargins(10, 8, 10, 8)
+        self.repas_layout.setSpacing(5)
 
         # En-tête du repas avec titre et boutons
         header_layout = QHBoxLayout()
+        header_layout.setSpacing(3)
+
+        # Bouton d'expansion
+        self.expand_btn = QPushButton("▼" if not self.is_expanded else "▲")
+        self.expand_btn.setObjectName("expandButton")
+        self.expand_btn.setFixedSize(20, 20)
+        self.expand_btn.clicked.connect(self.toggle_details)
+        header_layout.addWidget(self.expand_btn)
 
         # Titre du repas
         titre_repas = QLabel(f"<b>{self.repas_data['nom']}</b>")
         header_layout.addWidget(titre_repas)
 
-        header_layout.addStretch()
+        # Calories (toujours visibles)
+        calories_label = QLabel(f"{self.repas_data['total_calories']:.0f} kcal")
+        calories_label.setStyleSheet("color: #2e7d32; font-weight: bold;")
+        calories_label.setAlignment(Qt.AlignRight)
+        header_layout.addWidget(calories_label, 1)  # 1 = stretch factor
+
+        # Boutons d'actions (toujours visibles)
+        buttons_layout = QHBoxLayout()
+        buttons_layout.setSpacing(2)
 
         # Bouton d'édition
         btn_edit = QPushButton("✐")
         btn_edit.setObjectName("editButton")
+        btn_edit.setFixedSize(24, 24)
         btn_edit.setToolTip("Modifier ce repas")
         btn_edit.clicked.connect(self.edit_repas)
-        header_layout.addWidget(btn_edit)
+        buttons_layout.addWidget(btn_edit)
 
         # Bouton pour remplacer le repas par une recette
         btn_replace = QPushButton("⇄")
         btn_replace.setObjectName("replaceButton")
+        btn_replace.setFixedSize(24, 24)
         btn_replace.setToolTip("Remplacer par une recette")
         btn_replace.clicked.connect(self.remplacer_repas_par_recette)
-        header_layout.addWidget(btn_replace)
+        buttons_layout.addWidget(btn_replace)
 
         # Bouton de suppression
         btn_delete = QPushButton("〤")
         btn_delete.setObjectName("deleteBigButton")
+        btn_delete.setFixedSize(24, 24)
         btn_delete.setToolTip("Supprimer ce repas")
         btn_delete.clicked.connect(self.delete_repas)
-        header_layout.addWidget(btn_delete)
+        buttons_layout.addWidget(btn_delete)
 
-        repas_layout.addLayout(header_layout)
+        header_layout.addLayout(buttons_layout)
+        self.repas_layout.addLayout(header_layout)
 
-        # Ajouter les aliments du repas
-        if self.repas_data["aliments"]:
-            for aliment in self.repas_data["aliments"]:
-                self.add_aliment_to_layout(aliment, repas_layout)
-        else:
-            repas_layout.addWidget(QLabel("Aucun aliment"))
+        # Zone détaillée (cachée initialement si mode compact)
+        self.details_widget = QWidget()
+        self.details_layout = QVBoxLayout(self.details_widget)
+        self.details_layout.setContentsMargins(5, 5, 5, 0)
+        self.details_layout.setSpacing(3)
 
-        # Afficher les totaux du repas
-        repas_layout.addWidget(
-            QLabel(
-                f"<b>Total:</b> {self.repas_data['total_calories']:.0f} kcal | "
-                f"P: {self.repas_data['total_proteines']:.1f}g | "
-                f"G: {self.repas_data['total_glucides']:.1f}g | "
-                f"L: {self.repas_data['total_lipides']:.1f}g"
-            )
+        # Résumé des macros (visible même quand replié)
+        self.macro_summary = QLabel(
+            f"P: <b>{self.repas_data['total_proteines']:.1f}g</b> | "
+            f"G: <b>{self.repas_data['total_glucides']:.1f}g</b> | "
+            f"L: <b>{self.repas_data['total_lipides']:.1f}g</b>"
         )
+        self.macro_summary.setAlignment(Qt.AlignCenter)
+        self.repas_layout.addWidget(self.macro_summary)
 
-        # S'assurer que les labels s'adaptent à la largeur
+        # Ajouter les aliments du repas dans la zone détaillée
+        if self.repas_data["aliments"]:
+            # Ajouter un bouton pour ajouter un aliment
+            btn_add_food = QPushButton("+ Ajouter un aliment")
+            btn_add_food.setObjectName("addFoodButton")
+            btn_add_food.clicked.connect(self.add_food_to_meal)
+            self.details_layout.addWidget(btn_add_food)
+
+            for aliment in self.repas_data["aliments"]:
+                self.add_aliment_to_layout(aliment, self.details_layout)
+        else:
+            empty_label = QLabel("Aucun aliment")
+            empty_label.setAlignment(Qt.AlignCenter)
+            self.details_layout.addWidget(empty_label)
+
+            # Ajouter un bouton pour ajouter un aliment
+            btn_add_food = QPushButton("+ Ajouter un aliment")
+            btn_add_food.setObjectName("addFoodButton")
+            btn_add_food.clicked.connect(self.add_food_to_meal)
+            self.details_layout.addWidget(btn_add_food)
+
+        # Ajouter la zone détaillée au layout principal
+        self.repas_layout.addWidget(self.details_widget)
+
+        # Cacher les détails en mode compact
+        if self.compact_mode:
+            self.details_widget.setVisible(False)
+
+        # Assurer que les labels s'adaptent à la largeur
         for label in self.findChildren(QLabel):
             label.setWordWrap(True)
 
-        # Pour les tableaux ou autres composants qui peuvent déborder
-        self.setMinimumWidth(200)  # Largeur minimale raisonnable
+        # Définir une largeur minimale et une politique de taille
+        self.setMinimumWidth(200)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+
+    def toggle_details(self):
+        """Affiche ou masque les détails du repas"""
+        self.is_expanded = not self.is_expanded
+        self.details_widget.setVisible(self.is_expanded)
+
+        # Changer l'icône du bouton
+        self.expand_btn.setText("▲" if self.is_expanded else "▼")
+
+        # Informer le container parent qu'il doit se réajuster
+        if self.parent():
+            self.parent().updateGeometry()
 
     def add_aliment_to_layout(self, aliment, parent_layout):
         """Ajoute un aliment au layout avec son bouton de suppression"""

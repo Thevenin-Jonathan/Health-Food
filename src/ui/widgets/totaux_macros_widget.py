@@ -101,11 +101,11 @@ class TotauxMacrosWidget(QFrame):
         # En mode compact, utiliser une mise en page horizontale
         if self.compact:
             row_layout = QHBoxLayout()
-            row_layout.setSpacing(5)
+            row_layout.setSpacing(2)
 
             # Label - en mode compact est plus petit
             label = QLabel(f"{label_text}:")
-            label.setFixedWidth(55)
+            label.setFixedWidth(45)
             row_layout.addWidget(label)
 
             # Valeur - en mode compact, formaté "valeur/cible"
@@ -113,11 +113,12 @@ class TotauxMacrosWidget(QFrame):
             value_label.setFixedWidth(70)
             row_layout.addWidget(value_label)
 
-            # Barre de progression
+            # Barre de progression plus fine
             progress = QProgressBar()
-            progress.setRange(0, int(target * 1.2))  # 120% de l'objectif comme maximum
+            progress.setMaximumHeight(6)  # Réduit la hauteur
+            progress.setTextVisible(False)  # Pas de texte sur la barre
+            progress.setRange(0, int(target * 1.4))  # Maximum à 140% de l'objectif
             progress.setValue(int(value))
-            progress.setTextVisible(False)  # Pas de texte en mode compact
 
             # Colorer la barre selon le pourcentage
             self._set_progress_bar_color(progress, value / target)

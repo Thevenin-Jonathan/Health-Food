@@ -110,7 +110,11 @@ class JourWidget(QWidget):
         self.repas_widgets = []
         for repas in self.repas_list:
             repas_widget = RepasWidget(
-                self.db_manager, repas, self.semaine_id, self.jour
+                self.db_manager,
+                repas,
+                self.semaine_id,
+                self.jour,
+                compact_mode=True,  # Activez le mode compact par défaut
             )
             repas_widget.setObjectName(f"repas_{repas['id']}")
             self.repas_layout.addWidget(repas_widget)
@@ -375,3 +379,23 @@ class RepasContainer(QWidget):
                 child.setMaximumWidth(
                     self.width() - 10
                 )  # Marge pour éviter le défilement
+
+    def updateGeometry(self):
+        """Force la mise à jour de la géométrie et de la taille"""
+        super().updateGeometry()
+
+        # Recalculer la taille préférée
+        preferred_height = 0
+        for i in range(self.layout().count()):
+            item = self.layout().itemAt(i)
+            if item.widget() and item.widget().isVisible():
+                preferred_height += (
+                    item.widget().sizeHint().height() + self.layout().spacing()
+                )
+
+        # Ajuster la taille du conteneur
+        self.setMinimumHeight(preferred_height)
+
+        # Informer le parent pour ajuster le scroll area
+        if self.parent() and isinstance(self.parent(), QScrollArea):
+            self.parent().updateGeometry()
