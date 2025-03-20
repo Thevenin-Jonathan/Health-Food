@@ -191,3 +191,22 @@ class TotauxMacrosWidget(QFrame):
                 }
                 """
             )
+
+    def update_values(self, total_cal, total_prot, total_gluc, total_lip, objectifs):
+        """Met à jour les valeurs des totaux et les barres de progression"""
+        self.total_cal = total_cal
+        self.total_prot = total_prot
+        self.total_gluc = total_gluc
+        self.total_lip = total_lip
+        self.objectifs = objectifs
+
+        # Supprimer l'ancien contenu
+        for i in reversed(range(self.layout().count())):
+            item = self.layout().itemAt(i)
+            if item is not None:
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+
+        # Réinitialiser l'interface
+        self.setup_ui()

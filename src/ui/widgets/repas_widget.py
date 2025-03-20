@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QMessageBox,
     QApplication,
+    QSizePolicy,
 )
 from PySide6.QtCore import Qt, QMimeData, QByteArray
 from PySide6.QtGui import QDrag
@@ -102,6 +103,14 @@ class RepasWidget(QFrame):
                 f"L: {self.repas_data['total_lipides']:.1f}g"
             )
         )
+
+        # S'assurer que les labels s'adaptent à la largeur
+        for label in self.findChildren(QLabel):
+            label.setWordWrap(True)
+
+        # Pour les tableaux ou autres composants qui peuvent déborder
+        self.setMinimumWidth(200)  # Largeur minimale raisonnable
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
     def add_aliment_to_layout(self, aliment, parent_layout):
         """Ajoute un aliment au layout avec son bouton de suppression"""
