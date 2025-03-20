@@ -16,7 +16,7 @@ class MainWindow(QMainWindow):
 
     def setup_ui(self):
         self.setWindowTitle("Nutrition Sportive - Planificateur de Repas")
-        self.setMinimumSize(1800, 1000)
+        self.setMinimumSize(1280, 720)
 
         # Widget central avec onglets
         self.tabs = QTabWidget()
