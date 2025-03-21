@@ -94,8 +94,23 @@ class UtilisateurTab(TabBase):
         self.charger_donnees_utilisateur()
 
     def setup_ui(self):
-        main_layout = QVBoxLayout()
+        # Créer un layout principal sans marges pour le widget entier
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        # Créer un layout horizontal pour centrer le contenu
+        center_layout = QHBoxLayout()
+
+        # Créer un widget contenant le contenu réel avec sa largeur limitée
+        content_widget = QWidget()
+        content_widget.setMaximumWidth(900)
+        content_widget.setMinimumWidth(700)
+
+        # Layout principal du contenu
+        main_layout = QVBoxLayout(content_widget)
         main_layout.setSpacing(20)
+        main_layout.setContentsMargins(20, 20, 20, 20)
 
         # Style minimal pour les boutons radio
         radio_style = """
@@ -485,10 +500,18 @@ class UtilisateurTab(TabBase):
         notes.setStyleSheet("font-style: italic; color: #666;")
         main_layout.addWidget(notes)
 
-        self.setLayout(main_layout)
-
         # Initialiser l'état des champs selon le mode
         self.on_mode_changed()
+
+        # Ajouter le widget de contenu au layout central avec des marges extensibles
+        center_layout.addStretch(1)
+        center_layout.addWidget(content_widget)
+        center_layout.addStretch(1)
+
+        # Ajouter le layout central au layout extérieur
+        outer_layout.addLayout(center_layout)
+
+        self.setLayout(outer_layout)
 
     def on_regime_changed(self):
         """Appelé quand le type de régime alimentaire change"""
