@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from PySide6.QtCore import Qt, QMimeData, QByteArray
-from PySide6.QtGui import QDrag
+from PySide6.QtGui import QDrag, QPainter, QPixmap
 from src.ui.dialogs.aliment_repas_dialog import AlimentRepasDialog
 from src.ui.dialogs.remplacer_repas_dialog import RemplacerRepasDialog
 from src.ui.dialogs.repas_edition_dialog import RepasEditionDialog
@@ -344,11 +344,20 @@ class RepasWidget(QFrame):
 
             # Définir un feedback visuel (ici, une copie du widget)
             pixmap = self.grab()
-            drag.setPixmap(pixmap)
+
+            # Créer une nouvelle image transparente
+            transparent_pixmap = QPixmap(pixmap.size())
+            transparent_pixmap.fill(Qt.transparent)
+            # Dessiner l'image originale avec transparence sur la nouvelle image
+            painter = QPainter(transparent_pixmap)
+            painter.setOpacity(0.7)  # 70% d'opacité (30% de transparence)
+            painter.drawPixmap(0, 0, pixmap)
+            painter.end()
+            drag.setPixmap(transparent_pixmap)
             drag.setHotSpot(event.pos())
 
             # Exécuter le drag
-            drop_action = drag.exec_(Qt.MoveAction)
+            drag.exec(Qt.MoveAction)
 
         super().mousePressEvent(event)
 
