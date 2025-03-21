@@ -1,0 +1,507 @@
+/* 
+============================================
+   THÈME PRINCIPAL - HEALTH & FOOD
+============================================
+*/
+
+/* Base */
+QWidget {
+    background-color: #f5f9f5;
+    color: #2e3d32;
+    font-family: "Segoe UI", "Arial", sans-serif;
+}
+
+QMainWindow, QDialog {
+    background-color: #f5f9f5;
+}
+
+/* 
+============================================
+   CONTRÔLES DE NAVIGATION 
+============================================
+*/
+
+/* Onglets */
+QTabWidget::pane {
+    border: 1px solid #C8E6C9;
+    background-color: #f5f9f5;
+}
+
+QTabBar::tab {
+    background-color: #d4ead4;
+    color: #2e3d32;
+    padding: 8px 16px;
+    border: 1px solid #C8E6C9;
+    border-bottom: none;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+
+QTabBar::tab:selected {
+    background-color: #4CAF50;
+    color: white;
+}
+
+QTabBar::tab:hover:!selected {
+    background-color: #9fd39f;
+}
+
+/* 
+============================================
+   CONTRÔLES D'AFFICHAGE DE DONNÉES
+============================================
+*/
+
+/* Tableaux */
+QTableWidget {
+    gridline-color: #C8E6C9;
+    border: 1px solid #C8E6C9;
+}
+
+QTableWidget::item {
+    padding: 4px;
+}
+
+QTableWidget::item:selected {
+    background-color: #c6e5c6;
+    color: #2e3d32;
+}
+
+QHeaderView::section {
+    background-color: #4CAF50;
+    color: white;
+    padding: 4px;
+    border: 1px solid #C8E6C9;
+}
+
+/* Liste d'arbres */
+QTreeWidget {
+    border: 1px solid #C8E6C9;
+}
+
+QTreeWidget::item {
+    padding: 4px;
+}
+
+QTreeWidget::item:selected {
+    background-color: #c6e5c6;
+    color: #2e3d32;
+}
+
+/* 
+============================================
+   BOUTONS - STYLE DE BASE
+============================================
+*/
+
+QPushButton {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+}
+
+QPushButton:hover {
+    background-color: #46a24a;
+}
+
+QPushButton:pressed {
+    background-color: #409544;
+}
+
+/* 
+============================================
+   BOUTONS - VARIANTES FONCTIONNELLES
+============================================
+*/
+
+/* Boutons d'action principaux */
+QPushButton#saveButton, QPushButton#primaryButton {
+    background-color: #4CAF50;
+    color: white;
+    padding: 6px 20px;
+    font-weight: bold;
+    border-radius: 4px;
+}
+
+QPushButton#saveButton:hover, QPushButton#primaryButton:hover {
+    background-color: #C8E6C9;
+}
+
+QPushButton#primaryButton:pressed {
+    background-color: #bcd9bd;
+}
+
+/* Bouton d'annulation */
+QPushButton#cancelButton {
+    background-color: #e74c3c;
+    color: white;
+    padding: 6px 20px;
+    font-weight: bold;
+}
+
+QPushButton#cancelButton:hover {
+    background-color: #cd4335;
+}
+
+QPushButton#cancelButton:pressed {
+    background-color: #c03f32;
+}
+
+/* Bouton d'ajout */
+QPushButton#addButton {
+    background-color: #4CAF50;
+    color: white;
+    font-weight: bold;
+    border-radius: 4px;
+    min-width: 30px;
+    min-height: 30px;
+    max-width: 30px;
+    max-height: 30px;
+    padding: 0px;
+    font-size: 14px;
+}
+
+QPushButton#addButton:hover {
+    background-color: #C8E6C9;
+}
+
+QPushButton#addButton:pressed {
+    background-color: #bcd9bd;
+}
+
+/* Bouton de sauvegarde profil utilisateur */
+QPushButton#saveButtonPressed {
+    background-color: #3498db;
+    color: white;
+    padding: 6px 20px;
+    font-weight: bold;
+    border-radius: 4px;
+}
+
+/* 
+============================================
+   BOUTONS - ICÔNES
+============================================
+*/
+
+/* Bouton de suppression */
+QPushButton#deleteButton, QPushButton#deleteBigButton {
+    background-color: transparent;
+    color: #e74c3c;
+    font-weight: bold;
+    border-radius: 4px;
+    padding: 0px;
+}
+
+QPushButton#deleteButton {
+    font-size: 15px;
+    min-width: 20px;
+    min-height: 20px;
+    max-width: 20px; 
+    max-height: 20px;
+}
+
+QPushButton#deleteBigButton {
+    font-size: 20px; 
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px; 
+    max-height: 28px;
+}
+
+QPushButton#deleteButton:hover, QPushButton#deleteBigButton:hover {
+    background-color: #e74c3c;
+    color: white;
+}
+
+QPushButton#deleteButton:pressed, QPushButton#deleteBigButton:pressed {
+    background-color: #c03f32;
+    color: white;
+}
+
+/* Bouton d'édition */
+QPushButton#editButton {
+    background-color: transparent;
+    color: #f39c12;
+    font-weight: bold;
+    border-radius: 4px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+    padding: 0px;
+    font-size: 20px;
+}
+
+QPushButton#editButton:hover {
+    background-color: #f39c12;
+    color: white;
+}
+
+QPushButton#editButton:pressed {
+    background-color: #cc830f;
+    color: white;
+}
+
+/* Bouton de remplacement */
+QPushButton#replaceButton {
+    background-color: transparent;
+    color: #3498db;
+    font-weight: bold;
+    border-radius: 4px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+    padding: 0px;
+    font-size: 25px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+QPushButton#replaceButton:hover {
+    background-color: #3498db;
+    color: white;
+}
+
+QPushButton#replaceButton:pressed {
+    background-color: #2a7db4;
+    color: white;
+}
+
+/* Boutons utilitaires */
+QPushButton#expandButton {
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    border: 1px solid #d0d0d0;
+    font-weight: bold;
+    font-size: 8pt;
+    color: #555;
+}
+
+QPushButton#expandButton:hover {
+    background-color: #e0e0e0;
+}
+
+QPushButton#addFoodButton {
+    background-color: #f8f8f8;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    padding: 4px;
+    color: #555;
+    font-size: 9pt;
+}
+
+QPushButton#addFoodButton:hover {
+    background-color: #e8e8e8;
+}
+
+/* 
+============================================
+   CONTRÔLES DE SAISIE
+============================================
+*/
+
+/* Style commun pour tous les contrôles de saisie */
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
+    border: 1px solid #C8E6C9;
+    border-radius: 4px;
+    padding: 4px;
+    background-color: white;
+}
+
+QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {
+    border: 1px solid #4CAF50;
+}
+
+/* Couleur de sélection dans les champs texte */
+QLineEdit::selection, QSpinBox::selection, QDoubleSpinBox::selection, QTextEdit::selection, QComboBox::selection {
+    background-color: #4CAF50;
+    color: white;
+}
+
+/* Spinbox avec boutons verticaux */
+QDoubleSpinBox.spin-box-vertical, QSpinBox.spin-box-vertical {
+    padding-right: 5px;
+}
+
+QDoubleSpinBox.spin-box-vertical::up-button, QSpinBox.spin-box-vertical::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    width: 20px;
+    height: 15px;
+}
+
+QDoubleSpinBox.spin-box-vertical::down-button, QSpinBox.spin-box-vertical::down-button {
+    subcontrol-origin: border;
+    subcontrol-position: bottom right;
+    width: 20px;
+    height: 15px;
+}
+
+/* 
+============================================
+   DÉFILEMENT
+============================================
+*/
+
+/* Base pour tous les scrollbars */
+QScrollBar:vertical, QScrollBar:horizontal {
+    border: none;
+    background: transparent;
+    margin: 0px;
+}
+
+QScrollBar:vertical {
+    width: 8px;
+}
+
+QScrollBar:horizontal {
+    height: 8px;
+}
+
+QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
+    background: rgba(76, 175, 80, 0.7);  /* Semi-transparent */
+    border-radius: 4px;
+}
+
+QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover {
+    background: #4CAF50;  /* Devient opaque au survol */
+}
+
+QScrollBar::handle:vertical {
+    min-height: 20px;
+}
+
+QScrollBar::handle:horizontal {
+    min-width: 20px;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal,
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical,
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: transparent;
+    height: 0px;
+    width: 0px;
+}
+
+/* 
+============================================
+   COMPOSANTS SPÉCIAUX
+============================================
+*/
+
+/* Frames et conteneurs */
+QFrame[class="day-total"] {
+    background-color: #e0f0e0;
+    border-radius: 4px;
+}
+
+/* Labels spéciaux */
+QLabel[class="title"] {
+    font-weight: bold;
+    color: #46a24a;
+}
+
+QLabel.nutrition-info {
+    background-color: #f0f8ff;  /* Bleu très clair */
+    border: 1px solid #d0e0f0;
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    line-height: 150%;
+}
+
+/* 
+============================================
+   BOUTONS RADIO
+============================================
+*/
+
+QRadioButton::indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    border: 2px solid #4CAF50;
+    background-color: white;
+}
+
+QRadioButton::indicator:checked {
+    background-color: #4CAF50;
+    border: 2px solid #4CAF50;
+}
+
+QRadioButton::indicator:checked {
+    image: url(src/ui/icons/checkmark.svg);
+    background-color: #4CAF50;
+}
+
+QRadioButton {
+    spacing: 5px;
+}
+
+/* 
+============================================
+   ÉLÉMENTS SPÉCIFIQUES - RÉSULTATS
+============================================
+*/
+
+QLabel[class="bold"] {
+    font-weight: bold;
+}
+
+QLabel[class="result-value"] {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+QLabel[class="result-value-highlight"] {
+    font-weight: bold;
+    font-size: 16px;
+    color: #4CAF50;
+}
+
+/* Pour les labels de totaux */
+QLabel[class="total-value"] {
+    font-weight: bold;
+    color: #4CAF50;
+}
+
+/* 
+============================================
+   LABELS INFORMATIFS
+============================================
+*/
+
+QLabel[class="hint"] {
+    font-style: italic;
+    color: #666666;
+}
+
+QLabel[class="hint-small"] {
+    font-style: italic;
+    color: #666666;
+    font-size: 9pt;
+}
+
+QLabel[class="hint-important"] {
+    font-style: italic;
+    color: #666666;
+    font-weight: bold;
+}
+
+/* 
+============================================
+   STYLES DE CONTENEURS
+============================================
+*/
+
+/* Groupe avec titre en gras */
+QGroupBox[class="important-group"] {
+    font-weight: bold;
+    font-size: 16px;
+}

@@ -14,7 +14,6 @@ from src.ui.widgets.repas_widget import RepasWidget
 from src.ui.widgets.totaux_macros_widget import TotauxMacrosWidget
 from src.ui.dialogs.repas_dialog import RepasDialog
 from src.utils.events import EVENT_BUS
-from src.utils.styles import PRIMARY_COLOR
 
 
 class JourWidget(QWidget):
