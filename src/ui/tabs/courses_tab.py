@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QFormLayout,
     QComboBox,
+    QWidget,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtPrintSupport import QPrinter, QPrintDialog
@@ -30,7 +31,23 @@ class CoursesTab(TabBase):
         EVENT_BUS.semaines_modifiees.connect(self.refresh_data)
 
     def setup_ui(self):
-        main_layout = QVBoxLayout()
+        # Créer un layout principal sans marges pour le widget entier
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        # Créer un layout horizontal pour centrer le contenu
+        center_layout = QHBoxLayout()
+
+        # Créer un widget contenant le contenu réel avec sa largeur limitée
+        content_widget = QWidget()
+        content_widget.setMaximumWidth(900)
+        content_widget.setMinimumWidth(700)
+
+        # Layout principal du contenu
+        main_layout = QVBoxLayout(content_widget)
+        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(20, 20, 20, 20)
 
         # Titre
         title = QLabel("<h1>Liste de courses</h1>")
@@ -42,28 +59,26 @@ class CoursesTab(TabBase):
             "Cette liste est générée à partir des repas planifiés pour la semaine."
         )
         desc.setWordWrap(True)
+        desc.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(desc)
 
-        # Sélection de semaine
+        # Sélection de semaine et boutons dans la même section
+        top_controls = QHBoxLayout()
+
+        # Sélection de semaine (partie gauche)
         semaine_layout = QFormLayout()
         self.semaine_combo = QComboBox()
         self.semaine_combo.addItem("Toutes les semaines", None)
         self.semaine_combo.currentIndexChanged.connect(self.on_semaine_changed)
         semaine_layout.addRow("Semaine:", self.semaine_combo)
-        main_layout.addLayout(semaine_layout)
 
-        # Arbre pour afficher la liste de courses
-        self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["À acheter", "Aliment", "Quantité", "Prix au kg"])
-        self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.tree.header().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.tree.header().setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        main_layout.addWidget(self.tree)
+        # Ajouter la sélection de semaine à la partie gauche
+        top_controls.addLayout(semaine_layout)
 
-        # Boutons
-        buttons_layout = QHBoxLayout()
+        # Ajouter un espacement extensible entre la sélection et les boutons
+        top_controls.addStretch(1)
 
+        # Boutons (partie droite)
         self.btn_select_all = QPushButton("Tout sélectionner")
         self.btn_select_all.clicked.connect(self.select_all_items)
 
@@ -76,13 +91,37 @@ class CoursesTab(TabBase):
         self.btn_print = QPushButton("Imprimer la sélection")
         self.btn_print.clicked.connect(self.print_liste_courses)
 
-        buttons_layout.addWidget(self.btn_select_all)
-        buttons_layout.addWidget(self.btn_deselect_all)
-        buttons_layout.addWidget(self.btn_refresh)
-        buttons_layout.addWidget(self.btn_print)
-        main_layout.addLayout(buttons_layout)
+        # Ajouter les boutons à la partie droite
+        top_controls.addWidget(self.btn_select_all)
+        top_controls.addWidget(self.btn_deselect_all)
+        top_controls.addWidget(self.btn_refresh)
+        top_controls.addWidget(self.btn_print)
 
-        self.setLayout(main_layout)
+        # Ajouter cette section au layout principal
+        main_layout.addLayout(top_controls)
+
+        # Arbre pour afficher la liste de courses
+        self.tree = QTreeWidget()
+        self.tree.setHeaderLabels(["À acheter", "Aliment", "Quantité", "Prix au kg"])
+        self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.tree.header().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.tree.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.tree.header().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+
+        # Définir une hauteur minimale pour l'arbre
+        self.tree.setMinimumHeight(400)
+        main_layout.addWidget(self.tree)
+
+        # Ajouter le widget de contenu au layout central avec des marges extensibles
+        center_layout.addStretch(1)
+        center_layout.addWidget(content_widget)
+        center_layout.addStretch(1)
+
+        # Ajouter le layout central au layout extérieur
+        outer_layout.addLayout(center_layout)
+
+        # Définir le layout pour ce widget
+        self.setLayout(outer_layout)
 
         # Charger les semaines disponibles
         self.charger_semaines()
