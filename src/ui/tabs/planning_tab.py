@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal
 
 from src.ui.widgets.semaine_widget import SemaineWidget
+from src.ui.widgets.print_manager import PrintManager
 from src.utils.events import EVENT_BUS
 
 
@@ -218,7 +219,6 @@ class PlanningTab(QWidget):
 
         if semaine_id is not None:
             # Utiliser le PrintManager pour imprimer
-            from src.ui.widgets.print_manager import PrintManager
 
             print_manager = PrintManager(self.db_manager)
             print_manager.print_planning(semaine_id)
