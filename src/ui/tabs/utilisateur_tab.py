@@ -23,25 +23,6 @@ from .tab_base import TabBase
 
 
 class UtilisateurTab(TabBase):
-    # Style pour les spin boxes - flèches verticales simples
-    spin_style = """
-            QSpinBox, QDoubleSpinBox {
-                padding-right: 5px;
-            }
-            QSpinBox::up-button, QDoubleSpinBox::up-button {
-                subcontrol-origin: border;
-                subcontrol-position: top right;
-                width: 20px;
-                height: 15px;
-            }
-            QSpinBox::down-button, QDoubleSpinBox::down-button {
-                subcontrol-origin: border;
-                subcontrol-position: bottom right;
-                width: 20px;
-                height: 15px;
-            }
-        """
-
     # Définitions des régimes alimentaires
     REGIMES = {
         "Régime équilibré": {
@@ -112,31 +93,6 @@ class UtilisateurTab(TabBase):
         main_layout.setSpacing(20)
         main_layout.setContentsMargins(20, 20, 20, 20)
 
-        # Style minimal pour les boutons radio
-        radio_style = """
-        QRadioButton::indicator {
-            width: 16px;
-            height: 16px;
-            border-radius: 8px;
-            border: 2px solid #6ab04c;
-            background-color: white;
-        }
-
-        QRadioButton::indicator:checked {
-            background-color: #6ab04c;
-            border: 2px solid #6ab04c;
-        }
-
-        QRadioButton::indicator:checked {
-            image: url(src/ui/icons/checkmark.svg);
-            background-color: #6ab04c;
-        }
-
-        QRadioButton {
-            spacing: 5px;
-        }
-        """
-
         # Titre
         title = QLabel("<h1>Profil Utilisateur</h1>")
         title.setAlignment(Qt.AlignCenter)
@@ -171,7 +127,7 @@ class UtilisateurTab(TabBase):
         self.age_spin = QSpinBox()
         self.age_spin.setRange(15, 100)
         self.age_spin.setValue(30)
-        self.age_spin.setStyleSheet(self.spin_style)
+        self.age_spin.setProperty("class", "spin-box-vertical")
         self.age_spin.setButtonSymbols(QDoubleSpinBox.UpDownArrows)
         self.age_spin.valueChanged.connect(self.calculer_calories)
         personal_layout.addRow("Âge:", self.age_spin)
@@ -184,7 +140,7 @@ class UtilisateurTab(TabBase):
         self.taille_spin.setSingleStep(0.5)
         self.taille_spin.setButtonSymbols(QDoubleSpinBox.UpDownArrows)
         # Style pour améliorer les boutons up/down
-        self.taille_spin.setStyleSheet(self.spin_style)
+        self.taille_spin.setProperty("class", "spin-box-vertical")
         self.taille_spin.valueChanged.connect(self.calculer_calories)
         personal_layout.addRow("Taille:", self.taille_spin)
 
@@ -194,7 +150,7 @@ class UtilisateurTab(TabBase):
         self.poids_spin.setSuffix(" kg")
         self.poids_spin.setDecimals(1)
         self.poids_spin.setSingleStep(0.1)
-        self.poids_spin.setStyleSheet(self.spin_style)
+        self.poids_spin.setProperty("class", "spin-box-vertical")
         self.poids_spin.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
         self.poids_spin.valueChanged.connect(self.calculer_calories)
         personal_layout.addRow("Poids:", self.poids_spin)
@@ -242,6 +198,7 @@ class UtilisateurTab(TabBase):
 
         # Bouton de sauvegarde
         self.save_button = QPushButton("Sauvegarder le profil")
+        self.save_button.setProperty("class", "saveButton")
         self.save_button.clicked.connect(self.sauvegarder_profil)
         left_column.addWidget(self.save_button)
 
@@ -256,10 +213,8 @@ class UtilisateurTab(TabBase):
 
         self.mode_auto_radio = QRadioButton("Calcul automatique")
         self.mode_auto_radio.setChecked(True)
-        self.mode_auto_radio.setStyleSheet(radio_style)
 
         self.mode_manuel_radio = QRadioButton("Entrée manuelle")
-        self.mode_manuel_radio.setStyleSheet(radio_style)
 
         self.mode_group = QButtonGroup()
         self.mode_group.addButton(self.mode_auto_radio, 0)
@@ -295,7 +250,7 @@ class UtilisateurTab(TabBase):
         self.variation_spin.setSingleStep(100)  # Pas de 100g
         self.variation_spin.setSuffix(" g/semaine")
         self.variation_spin.setEnabled(False)
-        self.variation_spin.setStyleSheet(self.spin_style)
+        self.variation_spin.setProperty("class", "spin-box-vertical")
         self.variation_spin.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
         self.variation_spin.valueChanged.connect(self.calculer_calories)
         variation_layout.addWidget(self.variation_spin)
@@ -326,7 +281,7 @@ class UtilisateurTab(TabBase):
         self.calories_manuelles_spin.setValue(2000)
         self.calories_manuelles_spin.setSuffix(" kcal")
         self.calories_manuelles_spin.setSingleStep(50)
-        self.calories_manuelles_spin.setStyleSheet(self.spin_style)
+        self.calories_manuelles_spin.setProperty("class", "spin-box-vertical")
         self.calories_manuelles_spin.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
         self.calories_manuelles_spin.valueChanged.connect(self.calculer_calories)
         calories_layout.addRow("Calories journalières:", self.calories_manuelles_spin)
@@ -356,7 +311,7 @@ class UtilisateurTab(TabBase):
             self.REGIMES["Régime équilibré"]["description"]
         )
         self.regime_description.setWordWrap(True)
-        self.regime_description.setStyleSheet("font-style: italic; color: #666;")
+        self.regime_description.setProperty("class", "hint")
         presets_layout.addRow(self.regime_description)
 
         macros_layout.addLayout(presets_layout)
@@ -375,17 +330,17 @@ class UtilisateurTab(TabBase):
         macro_table.addWidget(QLabel(""), 0, 0)
         header_g_kg = QLabel("g/kg de poids corporel")
         header_g_kg.setAlignment(Qt.AlignCenter)
-        header_g_kg.setStyleSheet("font-weight: bold;")
+        header_g_kg.setProperty("class", "bold")
         macro_table.addWidget(header_g_kg, 0, 1, 1, 2)
 
         header_total = QLabel("Total (grammes)")
         header_total.setAlignment(Qt.AlignCenter)
-        header_total.setStyleSheet("font-weight: bold;")
+        header_total.setProperty("class", "bold")
         macro_table.addWidget(header_total, 0, 3)
 
         # Protéines
         prot_label = QLabel("Protéines:")
-        prot_label.setStyleSheet("font-weight: bold;")
+        prot_label.setProperty("class", "bold")
         macro_table.addWidget(prot_label, 1, 0)
 
         self.prot_min_spin = QDoubleSpinBox()
@@ -393,19 +348,19 @@ class UtilisateurTab(TabBase):
         self.prot_min_spin.setDecimals(1)
         self.prot_min_spin.setSingleStep(0.1)
         self.prot_min_spin.setValue(1.2)
-        self.prot_min_spin.setStyleSheet(self.spin_style)
+        self.prot_min_spin.setProperty("class", "spin-box-vertical")
         self.prot_min_spin.valueChanged.connect(self.calculer_calories)
         macro_table.addWidget(self.prot_min_spin, 1, 1)
 
         macro_table.addWidget(QLabel("-"), 1, 2, Qt.AlignCenter)
 
         self.prot_gram_label = QLabel("0 g")
-        self.prot_gram_label.setStyleSheet("font-weight: bold;")
+        self.prot_gram_label.setProperty("class", "bold")
         macro_table.addWidget(self.prot_gram_label, 1, 3, Qt.AlignCenter)
 
         # Glucides
         gluc_label = QLabel("Glucides:")
-        gluc_label.setStyleSheet("font-weight: bold;")
+        gluc_label.setProperty("class", "bold")
         macro_table.addWidget(gluc_label, 2, 0)
 
         self.gluc_min_spin = QDoubleSpinBox()
@@ -413,19 +368,19 @@ class UtilisateurTab(TabBase):
         self.gluc_min_spin.setDecimals(1)
         self.gluc_min_spin.setSingleStep(0.1)
         self.gluc_min_spin.setValue(3.0)
-        self.gluc_min_spin.setStyleSheet(self.spin_style)
+        self.gluc_min_spin.setProperty("class", "spin-box-vertical")
         self.gluc_min_spin.valueChanged.connect(self.calculer_calories)
         macro_table.addWidget(self.gluc_min_spin, 2, 1)
 
         macro_table.addWidget(QLabel("-"), 2, 2, Qt.AlignCenter)
 
         self.gluc_gram_label = QLabel("0 g")
-        self.gluc_gram_label.setStyleSheet("font-weight: bold;")
+        self.gluc_gram_label.setProperty("class", "bold")
         macro_table.addWidget(self.gluc_gram_label, 2, 3, Qt.AlignCenter)
 
         # Lipides
         lip_label = QLabel("Lipides:")
-        lip_label.setStyleSheet("font-weight: bold;")
+        lip_label.setProperty("class", "bold")
         macro_table.addWidget(lip_label, 3, 0)
 
         self.lip_min_spin = QDoubleSpinBox()
@@ -433,24 +388,15 @@ class UtilisateurTab(TabBase):
         self.lip_min_spin.setDecimals(1)
         self.lip_min_spin.setSingleStep(0.1)
         self.lip_min_spin.setValue(0.8)
-        self.lip_min_spin.setStyleSheet(self.spin_style)
+        self.lip_min_spin.setProperty("class", "spin-box-vertical")
         self.lip_min_spin.valueChanged.connect(self.calculer_calories)
         macro_table.addWidget(self.lip_min_spin, 3, 1)
 
         macro_table.addWidget(QLabel("-"), 3, 2, Qt.AlignCenter)
 
         self.lip_gram_label = QLabel("0 g")
-        self.lip_gram_label.setStyleSheet("font-weight: bold;")
+        self.lip_gram_label.setProperty("class", "bold")
         macro_table.addWidget(self.lip_gram_label, 3, 3, Qt.AlignCenter)
-
-        # Total calories
-        total_label = QLabel("Total:")
-        total_label.setStyleSheet("font-weight: bold;")
-        macro_table.addWidget(total_label, 4, 0)
-
-        self.total_calories_label = QLabel("0 kcal")
-        self.total_calories_label.setStyleSheet("font-weight: bold; color: #2e7d32;")
-        macro_table.addWidget(self.total_calories_label, 4, 3, Qt.AlignCenter)
 
         macros_layout.addLayout(macro_table)
 
@@ -459,27 +405,26 @@ class UtilisateurTab(TabBase):
 
         # Groupe des résultats
         results_group = QGroupBox("Résultats")
+        results_group.setProperty("class", "important-group")
         results_layout = QGridLayout()
 
         # Métabolisme de base
         self.mb_label = QLabel("0")
-        self.mb_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+        self.mb_label.setProperty("class", "result-value")
         results_layout.addWidget(QLabel("Métabolisme de base:"), 0, 0)
         results_layout.addWidget(self.mb_label, 0, 1)
         results_layout.addWidget(QLabel("kcal"), 0, 2)
 
         # Calories pour maintien
         self.maintien_label = QLabel("0")
-        self.maintien_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+        self.maintien_label.setProperty("class", "result-value")
         results_layout.addWidget(QLabel("Calories maintien:"), 1, 0)
         results_layout.addWidget(self.maintien_label, 1, 1)
         results_layout.addWidget(QLabel("kcal"), 1, 2)
 
         # Calories objectif
         self.objectif_label = QLabel("0")
-        self.objectif_label.setStyleSheet(
-            "font-weight: bold; font-size: 16px; color: #2e7d32;"
-        )
+        self.objectif_label.setProperty("class", "result-value-highlight")
         results_layout.addWidget(QLabel("Calories objectif:"), 2, 0)
         results_layout.addWidget(self.objectif_label, 2, 1)
         results_layout.addWidget(QLabel("kcal"), 2, 2)
@@ -497,7 +442,7 @@ class UtilisateurTab(TabBase):
             "Ajustez vos apports en fonction de vos résultats réels."
         )
         notes.setWordWrap(True)
-        notes.setStyleSheet("font-style: italic; color: #666;")
+        notes.setProperty("class", "hint-small")
         main_layout.addWidget(notes)
 
         # Initialiser l'état des champs selon le mode
@@ -645,7 +590,6 @@ class UtilisateurTab(TabBase):
 
         # Calculer le total des calories ajusté
         total_kcal = (prot_g * 4) + (gluc_g * 4) + (lip_g * 9)
-        self.total_calories_label.setText(f"{total_kcal} kcal")
 
         # Calculer et afficher les pourcentages
         pct_prot = round((prot_g * 4 / total_kcal) * 100) if total_kcal > 0 else 0
@@ -830,7 +774,11 @@ class UtilisateurTab(TabBase):
 
         # Afficher confirmation
         self.save_button.setText("Profil sauvegardé!")
-        self.save_button.setStyleSheet("background-color: #4CAF50; color: white;")
+        self.save_button.setObjectName("saveButtonPressed")
+
+        # Forcer le rafraîchissement du style
+        self.save_button.style().unpolish(self.save_button)
+        self.save_button.style().polish(self.save_button)
 
         # Réinitialiser le bouton après un délai de 2 secondes
         QTimer.singleShot(2000, self.reset_save_button)
@@ -838,7 +786,11 @@ class UtilisateurTab(TabBase):
     def reset_save_button(self):
         """Réinitialise l'apparence du bouton de sauvegarde"""
         self.save_button.setText("Sauvegarder le profil")
-        self.save_button.setStyleSheet("")
+        self.save_button.setObjectName("saveButton")
+
+        # Forcer le rafraîchissement du style
+        self.save_button.style().unpolish(self.save_button)
+        self.save_button.style().polish(self.save_button)
 
     def refresh_data(self):
         """Implémentation de la méthode de base pour actualiser les données"""
