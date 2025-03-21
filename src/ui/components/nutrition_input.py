@@ -20,14 +20,5 @@ def create_nutrition_spinbox(min_val, max_val, suffix, decimals):
     spinbox.setDecimals(decimals)
     spinbox.setMinimumWidth(100)
     spinbox.setButtonSymbols(QDoubleSpinBox.UpDownArrows)
-    spinbox.setStyleSheet(
-        """
-        QDoubleSpinBox {
-            padding-right: 5px;
-        }
-        QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
-            width: 20px;
-        }
-    """
-    )
+    spinbox.setProperty("class", "spin-box-vertical")
     return spinbox

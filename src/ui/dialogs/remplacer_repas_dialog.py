@@ -55,26 +55,7 @@ class AjouterIngredientDialog(QDialog):
         self.quantite_input.setStepType(QDoubleSpinBox.AdaptiveDecimalStepType)
         self.quantite_input.setSingleStep(10)  # Incrément de 10g par défaut
         self.quantite_input.setButtonSymbols(QDoubleSpinBox.UpDownArrows)
-        # Style pour améliorer les boutons up/down
-        self.quantite_input.setStyleSheet(
-            """
-            QDoubleSpinBox {
-                padding-right: 5px;
-            }
-            QDoubleSpinBox::up-button {
-                subcontrol-origin: border;
-                subcontrol-position: top right;
-                width: 20px;
-                height: 15px;
-            }
-            QDoubleSpinBox::down-button {
-                subcontrol-origin: border;
-                subcontrol-position: bottom right;
-                width: 20px;
-                height: 15px;
-            }
-        """
-        )
+        self.quantite_input.setProperty("class", "spin-box-vertical")
         self.quantite_input.valueChanged.connect(self.update_info)
         layout.addRow("Quantité:", self.quantite_input)
 

@@ -505,3 +505,62 @@ QGroupBox[class="important-group"] {
     font-weight: bold;
     font-size: 16px;
 }
+
+/* 
+============================================
+   BOUTONS DE VALEURS RAPIDES
+============================================
+*/
+
+/* Bouton de valeur récente - Style de base */
+QPushButton[class="quick-value-button"] {
+    padding: 4px 8px;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    font-weight: bold;
+    font-size: 11px;
+    min-height: 18px;
+}
+
+/* Variantes de couleurs pour les boutons de valeurs récentes */
+QPushButton[class="quick-value-button"][colorType="0"] {
+    background-color: #4CAF50;  /* Vert */
+}
+
+QPushButton[class="quick-value-button"][colorType="1"] {
+    background-color: #2196F3;  /* Bleu */
+}
+
+QPushButton[class="quick-value-button"][colorType="2"] {
+    background-color: #FF9800;  /* Orange */
+}
+
+QPushButton[class="quick-value-button"][colorType="3"] {
+    background-color: #9C27B0;  /* Violet */
+}
+
+QPushButton[class="quick-value-button"][colorType="4"] {
+    background-color: #E91E63;  /* Rose */
+}
+
+/* État de survol pour toutes les couleurs */
+QPushButton[class="quick-value-button"]:hover {
+    opacity: 0.8;  /* Effet de transparence au survol */
+}
+
+/* Boutons de suggestions (style alternatif) */
+QPushButton[class="suggestion-button"] {
+    background-color: #ccffcc;
+    color: #333333;
+    border: 1px solid #99cc99;
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-size: 11px;
+    min-height: 18px;
+}
+
+QPushButton[class="suggestion-button"]:hover {
+    background-color: #b3ffb3;
+    border-color: #66b266;
+}

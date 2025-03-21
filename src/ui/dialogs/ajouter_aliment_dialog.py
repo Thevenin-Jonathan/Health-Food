@@ -170,24 +170,8 @@ class AjouterAlimentDialog(QDialog):
         for item in items:
             if item:  # S'assurer que l'item n'est pas vide
                 btn = QPushButton(item)
-                btn.setFixedHeight(25)  # Hauteur fixe pour améliorer l'apparence
-                # Style amélioré avec des couleurs contrastées et lisibles
-                btn.setStyleSheet(
-                    """
-                  QPushButton {
-                    background-color: #ccffcc;  # Vert clair
-                    color: #333333;
-                    border: 1px solid #99cc99;
-                    border-radius: 3px;
-                    padding: 2px 8px;
-                    font-size: 11px;
-                  }
-                  QPushButton:hover {
-                    background-color: #b3ffb3;  # Vert encore plus clair au survol
-                    border-color: #66b266;
-                  }
-                """
-                )
+                # Utiliser une classe CSS au lieu d'un style inline
+                btn.setProperty("class", "suggestion-button")
                 btn.clicked.connect(
                     lambda checked=False, text=item: target_input.setCurrentText(text)
                 )
