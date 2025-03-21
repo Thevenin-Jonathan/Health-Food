@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from src.ui.dialogs.aliment_repas_dialog import AlimentRepasDialog
-from src.utils.styles import BUTTON_STYLES
 from src.utils.events import EVENT_BUS
 
 
@@ -121,11 +120,12 @@ class RepasEditionDialog(QDialog):
         buttons_layout.addStretch()
 
         btn_cancel = QPushButton("Annuler")
+        btn_cancel.setObjectName("cancelButton")  # Ajout de l'ID pour le style
         btn_cancel.clicked.connect(self.reject)
         buttons_layout.addWidget(btn_cancel)
 
         btn_save = QPushButton("Enregistrer")
-        btn_save.setStyleSheet(BUTTON_STYLES["primary"])
+        btn_save.setObjectName("saveButton")  # Ajout de l'ID pour le style
         btn_save.clicked.connect(self.save_repas)
         buttons_layout.addWidget(btn_save)
 

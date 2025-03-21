@@ -3,19 +3,6 @@ Utilitaires pour l'application Health&Food
 Ce module centralise les fonctions et classes utilitaires utilisées dans l'application.
 """
 
-# Importation des constantes de style
-from .styles import (
-    PRIMARY_COLOR,
-    PRIMARY_DARK,
-    ACCENT_COLOR,
-    DANGER_COLOR,
-    WARNING_COLOR,
-    INFO_COLOR,
-    BUTTON_STYLES,
-    TABLE_STYLE,
-    TOOLTIP_STYLE,
-)
-
 # Importation des utilitaires de texte
 from .text_utils import normalize_str
 
@@ -44,16 +31,6 @@ from .events import EVENT_BUS
 
 # Définir ce qui est exposé lors de l'utilisation de "from src.utils import *"
 __all__ = [
-    # Styles
-    "PRIMARY_COLOR",
-    "PRIMARY_DARK",
-    "ACCENT_COLOR",
-    "DANGER_COLOR",
-    "WARNING_COLOR",
-    "INFO_COLOR",
-    "BUTTON_STYLES",
-    "TABLE_STYLE",
-    "TOOLTIP_STYLE",
     # Text Utils
     "normalize_str",
     # Config
