@@ -201,13 +201,53 @@ class TotauxMacrosWidget(QFrame):
         self.total_lip = total_lip
         self.objectifs = objectifs
 
-        # Supprimer l'ancien contenu
-        for i in reversed(range(self.layout().count())):
-            item = self.layout().itemAt(i)
-            if item is not None:
-                widget = item.widget()
-                if widget is not None:
-                    widget.deleteLater()
+        # Supprimer tous les widgets du layout existant
+        layout = self.layout()
+        if layout:
+            # Supprime tous les widgets enfants sans supprimer le layout
+            while layout.count():
+                item = layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+                elif item.layout():
+                    # Si l'item est un layout, supprimer ses widgets enfants
+                    while item.layout().count():
+                        child = item.layout().takeAt(0)
+                        if child.widget():
+                            child.widget().deleteLater()
+        else:
+            # Si pour une raison quelconque il n'y a pas de layout, en créer un nouveau
+            layout = QVBoxLayout(self)
+            layout.setContentsMargins(
+                8, 4 if self.compact else 8, 8, 4 if self.compact else 8
+            )
+            layout.setSpacing(2 if self.compact else 5)
 
-        # Réinitialiser l'interface
-        self.setup_ui()
+        # Recréer le contenu directement sans passer par setup_ui
+        # Titre plus compact si demandé
+        if self.compact:
+            title = QLabel("<b>Total du jour</b>")
+            title.setAlignment(Qt.AlignCenter)
+            layout.addWidget(title)
+        else:
+            layout.addWidget(QLabel("<h3>Total du jour</h3>"))
+
+        # Calories
+        self.add_macro_row(
+            layout, "Calories", self.total_cal, self.objectifs["calories"], ""
+        )
+
+        # Protéines
+        self.add_macro_row(
+            layout, "Protéines", self.total_prot, self.objectifs["proteines"], "g"
+        )
+
+        # Glucides
+        self.add_macro_row(
+            layout, "Glucides", self.total_gluc, self.objectifs["glucides"], "g"
+        )
+
+        # Lipides
+        self.add_macro_row(
+            layout, "Lipides", self.total_lip, self.objectifs["lipides"], "g"
+        )
