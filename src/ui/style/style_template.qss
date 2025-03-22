@@ -1002,3 +1002,61 @@ QFrame.repas-widget QLabel[class="aliment-item"]:hover {
     border-radius: 3px;
     color: $PRIMARY_COLOR;
 }
+
+/* Dialog Box Export/Import */
+ExportImportDialog {
+    background-color: $BACKGROUND_COLOR;
+}
+
+ExportImportDialog QGroupBox {
+    margin-top: 15px;
+    font-weight: bold;
+    border: 1px solid $PRIMARY_LIGHT;
+    border-radius: 6px;
+    padding: 15px;
+    padding-top: 20px;
+}
+
+ExportImportDialog QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center;
+    padding: 0 10px;
+    color: $TEXT_COLOR;
+}
+
+ExportImportDialog QCheckBox {
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+ExportImportDialog QPushButton#primaryButton {
+    background-color: $PRIMARY_COLOR;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-top: 10px;
+}
+
+ExportImportDialog QPushButton#primaryButton:hover {
+    background-color: $PRIMARY_LIGHT;
+}
+
+ExportImportDialog QProgressBar {
+    border: 1px solid $PRIMARY_LIGHT;
+    border-radius: 5px;
+    text-align: center;
+}
+
+ExportImportDialog QProgressBar::chunk {
+    background-color: $PRIMARY_COLOR;
+    width: 20px;
+}
+QLabel.export-import-description {
+    margin-bottom: 20px;
+}
+
+QGroupBox.options-group {
+    font-weight: bold;
+    font-size: 12px;
+}

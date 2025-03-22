@@ -6,6 +6,7 @@ from .tabs.planning_tab import PlanningTab
 from .tabs.courses_tab import CoursesTab
 from .tabs.recettes_tab import RecettesTab
 from .tabs.utilisateur_tab import UtilisateurTab
+from .tabs.options_tab import OptionsTab
 
 
 class MainWindow(QMainWindow):
@@ -43,6 +44,10 @@ class MainWindow(QMainWindow):
         # Onglet utilisateur avec calculs de calories
         self.utilisateur_tab = UtilisateurTab(self.db_manager)
         self.tabs.addTab(self.utilisateur_tab, "Mon profil")
+
+        # Onglet options
+        self.options_tab = OptionsTab(self.db_manager)
+        self.tabs.addTab(self.options_tab, "Options")
 
         # Définir comme widget central
         self.setCentralWidget(self.tabs)

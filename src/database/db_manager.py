@@ -201,3 +201,126 @@ class DatabaseManager(DBConnector):
         return self.repas_types_manager.appliquer_recette_modifiee_au_jour(
             recette_base_id, liste_ingredients, jour, ordre, semaine_id
         )
+
+    # =========== MÉTHODES D'EXPORTATION ET D'IMPORTATION ===========
+    def exporter_aliments(self):
+        """Exporte tous les aliments de la base de données"""
+        self.connect()
+        self.cursor.execute("SELECT * FROM aliments")
+        aliments = [dict(row) for row in self.cursor.fetchall()]
+        self.disconnect()
+        return aliments
+
+    def exporter_repas_types(self):
+        """Exporte tous les repas types avec leurs aliments"""
+        return self.repas_types_manager.get_repas_types()
+
+    def exporter_planning(self, semaine_id=None):
+        """Exporte les repas d'une semaine spécifique ou de la semaine courante"""
+        return self.repas_manager.get_repas_semaine(semaine_id)
+
+    def importer_aliments(self, aliments_data):
+        """Importe des aliments depuis un dictionnaire"""
+        count = 0
+        for aliment in aliments_data:
+            # Vérifier si l'aliment existe déjà par nom et marque
+            self.connect()
+            self.cursor.execute(
+                "SELECT id FROM aliments WHERE nom = ? AND marque = ?",
+                (aliment["nom"], aliment["marque"]),
+            )
+            existing = self.cursor.fetchone()
+            self.disconnect()
+
+            if existing:
+                # Mise à jour de l'aliment existant
+                aliment_id = existing[0]
+                self.modifier_aliment(aliment_id, aliment)
+            else:
+                # Ajout d'un nouvel aliment
+                self.ajouter_aliment(aliment)
+            count += 1
+        return count
+
+    def importer_repas_types(self, repas_types_data):
+        """Importe des repas types depuis un dictionnaire"""
+        count = 0
+        for repas_type in repas_types_data:
+            # Vérifier si le repas type existe déjà
+            self.connect()
+            self.cursor.execute(
+                "SELECT id FROM repas_types WHERE nom = ?", (repas_type["nom"],)
+            )
+            existing = self.cursor.fetchone()
+            self.disconnect()
+
+            aliments = repas_type.pop("aliments", [])
+
+            if existing:
+                # Mise à jour du repas type existant
+                repas_type_id = existing[0]
+                self.modifier_repas_type(
+                    repas_type_id, repas_type["nom"], repas_type.get("description", "")
+                )
+
+                # Supprimer les aliments existants
+                for aliment in self.repas_types_manager.get_repas_type(repas_type_id)[
+                    "aliments"
+                ]:
+                    self.supprimer_aliment_repas_type(repas_type_id, aliment["id"])
+            else:
+                # Ajout d'un nouveau repas type
+                repas_type_id = self.ajouter_repas_type(
+                    repas_type["nom"], repas_type.get("description", "")
+                )
+
+            # Ajouter les aliments au repas type
+            for aliment in aliments:
+                # Chercher l'ID de l'aliment par nom
+                self.connect()
+                self.cursor.execute(
+                    "SELECT id FROM aliments WHERE nom = ?", (aliment["nom"],)
+                )
+                result = self.cursor.fetchone()
+                self.disconnect()
+
+                if result:
+                    aliment_id = result[0]
+                    self.ajouter_aliment_repas_type(
+                        repas_type_id, aliment_id, aliment["quantite"]
+                    )
+            count += 1
+        return count
+
+    def importer_planning(self, planning_data, semaine_id=None):
+        """Importe un planning hebdomadaire"""
+        if semaine_id is None:
+            # Utiliser l'ID de semaine actuel ou en créer un nouveau
+            semaines = self.get_semaines_existantes()
+            semaine_id = max(semaines) + 1 if semaines else 1
+
+        count = 0
+        for jour, repas_list in planning_data.items():
+            for repas in repas_list:
+                # Créer un nouveau repas
+                repas_id = self.ajouter_repas(
+                    repas["nom"], jour, repas["ordre"], semaine_id
+                )
+
+                # Ajouter les aliments au repas
+                for aliment in repas.get("aliments", []):
+                    # Chercher l'ID de l'aliment par nom
+                    self.connect()
+                    self.cursor.execute(
+                        "SELECT id FROM aliments WHERE nom = ?", (aliment["nom"],)
+                    )
+                    result = self.cursor.fetchone()
+                    self.disconnect()
+
+                    if result:
+                        aliment_id = result[0]
+                        self.ajouter_aliment_repas(
+                            repas_id, aliment_id, aliment["quantite"]
+                        )
+                count += 1
+        return count

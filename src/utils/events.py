@@ -31,6 +31,9 @@ class EventBus(QObject):
         Signal()
     )  # Signal émis quand le profil utilisateur est modifié
 
+    # Signaux pour l'exportation/importation
+    donnees_importees = Signal()  # Signal émis quand des données sont importées
+
     # Instance unique (singleton)
     _instance = None
 
