@@ -235,11 +235,24 @@ QPushButton#addButton {
     font-size: 14px;
 }
 
-QPushButton#addButton:hover {
+QPushButton#addMealButton {
+    background-color: #4CAF50;
+    color: white;
+    font-weight: bold;
+    border-radius: 4px;
+    min-width: 120px;
+    min-height: 24px;
+    max-width: 120px;
+    max-height: 24px;
+    padding: 0px;
+    font-size: 12px;
+}
+
+QPushButton#addButton:hover, addMealButton:hover {
     background-color: #C8E6C9;
 }
 
-QPushButton#addButton:pressed {
+QPushButton#addButton:pressed, addMealButton:pressed {
     background-color: #bcd9bd;
 }
 
@@ -888,4 +901,92 @@ QPushButton.action-button[actionType="delete"]:hover {
 /* Style pour les conteneurs de boutons dans le tableau */
 QTableWidget#alimentsTable QWidget.button-container {
     background-color: transparent;
+}
+
+/* 
+============================================
+   REPAS WIDGET - STYLE AMÉLIORÉ
+============================================
+*/
+
+/* Widget de repas - Style de base */
+QFrame.repas-widget {
+    background-color: white;
+    border-radius: 4px;
+    border: 1px solid #ddffde;
+    padding: 4px;
+    margin: 2px;
+}
+
+QFrame.repas-widget:hover {
+    background-color: #d3f2d4;
+    border: 1px solid #C8E6C9;
+}
+
+/* Titre du repas */
+QLabel.repas-title {
+    font-size: 10pt;
+    padding: 2px 0;
+}
+
+/* Bouton des calories */
+QLabel.calories-label {
+    background-color: #f5f9f5;
+    color: #4CAF50;
+    font-weight: bold;
+    border-radius: 4px;
+    border: 1px solid #dbdfdb;
+    padding: 1px;
+}
+
+/* Bouton d'expansion redessiné */
+QPushButton#expandButton {
+    background-color: #4CAF50;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    border: 1px solid #C8E6C9;
+    font-weight: bold;
+    font-size: 5pt;
+    color: white;
+    height: 10px;
+    width: 180px;
+    margin: 0px;
+    padding: 0px;
+}
+
+QPushButton#expandButton:hover {
+    background-color: #e0e0e0;
+}
+
+/* Style du résumé des macros */
+QLabel[class="macro-summary"] {
+    background-color: #e0f0e0;
+    border-radius: 3px;
+    padding: 2px 4px;
+    font-size: 8pt;
+    margin: 2px 0;
+}
+
+/* Améliorations pour les boutons d'action dans le repas */
+QFrame.repas-widget QPushButton#editButton,
+QFrame.repas-widget QPushButton#replaceButton,
+QFrame.repas-widget QPushButton#deleteBigButton {
+    background-color: transparent;
+    min-width: 22px;
+    min-height: 22px;
+    max-width: 22px;
+    max-height: 22px;
+    padding: 0px;
+    margin: 0px;
+    font-size: 16px;
+}
+
+/* Style pour les aliments dans la liste dépliée */
+QFrame.repas-widget QLabel[class="aliment-item"] {
+    padding: 2px;
+    border-bottom: 1px solid #ddffde;
+    margin: 0;
+    font-size: 9pt;
 }

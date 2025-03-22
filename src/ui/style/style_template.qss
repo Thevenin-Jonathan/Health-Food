@@ -902,3 +902,91 @@ QPushButton.action-button[actionType="delete"]:hover {
 QTableWidget#alimentsTable QWidget.button-container {
     background-color: transparent;
 }
+
+/* 
+============================================
+   REPAS WIDGET - STYLE AMÉLIORÉ
+============================================
+*/
+
+/* Widget de repas - Style de base */
+QFrame.repas-widget {
+    background-color: white;
+    border-radius: $BORDER_RADIUS;
+    border: 1px solid lighten($PRIMARY_LIGHT, 10%);
+    padding: 4px;
+    margin: 2px;
+}
+
+QFrame.repas-widget:hover {
+    background-color: lighten($PRIMARY_LIGHT, 5%);
+    border: 1px solid $PRIMARY_LIGHT;
+}
+
+/* Titre du repas */
+QLabel.repas-title {
+    font-size: 10pt;
+    padding: 2px 0;
+}
+
+/* Bouton des calories */
+QLabel.calories-label {
+    background-color: $BACKGROUND_COLOR;
+    color: $PRIMARY_COLOR;
+    font-weight: bold;
+    border-radius: $BORDER_RADIUS;
+    border: 1px solid darken($BACKGROUND_COLOR, 10%);
+    padding: 1px;
+}
+
+/* Bouton d'expansion redessiné */
+QPushButton#expandButton {
+    background-color: $PRIMARY_COLOR;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    border: 1px solid $PRIMARY_LIGHT;
+    font-weight: bold;
+    font-size: 5pt;
+    color: white;
+    height: 10px;
+    width: 180px;
+    margin: 0px;
+    padding: 0px;
+}
+
+QPushButton#expandButton:hover {
+    background-color: #e0e0e0;
+}
+
+/* Style du résumé des macros */
+QLabel[class="macro-summary"] {
+    background-color: $LIGHT_BG_COLOR;
+    border-radius: 3px;
+    padding: 2px 4px;
+    font-size: 8pt;
+    margin: 2px 0;
+}
+
+/* Améliorations pour les boutons d'action dans le repas */
+QFrame.repas-widget QPushButton#editButton,
+QFrame.repas-widget QPushButton#replaceButton,
+QFrame.repas-widget QPushButton#deleteBigButton {
+    background-color: transparent;
+    min-width: 22px;
+    min-height: 22px;
+    max-width: 22px;
+    max-height: 22px;
+    padding: 0px;
+    margin: 0px;
+    font-size: 16px;
+}
+
+/* Style pour les aliments dans la liste dépliée */
+QFrame.repas-widget QLabel[class="aliment-item"] {
+    padding: 2px;
+    border-bottom: 1px solid lighten($PRIMARY_LIGHT, 12%);
+    margin: 0;
+    font-size: 9pt;
+}

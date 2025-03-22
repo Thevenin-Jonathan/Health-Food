@@ -43,31 +43,23 @@ class RepasWidget(QFrame):
     def setup_ui(self):
         # Layout principal
         self.repas_layout = QVBoxLayout(self)
-        self.repas_layout.setContentsMargins(10, 8, 10, 8)
+        self.repas_layout.setContentsMargins(8, 6, 8, 6)
         self.repas_layout.setSpacing(5)
 
-        # En-tête du repas avec titre et boutons
+        # ===== LIGNE 1: CALORIES (GAUCHE) ET BOUTONS (DROITE) =====
         header_layout = QHBoxLayout()
         header_layout.setSpacing(3)
 
-        # Bouton d'expansion
-        self.expand_btn = QPushButton("▼" if not self.is_expanded else "▲")
-        self.expand_btn.setObjectName("expandButton")
-        self.expand_btn.setFixedSize(20, 20)
-        self.expand_btn.clicked.connect(self.toggle_details)
-        header_layout.addWidget(self.expand_btn)
-
-        # Titre du repas
-        titre_repas = QLabel(f"<b>{self.repas_data['nom']}</b>")
-        header_layout.addWidget(titre_repas)
-
-        # Calories (toujours visibles)
+        # Calories (à gauche)
         calories_label = QLabel(f"{self.repas_data['total_calories']:.0f} kcal")
-        calories_label.setStyleSheet("color: #2e7d32; font-weight: bold;")
-        calories_label.setAlignment(Qt.AlignRight)
-        header_layout.addWidget(calories_label, 1)  # 1 = stretch factor
+        calories_label.setProperty("class", "calories-label")
+        calories_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        header_layout.addWidget(calories_label)
 
-        # Boutons d'actions (toujours visibles)
+        # Espace flexible entre les calories et les boutons
+        header_layout.addStretch(1)
+
+        # Boutons d'actions (à droite)
         buttons_layout = QHBoxLayout()
         buttons_layout.setSpacing(2)
 
@@ -98,20 +90,33 @@ class RepasWidget(QFrame):
         header_layout.addLayout(buttons_layout)
         self.repas_layout.addLayout(header_layout)
 
+        # ===== LIGNE 2: NOM DU REPAS =====
+        titre_repas = QLabel(f"<b>{self.repas_data['nom']}</b>")
+        titre_repas.setAlignment(Qt.AlignLeft)
+        titre_repas.setProperty("class", "repas-title")
+        self.repas_layout.addWidget(titre_repas)
+
+        # ===== LIGNE 3: RÉSUMÉ DES MACROS =====
+        # self.macro_summary = QLabel(
+        #     f"P: <b>{self.repas_data['total_proteines']:.1f}g</b> | "
+        #     f"G: <b>{self.repas_data['total_glucides']:.1f}g</b> | "
+        #     f"L: <b>{self.repas_data['total_lipides']:.1f}g</b>"
+        # )
+        self.macro_summary = QLabel(
+            f"<b>P:</b> {self.repas_data['total_proteines']:.1f}g | "
+            f"<b>G:</b> {self.repas_data['total_glucides']:.1f}g | "
+            f"<b>L:</b> {self.repas_data['total_lipides']:.1f}g"
+        )
+        self.macro_summary.setProperty("class", "macro-summary")
+        self.macro_summary.setAlignment(Qt.AlignCenter)
+        self.repas_layout.addWidget(self.macro_summary)
+
+        # ===== LIGNE 4: DÉTAILS (INITIALEMENT MASQUÉS) =====
         # Zone détaillée (cachée initialement si mode compact)
         self.details_widget = QWidget()
         self.details_layout = QVBoxLayout(self.details_widget)
         self.details_layout.setContentsMargins(5, 5, 5, 0)
         self.details_layout.setSpacing(3)
-
-        # Résumé des macros (visible même quand replié)
-        self.macro_summary = QLabel(
-            f"P: <b>{self.repas_data['total_proteines']:.1f}g</b> | "
-            f"G: <b>{self.repas_data['total_glucides']:.1f}g</b> | "
-            f"L: <b>{self.repas_data['total_lipides']:.1f}g</b>"
-        )
-        self.macro_summary.setAlignment(Qt.AlignCenter)
-        self.repas_layout.addWidget(self.macro_summary)
 
         # Ajouter les aliments du repas dans la zone détaillée
         if self.repas_data["aliments"]:
@@ -137,6 +142,17 @@ class RepasWidget(QFrame):
         # Ajouter la zone détaillée au layout principal
         self.repas_layout.addWidget(self.details_widget)
 
+        # ===== LIGNE 5: BOUTON D'EXPANSION (EN BAS) =====
+        expand_container = QHBoxLayout()
+        expand_container.setAlignment(Qt.AlignCenter)
+
+        self.expand_btn = QPushButton("▼")
+        self.expand_btn.setObjectName("expandButton")
+        self.expand_btn.clicked.connect(self.toggle_details)
+        expand_container.addWidget(self.expand_btn)
+
+        self.repas_layout.addLayout(expand_container)
+
         # Cacher les détails en mode compact
         if self.compact_mode:
             self.details_widget.setVisible(False)
@@ -154,8 +170,21 @@ class RepasWidget(QFrame):
         self.is_expanded = not self.is_expanded
         self.details_widget.setVisible(self.is_expanded)
 
-        # Changer l'icône du bouton
+        # Changer l'icône du bouton selon l'état
         self.expand_btn.setText("▲" if self.is_expanded else "▼")
+
+        # Ajuster la position du bouton pour qu'il ressemble à un onglet
+        if self.is_expanded:
+            self.expand_btn.setStyleSheet(
+                """
+                border-top-left-radius: 0px;
+                border-top-right-radius: 0px;
+                border-bottom-left-radius: 12px;
+                border-bottom-right-radius: 12px;
+            """
+            )
+        else:
+            self.expand_btn.setStyleSheet("")  # Revenir au style par défaut
 
         # Informer le container parent qu'il doit se réajuster
         if self.parent():
@@ -168,8 +197,9 @@ class RepasWidget(QFrame):
         alim_layout.setContentsMargins(0, 0, 0, 0)  # Supprime les marges
 
         # Bouton pour supprimer l'aliment
-        btn_remove = QPushButton("〤")
+        btn_remove = QPushButton("×")  # Symbole plus simple
         btn_remove.setObjectName("deleteButton")
+        btn_remove.setFixedSize(18, 18)  # Taille réduite
         btn_remove.setToolTip("Supprimer")
         btn_remove.clicked.connect(lambda: self.remove_food_from_meal(aliment["id"]))
         alim_layout.addWidget(btn_remove)
@@ -177,11 +207,11 @@ class RepasWidget(QFrame):
         # Texte de base de l'aliment
         alim_text = f"{aliment['nom']} ({aliment['quantite']}g) - {aliment['calories'] * aliment['quantite'] / 100:.0f} kcal"
         alim_label = QLabel(alim_text)
-        # alim_label.setWordWrap(True)
+        alim_label.setProperty("class", "aliment-item")
         alim_layout.addWidget(alim_label)
         alim_layout.addStretch()
 
-        # Calculer les valeurs nutritionnelles
+        # Calculer les valeurs nutritionnelles pour le tooltip
         calories = aliment["calories"] * aliment["quantite"] / 100
         proteines = aliment["proteines"] * aliment["quantite"] / 100
         glucides = aliment["glucides"] * aliment["quantite"] / 100
@@ -189,10 +219,10 @@ class RepasWidget(QFrame):
 
         # Créer un tooltip riche avec les informations détaillées
         tooltip_text = f"""<b>{aliment['nom']}</b> ({aliment['quantite']}g)<br>
-                       <b>Calories:</b> {calories:.0f} kcal<br>
-                       <b>Protéines:</b> {proteines:.1f}g<br>
-                       <b>Glucides:</b> {glucides:.1f}g<br>
-                       <b>Lipides:</b> {lipides:.1f}g"""
+                    <b>Calories:</b> {calories:.0f} kcal<br>
+                    <b>Protéines:</b> {proteines:.1f}g<br>
+                    <b>Glucides:</b> {glucides:.1f}g<br>
+                    <b>Lipides:</b> {lipides:.1f}g"""
 
         if "fibres" in aliment and aliment["fibres"]:
             fibres = aliment["fibres"] * aliment["quantite"] / 100
