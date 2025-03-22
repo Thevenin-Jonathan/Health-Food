@@ -19,8 +19,12 @@ class QSSPreprocessor:
             "$PRIMARY_DARK": "#388E3C",
             "$ACCENT_COLOR": "#FF5722",
             "$DANGER_COLOR": "#e74c3c",
+            "DANGER_LIGHT": "#f1c4bb",
+            "$DANGER_DARK": "#c0392b",
             "$WARNING_COLOR": "#f39c12",
             "$INFO_COLOR": "#3498db",
+            "$INFO_LIGHT": "#b3d1ff",
+            "$INFO_DARK": "#2980b9",
             # Couleurs d'arrière-plan et de texte
             "$BACKGROUND_COLOR": "#f5f9f5",
             "$TEXT_COLOR": "#2e3d32",
