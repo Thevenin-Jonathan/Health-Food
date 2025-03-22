@@ -63,6 +63,7 @@ class JourWidget(QWidget):
         total_prot = 0
         total_gluc = 0
         total_lip = 0
+        total_cout = 0
 
         # Calculer les totaux avant d'ajouter les repas
         for repas in self.repas_list:
@@ -71,12 +72,19 @@ class JourWidget(QWidget):
             total_gluc += repas["total_glucides"]
             total_lip += repas["total_lipides"]
 
+            for aliment in repas["aliments"]:
+                # prix_kg est en € par kg, donc on divise par 1000 pour avoir € par g
+                # puis on multiplie par la quantité en grammes
+                if aliment.get("prix_kg"):
+                    total_cout += (aliment["prix_kg"] / 1000) * aliment["quantite"]
+
         # Ajouter le widget des totaux AU DÉBUT (avant les repas)
         self.totaux_widget = TotauxMacrosWidget(
             total_cal,
             total_prot,
             total_gluc,
             total_lip,
+            total_cout,
             self.objectifs_utilisateur,
             compact=True,
         )
@@ -195,6 +203,7 @@ class JourWidget(QWidget):
         total_prot = 0
         total_gluc = 0
         total_lip = 0
+        total_cout = 0
 
         for repas in self.repas_list:
             total_cal += repas["total_calories"]
@@ -202,9 +211,19 @@ class JourWidget(QWidget):
             total_gluc += repas["total_glucides"]
             total_lip += repas["total_lipides"]
 
+            # Calculer le coût total
+            for aliment in repas["aliments"]:
+                if aliment.get("prix_kg"):
+                    total_cout += (aliment["prix_kg"] / 1000) * aliment["quantite"]
+
         # Mettre à jour le widget des totaux
         self.totaux_widget.update_values(
-            total_cal, total_prot, total_gluc, total_lip, self.objectifs_utilisateur
+            total_cal,
+            total_prot,
+            total_gluc,
+            total_lip,
+            total_cout,
+            self.objectifs_utilisateur,
         )
 
     def get_expanded_repas_ids(self):
@@ -228,6 +247,7 @@ class JourWidget(QWidget):
         total_proteines = 0
         total_glucides = 0
         total_lipides = 0
+        total_cout = 0
 
         # Parcourir tous les widgets de repas
         for i in range(self.repas_layout.count()):
@@ -241,12 +261,20 @@ class JourWidget(QWidget):
                     total_glucides += widget.repas_data["total_glucides"]
                     total_lipides += widget.repas_data["total_lipides"]
 
+                    # Calculer le coût
+                    for aliment in widget.repas_data["aliments"]:
+                        if aliment.get("prix_kg"):
+                            total_cout += (aliment["prix_kg"] / 1000) * aliment[
+                                "quantite"
+                            ]
+
         # Mettre à jour le widget des totaux
         self.totaux_widget.update_values(
             total_calories,
             total_proteines,
             total_glucides,
             total_lipides,
+            total_cout,
             self.objectifs_utilisateur,
         )
 

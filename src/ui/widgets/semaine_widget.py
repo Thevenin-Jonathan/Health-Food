@@ -168,6 +168,7 @@ class SemaineWidget(QWidget):
             "proteines": user_data.get("objectif_proteines", 180),
             "glucides": user_data.get("objectif_glucides", 250),
             "lipides": user_data.get("objectif_lipides", 70),
+            "cout": 70,
         }
 
     def update_objectifs_utilisateur(self):

@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QProgressBar,
+    QWidget,
 )
 from PySide6.QtCore import Qt
 
@@ -12,13 +13,21 @@ class TotauxMacrosWidget(QFrame):
     """Widget affichant les totaux nutritionnels avec barres de progression"""
 
     def __init__(
-        self, total_cal, total_prot, total_gluc, total_lip, objectifs, compact=False
+        self,
+        total_cal,
+        total_prot,
+        total_gluc,
+        total_lip,
+        total_cout,
+        objectifs,
+        compact=False,
     ):
         super().__init__()
         self.total_cal = total_cal
         self.total_prot = total_prot
         self.total_gluc = total_gluc
         self.total_lip = total_lip
+        self.total_cout = total_cout
         self.objectifs = objectifs
         self.compact = compact
 
@@ -95,6 +104,35 @@ class TotauxMacrosWidget(QFrame):
         self.add_macro_row(
             total_layout, "Lipides", self.total_lip, self.objectifs["lipides"], "g"
         )
+
+        # Coût - pas de barre de progression, juste la valeur
+        if self.compact:
+            # En mode compact
+            cout_layout = QHBoxLayout()
+            cout_layout.setSpacing(2)
+
+            # Label
+            label = QLabel("Coût:")
+            label.setFixedWidth(45)
+            cout_layout.addWidget(label)
+
+            # Valeur
+            value_label = QLabel(f"<b>{self.total_cout:.2f}</b> €")
+            value_label.setFixedWidth(70)
+            cout_layout.addWidget(value_label)
+
+            # Ajouter un espace vide pour aligner avec les autres lignes qui ont des barres de progression
+            spacer = QWidget()
+            spacer.setFixedHeight(6)  # Même hauteur que les barres de progression
+            cout_layout.addWidget(spacer, 1)
+
+            total_layout.addLayout(cout_layout)
+        else:
+            # En mode normal
+            cout_layout = QVBoxLayout()
+            cout_layout.addWidget(QLabel("<b>Coût</b>"))
+            cout_layout.addWidget(QLabel(f"{self.total_cout:.2f} €"))
+            total_layout.addLayout(cout_layout)
 
     def add_macro_row(self, layout, label_text, value, target, unit=""):
         """Ajoute une ligne avec un label, une valeur et une barre de progression"""
@@ -193,12 +231,15 @@ class TotauxMacrosWidget(QFrame):
                 """
             )
 
-    def update_values(self, total_cal, total_prot, total_gluc, total_lip, objectifs):
+    def update_values(
+        self, total_cal, total_prot, total_gluc, total_lip, total_cout, objectifs
+    ):
         """Met à jour les valeurs des totaux et les barres de progression"""
         self.total_cal = total_cal
         self.total_prot = total_prot
         self.total_gluc = total_gluc
         self.total_lip = total_lip
+        self.total_cout = total_cout
         self.objectifs = objectifs
 
         # Supprimer tous les widgets du layout existant
@@ -251,3 +292,32 @@ class TotauxMacrosWidget(QFrame):
         self.add_macro_row(
             layout, "Lipides", self.total_lip, self.objectifs["lipides"], "g"
         )
+
+        # Coût - pas de barre de progression, juste la valeur
+        if self.compact:
+            # En mode compact
+            cout_layout = QHBoxLayout()
+            cout_layout.setSpacing(2)
+
+            # Label
+            label = QLabel("Coût:")
+            label.setFixedWidth(45)
+            cout_layout.addWidget(label)
+
+            # Valeur
+            value_label = QLabel(f"<b>{self.total_cout:.2f}</b> €")
+            value_label.setFixedWidth(70)
+            cout_layout.addWidget(value_label)
+
+            # Ajouter un espace vide pour aligner avec les autres lignes qui ont des barres de progression
+            spacer = QWidget()
+            spacer.setFixedHeight(6)  # Même hauteur que les barres de progression
+            cout_layout.addWidget(spacer, 1)
+
+            layout.addLayout(cout_layout)
+        else:
+            # En mode normal
+            cout_layout = QVBoxLayout()
+            cout_layout.addWidget(QLabel("<b>Coût</b>"))
+            cout_layout.addWidget(QLabel(f"{self.total_cout:.2f} €"))
+            layout.addLayout(cout_layout)
