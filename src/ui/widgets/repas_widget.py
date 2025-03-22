@@ -83,7 +83,7 @@ class RepasWidget(QFrame):
         btn_replace = QPushButton("⇄")
         btn_replace.setObjectName("replaceButton")
         btn_replace.setFixedSize(24, 24)
-        btn_replace.setToolTip("Remplacer par une recette")
+        btn_replace.setToolTip("Remplacer un repas")
         btn_replace.clicked.connect(self.remplacer_repas_par_recette)
         buttons_layout.addWidget(btn_replace)
 
