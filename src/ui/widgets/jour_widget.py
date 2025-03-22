@@ -401,7 +401,7 @@ class RepasContainer(QWidget):
         # Dessiner l'indicateur de drop si nécessaire
         if self.drop_indicator_position:
             painter = QPainter(self)
-            pen = QPen(QColor("#7e57c2"))  # Couleur de l'indicateur
+            pen = QPen(QColor("#4CAF50"))  # Couleur de l'indicateur
             pen.setWidth(3)
             pen.setStyle(Qt.DashLine)
             painter.setPen(pen)
