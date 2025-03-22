@@ -9,7 +9,6 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
     QHeaderView,
     QDoubleSpinBox,
-    QGroupBox,
     QSplitter,
     QFormLayout,
     QScrollArea,
