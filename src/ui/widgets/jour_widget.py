@@ -139,9 +139,9 @@ class JourWidget(QWidget):
             nom, jour, ordre, repas_type_id = dialog.get_data()
 
             if repas_type_id:
-                # Utiliser une recette existante
+                # Utiliser une recette existante MAIS conserver le nom personnalisé
                 self.db_manager.appliquer_repas_type_au_jour(
-                    repas_type_id, jour, ordre, self.semaine_id
+                    repas_type_id, jour, ordre, self.semaine_id, nom_personnalise=nom
                 )
             else:
                 # Créer un nouveau repas vide

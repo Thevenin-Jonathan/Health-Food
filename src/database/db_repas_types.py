@@ -157,16 +157,29 @@ class RepasTypesManager(DBConnector):
         self.conn.commit()
         self.disconnect()
 
-    def appliquer_repas_type_au_jour(self, repas_type_id, jour, ordre, semaine_id=None):
-        """Applique un repas type à un jour spécifique d'une semaine donnée"""
+    def appliquer_repas_type_au_jour(
+        self, repas_type_id, jour, ordre, semaine_id=None, nom_personnalise=None
+    ):
+        """Applique un repas type à un jour spécifique d'une semaine donnée
 
+        Args:
+            repas_type_id: ID du repas type à appliquer
+            jour: Jour de la semaine
+            ordre: Ordre du repas dans la journée
+            semaine_id: ID de la semaine (optionnel)
+            nom_personnalise: Nom personnalisé pour le repas (optionnel)
+
+        Returns:
+            ID du repas créé
+        """
         repas_manager = RepasManager(self.db_file)
         repas_type = self.get_repas_type(repas_type_id)
 
-        # Créer le repas avec le numéro de semaine
-        repas_id = repas_manager.ajouter_repas(
-            repas_type["nom"], jour, ordre, semaine_id
-        )
+        # Utiliser le nom personnalisé s'il est fourni, sinon utiliser le nom de la recette
+        nom_repas = nom_personnalise if nom_personnalise else repas_type["nom"]
+
+        # Créer le repas avec le numéro de semaine et le nom approprié
+        repas_id = repas_manager.ajouter_repas(nom_repas, jour, ordre, semaine_id)
 
         # Ajouter tous les aliments du repas type au nouveau repas
         for aliment in repas_type["aliments"]:

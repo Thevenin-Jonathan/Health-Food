@@ -168,10 +168,12 @@ class DatabaseManager(DBConnector):
         """Délègue la suppression d'un repas type au RepasTypesManager"""
         return self.repas_types_manager.supprimer_repas_type(repas_type_id)
 
-    def appliquer_repas_type_au_jour(self, repas_type_id, jour, ordre, semaine_id=None):
+    def appliquer_repas_type_au_jour(
+        self, repas_type_id, jour, ordre, semaine_id=None, nom_personnalise=None
+    ):
         """Délègue l'application d'un repas type à un jour au RepasTypesManager"""
         return self.repas_types_manager.appliquer_repas_type_au_jour(
-            repas_type_id, jour, ordre, semaine_id
+            repas_type_id, jour, ordre, semaine_id, nom_personnalise
         )
 
     def modifier_quantite_aliment_repas_type(self, repas_type_id, aliment_id, quantite):
