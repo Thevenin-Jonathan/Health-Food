@@ -19,6 +19,7 @@ from PySide6.QtGui import QDoubleValidator
 from src.ui.components.recent_value_button import RecentValueButton
 from src.ui.components.nutrition_input import create_nutrition_spinbox
 from src.utils.text_utils import normalize_str
+from src.utils.ui_helpers import apply_auto_select_to_widget
 
 
 class AlimentDialog(QDialog):
@@ -52,6 +53,9 @@ class AlimentDialog(QDialog):
 
         # Initialiser l'interface
         self.setup_ui()
+
+        # Appliquer la sélection automatique à ce dialogue
+        apply_auto_select_to_widget(self)
 
     def setup_ui(self):
         self.setWindowTitle("Ajouter/Modifier un aliment")
