@@ -103,6 +103,14 @@ class DatabaseManager(DBConnector):
         """Délègue la récupération des repas d'une semaine au RepasManager"""
         return self.repas_manager.get_repas_semaine(semaine_id)
 
+    def decaler_ordres(self, jour, semaine_id, ordre_insertion):
+        """Délègue le décalage des ordres au RepasManager"""
+        return self.repas_manager.decaler_ordres(jour, semaine_id, ordre_insertion)
+
+    def normaliser_ordres(self, jour, semaine_id):
+        """Réindexe les ordres pour qu'ils soient des entiers consécutifs (1, 2, 3...)"""
+        return self.repas_manager.normaliser_ordres(jour, semaine_id)
+
     def get_semaines_existantes(self):
         """Récupère tous les IDs de semaines qui existent dans la base de données"""
         return self.repas_manager.get_semaines_existantes()  # Déléguer à RepasManager

@@ -148,8 +148,69 @@ class RepasManager(DBConnector):
 
             result[repas["jour"]].append(repas)
 
+        # Modifier le tri pour garantir le bon ordre
+        for jour in jours:
+            # Trier les repas explicitement par ordre
+            result[jour] = sorted(result[jour], key=lambda repas: repas["ordre"])
+
         self.disconnect()
         return result
+
+    def decaler_ordres(self, jour, semaine_id, ordre_insertion):
+        """
+        Décale les ordres des repas pour faire de la place à un nouveau repas
+
+        Args:
+            jour: Le jour concerné
+            semaine_id: ID de la semaine
+            ordre_insertion: L'ordre où le nouveau repas sera inséré
+
+        Cette méthode augmente de 1 l'ordre de tous les repas dont l'ordre est >= ordre_insertion
+        """
+        self.connect()
+        self.cursor.execute(
+            """
+            UPDATE repas 
+            SET ordre = ordre + 1
+            WHERE jour = ? AND semaine_id = ? AND ordre >= ?
+            """,
+            (jour, semaine_id, ordre_insertion),
+        )
+        self.conn.commit()
+        self.disconnect()
+
+    def normaliser_ordres(self, jour, semaine_id):
+        """Réindexe les ordres pour qu'ils soient des entiers consécutifs (1, 2, 3...)"""
+        self.connect()
+
+        # Récupérer tous les repas du jour, triés par ordre
+        self.cursor.execute(
+            """
+            SELECT id, ordre FROM repas 
+            WHERE jour = ? AND semaine_id = ?
+            ORDER BY ordre
+            """,
+            (jour, semaine_id),
+        )
+
+        repas_list = self.cursor.fetchall()
+
+        # Mettre à jour les ordres pour qu'ils soient consécutifs
+        for i, repas in enumerate(repas_list):
+            repas_id = repas[0]
+            nouvel_ordre = i + 1  # Commencer à 1
+
+            # Mettre à jour l'ordre seulement s'il est différent
+            if repas[1] != nouvel_ordre:
+                self.cursor.execute(
+                    """
+                    UPDATE repas SET ordre = ? WHERE id = ?
+                    """,
+                    (nouvel_ordre, repas_id),
+                )
+
+        self.conn.commit()
+        self.disconnect()
 
     def get_semaines_existantes(self):
         """Récupère tous les IDs de semaines qui existent dans la base de données"""

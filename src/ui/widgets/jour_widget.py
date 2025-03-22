@@ -132,11 +132,39 @@ class JourWidget(QWidget):
 
     def add_meal(self):
         """Ajoute un repas pour ce jour"""
+        # Déterminer le prochain ordre disponible
+        max_ordre = 0
+        for repas in self.repas_list:
+            if repas["ordre"] > max_ordre:
+                max_ordre = repas["ordre"]
+
+        # Le nouvel ordre sera le maximum actuel + 1
+        next_ordre = max_ordre + 1
+
         dialog = RepasDialog(
-            self, self.db_manager, self.semaine_id, jour_predefini=self.jour
+            self,
+            self.db_manager,
+            self.semaine_id,
+            jour_predefini=self.jour,
+            ordre_predefini=next_ordre,
         )
+
         if dialog.exec():
             nom, jour, ordre, repas_type_id = dialog.get_data()
+
+            # Si l'utilisateur a choisi un ordre différent de celui suggéré,
+            # décaler les repas existants pour faire de la place
+            if ordre != next_ordre:
+                # Vérifier si l'ordre existe déjà
+                existe_deja = False
+                for repas in self.repas_list:
+                    if repas["ordre"] == ordre:
+                        existe_deja = True
+                        break
+
+                # Si l'ordre existe déjà, décaler les repas
+                if existe_deja:
+                    self.db_manager.decaler_ordres(jour, self.semaine_id, ordre)
 
             if repas_type_id:
                 # Utiliser une recette existante MAIS conserver le nom personnalisé
@@ -146,6 +174,9 @@ class JourWidget(QWidget):
             else:
                 # Créer un nouveau repas vide
                 self.db_manager.ajouter_repas(nom, jour, ordre, self.semaine_id)
+
+            # Normaliser les ordres après l'ajout pour garantir des ordres consécutifs
+            self.db_manager.normaliser_ordres(jour, self.semaine_id)
 
             # Émettre le signal pour notifier que les repas ont été modifiés
             EVENT_BUS.repas_modifies.emit(self.semaine_id)
@@ -327,32 +358,53 @@ class JourWidget(QWidget):
             repas_id, jour_origine = data.split("|")
             repas_id = int(repas_id)
 
-            # Déterminer l'ordre du repas en fonction de l'indice de drop
+            # Trier les repas existants par ordre
+            sorted_repas = sorted(self.repas_list, key=lambda r: r.get("ordre", 1))
+
+            # Déterminer le nouvel ordre du repas en fonction de l'indice de drop
             if self.drop_index >= 0:
-                # Calcul identique, pas de changement dans la logique
-                if self.drop_index == 0:
-                    if self.repas_widgets:
-                        first_repas = self.repas_list[0]
-                        ordre = max(1, first_repas.get("ordre", 1) - 1)
+                if len(sorted_repas) == 0:
+                    # Si aucun repas, mettre ordre 1
+                    nouvel_ordre = 1
+                elif self.drop_index == 0:
+                    # Au début, utiliser l'ordre du premier repas - 0.5
+                    # ou 1 si c'est le seul repas
+                    if sorted_repas[0].get("ordre", 1) > 1:
+                        nouvel_ordre = int(sorted_repas[0].get("ordre", 1) - 0.5)
                     else:
-                        ordre = 1
-                elif self.drop_index >= len(self.repas_widgets):
-                    if self.repas_widgets:
-                        last_repas = self.repas_list[-1]
-                        ordre = last_repas.get("ordre", 1) + 1
-                    else:
-                        ordre = 1
+                        # Si le premier repas a déjà l'ordre 1, décaler tout
+                        nouvel_ordre = 1
+                        # Faire de la place
+                        self.db_manager.decaler_ordres(self.jour, self.semaine_id, 1)
+                elif self.drop_index >= len(sorted_repas):
+                    # À la fin, mettre ordre = dernier + 1
+                    nouvel_ordre = sorted_repas[-1].get("ordre", 1) + 1
                 else:
-                    prev_repas = self.repas_list[self.drop_index - 1]
-                    next_repas = self.repas_list[self.drop_index]
-                    ordre = (
-                        prev_repas.get("ordre", 1) + next_repas.get("ordre", 1)
-                    ) / 2
+                    # Au milieu, vérifier si les ordres sont consécutifs
+                    ordre_prev = sorted_repas[self.drop_index - 1].get("ordre", 1)
+                    ordre_next = sorted_repas[self.drop_index].get("ordre", 1)
+
+                    if ordre_next == ordre_prev + 1:
+                        # Si les ordres sont consécutifs, décaler pour faire de la place
+                        nouvel_ordre = ordre_next
+                        self.db_manager.decaler_ordres(
+                            self.jour, self.semaine_id, nouvel_ordre
+                        )
+                    else:
+                        # S'il y a de l'espace entre les ordres, prendre la moyenne
+                        nouvel_ordre = int((ordre_prev + ordre_next) / 2)
+                        if nouvel_ordre == ordre_prev:  # Si arrondi à ordre_prev
+                            nouvel_ordre = ordre_prev + 1
+                            if nouvel_ordre == ordre_next:  # Si pas d'espace
+                                self.db_manager.decaler_ordres(
+                                    self.jour, self.semaine_id, nouvel_ordre
+                                )
             else:
-                ordre = len(self.repas_list) + 1
+                # Fallback: mettre à la fin
+                nouvel_ordre = len(sorted_repas) + 1
 
             # Mettre à jour le repas dans la base de données
-            self.db_manager.changer_jour_repas(repas_id, self.jour, ordre)
+            self.db_manager.changer_jour_repas(repas_id, self.jour, nouvel_ordre)
 
             # Réinitialiser l'indicateur de drop
             self.drop_index = -1
@@ -365,6 +417,8 @@ class JourWidget(QWidget):
             parent = self.parent()
             if parent and hasattr(parent, "load_data"):
                 parent.load_data()
+
+            self.db_manager.normaliser_ordres(self.jour, self.semaine_id)
 
             event.acceptProposedAction()
         else:

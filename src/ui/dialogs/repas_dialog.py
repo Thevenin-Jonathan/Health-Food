@@ -14,12 +14,18 @@ from src.utils.config import JOURS_SEMAINE
 
 class RepasDialog(QDialog):
     def __init__(
-        self, parent=None, db_manager=None, semaine_id=None, jour_predefini=None
+        self,
+        parent=None,
+        db_manager=None,
+        semaine_id=None,
+        jour_predefini=None,
+        ordre_predefini=None,
     ):
         super().__init__(parent)
         self.db_manager = db_manager
         self.semaine_id = semaine_id
         self.jour_predefini = jour_predefini
+        self.ordre_predefini = ordre_predefini
 
         self.setup_ui()
         self.load_data()
@@ -49,7 +55,7 @@ class RepasDialog(QDialog):
         self.ordre_input = QSpinBox()
         self.ordre_input.setProperty("class", "spin-box-vertical")
         self.ordre_input.setMinimum(1)
-        self.ordre_input.setValue(1)
+        self.ordre_input.setValue(self.ordre_predefini if self.ordre_predefini else 1)
         self.layout.addRow("Position dans la journée:", self.ordre_input)
 
         # Utiliser une recette existante

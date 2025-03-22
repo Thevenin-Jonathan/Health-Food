@@ -122,6 +122,19 @@ class SemaineWidget(QWidget):
         for col in range(len(JOURS_SEMAINE)):
             self.days_layout.setColumnStretch(col, 1)
 
+        # Normaliser les ordres si nécessaire
+        for jour in JOURS_SEMAINE:
+            # Vérifier si des valeurs d'ordre sont fractionnaires
+            has_fractional = False
+            for repas in repas_semaine[jour]:
+                if repas["ordre"] != int(repas["ordre"]):
+                    has_fractional = True
+                    break
+
+            # Si des valeurs fractionnaires sont détectées, normaliser les ordres
+            if has_fractional:
+                self.db_manager.normaliser_ordres(jour, self.semaine_id)
+
     def print_planning(self):
         """Imprime le planning de la semaine actuelle"""
         self.print_manager.print_planning(self.semaine_id)
