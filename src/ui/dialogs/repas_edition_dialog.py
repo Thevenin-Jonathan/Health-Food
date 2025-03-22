@@ -96,7 +96,7 @@ class RepasEditionDialog(QDialog):
         layout.addWidget(totaux_frame)
 
         # Liste des aliments
-        layout.addWidget(QLabel("<b>Aliments:</b>"))
+        layout.addWidget(QLabel("<b>Mes aliments:</b>"))
 
         self.aliments_list = QListWidget()
         self._populate_aliments_list()

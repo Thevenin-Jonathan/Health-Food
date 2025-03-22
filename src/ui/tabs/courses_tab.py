@@ -50,7 +50,7 @@ class CoursesTab(TabBase):
         main_layout.setContentsMargins(20, 20, 20, 20)
 
         # Titre
-        title = QLabel("<h1>Liste de courses</h1>")
+        title = QLabel("<h1>Ma liste de courses</h1>")
         title.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(title)
 

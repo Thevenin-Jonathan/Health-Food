@@ -94,7 +94,7 @@ class UtilisateurTab(TabBase):
         main_layout.setContentsMargins(20, 20, 20, 20)
 
         # Titre
-        title = QLabel("<h1>Profil Utilisateur</h1>")
+        title = QLabel("<h1>Mon profil</h1>")
         title.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(title)
 

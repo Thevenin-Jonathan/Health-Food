@@ -30,7 +30,7 @@ class MainWindow(QMainWindow):
 
         # Onglet de gestion des aliments
         self.aliments_tab = AlimentsTab(self.db_manager)
-        self.tabs.addTab(self.aliments_tab, "Liste des aliments")
+        self.tabs.addTab(self.aliments_tab, "Mes aliments")
 
         # Onglet des recettes (repas types)
         self.recettes_tab = RecettesTab(self.db_manager)
@@ -38,11 +38,11 @@ class MainWindow(QMainWindow):
 
         # Onglet de liste de courses
         self.courses_tab = CoursesTab(self.db_manager)
-        self.tabs.addTab(self.courses_tab, "Liste de courses")
+        self.tabs.addTab(self.courses_tab, "Ma liste de courses")
 
         # Onglet utilisateur avec calculs de calories
         self.utilisateur_tab = UtilisateurTab(self.db_manager)
-        self.tabs.addTab(self.utilisateur_tab, "Utilisateur")
+        self.tabs.addTab(self.utilisateur_tab, "Mon profil")
 
         # Définir comme widget central
         self.setCentralWidget(self.tabs)
