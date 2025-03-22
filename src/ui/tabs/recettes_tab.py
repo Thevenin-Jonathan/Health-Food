@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QStyledItemDelegate,
     QSpinBox,
+    QSizePolicy,
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCursor
@@ -61,6 +62,7 @@ class RecettesTab(QWidget):
     def __init__(self, db_manager):
         super().__init__()
         self.db_manager = db_manager
+        self.setObjectName("RecettesTab")
         self.current_recette_id = None
         self.setup_ui()
         self.load_data()
@@ -76,7 +78,28 @@ class RecettesTab(QWidget):
 
     def setup_ui(self):
         self.aliment_ids = []
-        main_layout = QVBoxLayout()
+
+        # Créer un layout principal sans marges pour le widget entier
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        # Créer un layout horizontal pour centrer le contenu
+        center_layout = QHBoxLayout()
+
+        # Créer un widget contenant le contenu réel avec sa largeur limitée
+        content_widget = QWidget()
+        content_widget.setMaximumWidth(
+            1200
+        )  # Largeur maximale plus grande pour les tableaux
+        content_widget.setMinimumWidth(
+            900
+        )  # Largeur minimale pour garantir la lisibilité
+
+        # Layout principal du contenu
+        main_layout = QVBoxLayout(content_widget)
+        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(20, 20, 20, 20)
 
         # Titre
         title = QLabel("<h1>Mes Recettes</h1>")
@@ -87,14 +110,16 @@ class RecettesTab(QWidget):
         splitter = QSplitter(Qt.Horizontal)
         main_layout.addWidget(
             splitter, 1
-        )  # Ajouté stretch factor pour que le splitter prenne tout l'espace disponible
+        )  # Stretch factor pour que le splitter prenne tout l'espace disponible
 
         # Partie gauche : Liste des recettes
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)  # Réduire les marges
 
-        left_layout.addWidget(QLabel("<h3>Liste des recettes</h3>"))
+        left_title = QLabel("<h3>Liste des recettes</h3>")
+        left_title.setProperty("class", "section-title")
+        left_layout.addWidget(left_title)
 
         self.recettes_list = QListWidget()
         self.recettes_list.currentRowChanged.connect(self.afficher_details_recette)
@@ -119,11 +144,13 @@ class RecettesTab(QWidget):
 
         # Partie droite : Détails de la recette
         right_widget = QWidget()
+        right_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.right_layout = QVBoxLayout(right_widget)
         self.right_layout.setContentsMargins(0, 0, 0, 0)  # Réduire les marges
         self.right_layout.setSpacing(10)  # Meilleur espacement entre les éléments
 
         self.detail_titre = QLabel("<h3>Détails de la recette</h3>")
+        self.detail_titre.setProperty("class", "section-title")
         self.right_layout.addWidget(self.detail_titre)
 
         # Remplacer le QLabel par un QTextEdit pour la description, pour permettre le défilement
@@ -138,36 +165,36 @@ class RecettesTab(QWidget):
         self.right_layout.addWidget(self.detail_description)
 
         # Configuration du tableau des ingrédients
-        self.right_layout.addWidget(QLabel("<h4>Ingrédients</h4>"))
-
         self.detail_ingredients = QTableWidget()
+        self.detail_ingredients.setObjectName("ingredientsTable")
         self.detail_ingredients.setColumnCount(5)
         self.detail_ingredients.setHorizontalHeaderLabels(
             ["Aliment", "Quantité (g)", "Calories", "Macros", "Actions"]
         )
 
-        # Configuration des colonnes
-        self.detail_ingredients.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.Stretch
-        )
-        self.detail_ingredients.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeToContents
-        )
-        self.detail_ingredients.horizontalHeader().setSectionResizeMode(
-            2, QHeaderView.ResizeToContents
-        )
-        self.detail_ingredients.horizontalHeader().setSectionResizeMode(
-            3, QHeaderView.Stretch
-        )
-        self.detail_ingredients.horizontalHeader().setSectionResizeMode(
-            4, QHeaderView.ResizeToContents
-        )
+        # Optimisation de l'espace dans le tableau
+        self.detail_ingredients.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        # Configuration des colonnes pour l'espace limité
+        header = self.detail_ingredients.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)  # Aliment
+        header.setSectionResizeMode(1, QHeaderView.Fixed)  # Quantité
+        header.setSectionResizeMode(2, QHeaderView.Fixed)  # Calories
+        header.setSectionResizeMode(3, QHeaderView.Fixed)  # Macros
+        header.setSectionResizeMode(4, QHeaderView.Fixed)  # Actions
+
+        # Définir des largeurs fixes pour les colonnes non élastiques
+        self.detail_ingredients.setColumnWidth(1, 90)  # Quantité
+        self.detail_ingredients.setColumnWidth(2, 80)  # Calories
+        self.detail_ingredients.setColumnWidth(3, 180)  # Macros
+        self.detail_ingredients.setColumnWidth(4, 60)  # Actions
 
         # Définir une hauteur minimale pour le tableau
+        self.detail_ingredients.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Expanding
+        )
         self.detail_ingredients.setMinimumHeight(200)
-        self.right_layout.addWidget(
-            self.detail_ingredients, 3
-        )  # Grande priorité de stretch
+        self.right_layout.addWidget(self.detail_ingredients)
 
         # Configurer l'édition limitée à la colonne quantité
         self.quantite_delegate = QuantiteDelegate(self)
@@ -201,15 +228,20 @@ class RecettesTab(QWidget):
         button_layout.addWidget(self.btn_add_ingredient)
         self.right_layout.addWidget(button_container)
 
-        # Ajouter un stretch en bas pour que tout reste en haut
-        self.right_layout.addStretch(1)
-
         # Ajouter les widgets au splitter
         splitter.addWidget(left_widget)
         splitter.addWidget(right_widget)
-        splitter.setSizes([300, 700])
+        splitter.setSizes([300, 700])  # Proportions initiales
 
-        self.setLayout(main_layout)
+        # Ajouter le widget de contenu au layout central avec des marges extensibles
+        center_layout.addStretch(1)
+        center_layout.addWidget(content_widget)
+        center_layout.addStretch(1)
+
+        # Ajouter le layout central au layout extérieur
+        outer_layout.addLayout(center_layout)
+
+        self.setLayout(outer_layout)
 
     def load_data(self):
         """Charge la liste des repas types"""

@@ -639,3 +639,65 @@ QPushButton[class="suggestion-button"]:hover {
     background-color: #b3ffb3;
     border-color: #66b266;
 }
+
+/* 
+============================================
+   TABLEAUX - STYLES AMÉLIORÉS POUR RECETTES
+============================================
+*/
+
+/* Style des onglets Recettes et Utilisateurs */
+QWidget#RecettesTab > QWidget,
+QWidget#UtilisateurTab > QWidget {
+    background-color: $BACKGROUND_COLOR;
+}
+
+/* Ajustements pour le splitter dans la page Recettes */
+QWidget#RecettesTab QSplitter::handle {
+    background-color: $PRIMARY_LIGHT;
+    width: 1px;
+    margin: 2px 10px;
+}
+
+/* Style pour les sections de la page recettes */
+QWidget#RecettesTab QLabel[class="section-title"] {
+    font-weight: bold;
+    color: $PRIMARY_DARK;
+    font-size: 12pt;
+    padding: 8px 0;
+}
+
+/* Style amélioré pour le tableau d'ingrédients */
+QWidget#RecettesTab QTableWidget {
+    min-height: 250px;
+}
+
+/* 
+============================================
+   SPLITTERS - AMÉLIORATIONS
+============================================
+*/
+
+/* Style du séparateur de splitter */
+QSplitter::handle {
+    background-color: $PRIMARY_LIGHT;
+    width: 1px;               /* Largeur réduite à 1px */
+    margin: 0px 10px;         /* Marge horizontale de 10px de chaque côté */
+}
+
+/* Séparateur vertical */
+QSplitter::handle:horizontal {
+    width: 1px;               /* Largeur très fine */
+    margin: 0px 10px;         /* 10px de marge à gauche et à droite */
+}
+
+/* Séparateur horizontal (pour les splitters verticaux si vous en avez) */
+QSplitter::handle:vertical {
+    height: 1px;              /* Hauteur très fine */
+    margin: 10px 0px;         /* 10px de marge en haut et en bas */
+}
+
+/* Style au survol, pour rendre le séparateur plus visible quand l'utilisateur veut le déplacer */
+QSplitter::handle:hover {
+    background-color: $PRIMARY_COLOR;  /* Couleur plus visible au survol */
+}
