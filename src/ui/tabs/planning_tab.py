@@ -101,10 +101,6 @@ class PlanningTab(QWidget):
         # Panel de contrôle simplifié
         control_layout = QHBoxLayout()
         control_layout.addStretch()
-        self.btn_print_planning = QPushButton("⎙ Imprimer")
-        self.btn_print_planning.clicked.connect(self.imprimer_planning_courant)
-        self.btn_print_planning.setEnabled(False)
-        control_layout.addWidget(self.btn_print_planning)
         main_layout.addLayout(control_layout)
 
         # Widget d'onglets personnalisé
@@ -113,6 +109,23 @@ class PlanningTab(QWidget):
         self.tabs_semaines.setMovable(True)
         self.tabs_semaines.currentChanged.connect(self.on_tab_changed)
         self.tabs_semaines.tabCloseRequested.connect(self.supprimer_onglet_semaine)
+
+        # Créer un widget pour le coin supérieur droit du TabWidget
+        corner_widget = QWidget()
+        corner_layout = QHBoxLayout(corner_widget)
+        corner_layout.setContentsMargins(0, 0, 0, 0)
+        corner_layout.setSpacing(2)
+
+        # Bouton d'impression dans le coin
+        self.btn_print_planning = QPushButton("⎙ Imprimer")
+        self.btn_print_planning.setFixedHeight(31)
+        self.btn_print_planning.clicked.connect(self.imprimer_planning_courant)
+        self.btn_print_planning.setEnabled(False)
+        self.btn_print_planning.setStyleSheet("margin-right: 10px; margin-bottom: 6px;")
+        corner_layout.addWidget(self.btn_print_planning)
+
+        # Définir le widget de coin
+        self.tabs_semaines.setCornerWidget(corner_widget, Qt.TopLeftCorner)
 
         main_layout.addWidget(self.tabs_semaines, 1)
 
