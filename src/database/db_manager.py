@@ -151,6 +151,18 @@ class DatabaseManager(DBConnector):
             repas_id, aliment_id, quantite
         )
 
+    def sauvegarder_nom_semaine(self, semaine_id, nom_personnalise):
+        """Délègue la sauvegarde du nom personnalisé d'une semaine au RepasManager"""
+        return self.repas_manager.sauvegarder_nom_semaine(semaine_id, nom_personnalise)
+
+    def get_noms_semaines(self):
+        """Délègue la récupération des noms personnalisés des semaines au RepasManager"""
+        return self.repas_manager.get_noms_semaines()
+
+    def supprimer_nom_semaine(self, semaine_id):
+        """Délègue la suppression du nom personnalisé d'une semaine au RepasManager"""
+        return self.repas_manager.supprimer_nom_semaine(semaine_id)
+
     # =========== MÉTHODES DÉLÉGUÉES À RepasTypesManager ===========
     def ajouter_repas_type(self, nom, description):
         """Délègue l'ajout d'un repas type au RepasTypesManager"""

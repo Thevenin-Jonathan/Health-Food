@@ -46,6 +46,16 @@ class DBConnector:
         # Activer les contraintes de clés étrangères (important pour les suppressions en cascade)
         self.cursor.execute("PRAGMA foreign_keys = ON")
 
+        # Table des semaines
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS semaines (
+                id INTEGER PRIMARY KEY,
+                nom_personnalise TEXT
+            )
+            """
+        )
+
         # Table des utilisateurs
         self.cursor.execute(
             """

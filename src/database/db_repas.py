@@ -424,3 +424,43 @@ class RepasManager(DBConnector):
 
         self.disconnect()
         return repas
+
+    def sauvegarder_nom_semaine(self, semaine_id, nom_personnalise):
+        """Sauvegarde le nom personnalisé d'une semaine"""
+        self.connect()
+
+        # Vérifier si la semaine existe déjà
+        self.cursor.execute("SELECT id FROM semaines WHERE id = ?", (semaine_id,))
+        exists = self.cursor.fetchone()
+
+        if exists:
+            # Mettre à jour le nom existant
+            self.cursor.execute(
+                "UPDATE semaines SET nom_personnalise = ? WHERE id = ?",
+                (nom_personnalise, semaine_id),
+            )
+        else:
+            # Insérer un nouveau nom
+            self.cursor.execute(
+                "INSERT INTO semaines (id, nom_personnalise) VALUES (?, ?)",
+                (semaine_id, nom_personnalise),
+            )
+
+        self.conn.commit()
+        self.disconnect()
+        return True
+
+    def get_noms_semaines(self):
+        """Récupère tous les noms personnalisés des semaines"""
+        self.connect()
+        self.cursor.execute("SELECT id, nom_personnalise FROM semaines")
+        result = {row[0]: row[1] for row in self.cursor.fetchall()}
+        self.disconnect()
+        return result
+
+    def supprimer_nom_semaine(self, semaine_id):
+        """Supprime le nom personnalisé d'une semaine"""
+        self.connect()
+        self.cursor.execute("DELETE FROM semaines WHERE id = ?", (semaine_id,))
+        self.conn.commit()
+        self.disconnect()
