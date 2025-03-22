@@ -208,10 +208,10 @@ class AlimentsTab(TabBase):
 
     def _setup_table(self, main_layout):
         """Configure le tableau des aliments"""
-        # Tableau des aliments avec les colonnes de boutons d'action
+        # Tableau des aliments avec une colonne de boutons d'action
         self.table = QTableWidget()
         self.table.setObjectName("alimentsTable")
-        self.table.setColumnCount(13)  # 11 colonnes de données + 2 colonnes d'actions
+        self.table.setColumnCount(12)  # 11 colonnes de données + 1 colonne d'action
         self.table.setHorizontalHeaderLabels(
             [
                 "ID",
@@ -225,7 +225,6 @@ class AlimentsTab(TabBase):
                 "Lipides",
                 "Fibres",
                 "Prix/kg",
-                "Modifier",
                 "Supprimer",
             ]
         )
@@ -240,6 +239,9 @@ class AlimentsTab(TabBase):
         self.table.setAlternatingRowColors(True)
         self.table.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
         self.table.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
+
+        # Connecter le double clic sur une ligne à l'édition d'aliment
+        self.table.cellDoubleClicked.connect(self.edit_aliment_from_double_click)
 
         # Configurer le viewport pour que la barre de défilement verticale commence après l'en-tête
         viewport = self.table.viewport()
@@ -262,7 +264,7 @@ class AlimentsTab(TabBase):
 
         # Définir ensuite les largeurs fixes optimisées pour avoir une vue compacte
         col_widths = {
-            1: (150, QHeaderView.Stretch),  # Nom - largeur dynamique (stretch)
+            1: (180, QHeaderView.Stretch),  # Nom - largeur dynamique (stretch)
             2: (110, QHeaderView.Fixed),  # Marque - réduite
             3: (100, QHeaderView.Fixed),  # Magasin - réduite
             4: (100, QHeaderView.Fixed),  # Catégorie - réduite
@@ -272,8 +274,7 @@ class AlimentsTab(TabBase):
             8: (70, QHeaderView.Fixed),  # Lipides - très compacte
             9: (65, QHeaderView.Fixed),  # Fibres - très compacte
             10: (70, QHeaderView.Fixed),  # Prix/kg - très compacte
-            11: (70, QHeaderView.Fixed),  # Bouton Modifier
-            12: (70, QHeaderView.Fixed),  # Bouton Supprimer
+            11: (70, QHeaderView.Fixed),  # Bouton Supprimer
         }
 
         # Appliquer les largeurs fixes pour les colonnes qui ne sont pas en Stretch
@@ -435,17 +436,7 @@ class AlimentsTab(TabBase):
             prix_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(i, 10, prix_item)
 
-            # Bouton Modifier
-            btn_edit = QPushButton("✍")
-            btn_edit.setObjectName("editButton")
-            btn_edit.clicked.connect(
-                lambda checked, row=i: self.edit_aliment_from_button(row)
-            )
-            # Utiliser le conteneur pour centrer le bouton
-            edit_container = ButtonContainer(btn_edit)
-            self.table.setCellWidget(i, 11, edit_container)
-
-            # Bouton Supprimer
+            # Bouton Supprimer (maintenant à la colonne 11 au lieu de 12)
             btn_delete = QPushButton("〤")
             btn_delete.setObjectName("deleteButton")
             btn_delete.clicked.connect(
@@ -453,7 +444,7 @@ class AlimentsTab(TabBase):
             )
             # Utiliser le conteneur pour centrer le bouton
             delete_container = ButtonContainer(btn_delete)
-            self.table.setCellWidget(i, 12, delete_container)
+            self.table.setCellWidget(i, 11, delete_container)
 
         # Réactiver le tri avec la même colonne et ordre qu'avant
         self.table.setSortingEnabled(True)
@@ -612,3 +603,12 @@ class AlimentsTab(TabBase):
             self.edit_aliment()
         elif action == delete_action:
             self.delete_aliment()
+
+    def edit_aliment_from_double_click(self, row, column):
+        """Éditer un aliment depuis un double-clic sur une ligne du tableau"""
+        # Ignorer les clics sur la colonne de suppression
+        if column == 11:  # Colonne de suppression
+            return
+
+        aliment_id = int(self.table.item(row, 0).text())
+        self.edit_aliment_by_id(aliment_id)
