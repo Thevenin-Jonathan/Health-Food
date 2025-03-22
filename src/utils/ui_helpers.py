@@ -1,5 +1,31 @@
-from PySide6.QtWidgets import QApplication, QLineEdit, QSpinBox, QDoubleSpinBox
-from PySide6.QtCore import QEvent, QObject, QTimer
+from PySide6.QtWidgets import (
+    QApplication,
+    QLineEdit,
+    QSpinBox,
+    QDoubleSpinBox,
+    QPushButton,
+)
+from PySide6.QtCore import QEvent, QObject, QTimer, Qt
+
+
+class ButtonCursorHandler(QObject):
+    """Gestionnaire d'événements pour les curseurs de boutons."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.app = QApplication.instance()
+        self.app.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        # Si c'est un événement d'entrée de souris sur un bouton
+        if event.type() == QEvent.Enter and isinstance(obj, QPushButton):
+            obj.setCursor(Qt.PointingHandCursor)
+
+        # Si c'est un événement de sortie de souris sur un bouton
+        elif event.type() == QEvent.Leave and isinstance(obj, QPushButton):
+            obj.setCursor(Qt.ArrowCursor)
+
+        return super().eventFilter(obj, event)
 
 
 class LineEditSelectAllFilter(QObject):

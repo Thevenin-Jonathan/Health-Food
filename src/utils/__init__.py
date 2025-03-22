@@ -19,6 +19,7 @@ from .config import (
 
 # Importation des utilitaires d'interface utilisateur
 from .ui_helpers import (
+    ButtonCursorHandler,
     AutoSelectTextEdit,
     AutoSelectSpinBox,
     AutoSelectDoubleSpinBox,

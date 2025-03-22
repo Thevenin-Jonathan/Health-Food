@@ -2,12 +2,15 @@ import sys
 from PySide6.QtWidgets import QApplication
 from src.ui.main_window import MainWindow
 from src.database.db_manager import DatabaseManager
-from src.utils.ui_helpers import apply_auto_select_to_widget
+from src.utils.ui_helpers import ButtonCursorHandler, apply_auto_select_to_widget
 from src.utils.qss_preprocessor import process_qss
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
+    # Initialiser le gestionnaire de curseurs pour les boutons
+    button_cursor_handler = ButtonCursorHandler()
 
     # Générer le QSS à partir du template en utilisant le préprocesseur
     qss_content = process_qss(
