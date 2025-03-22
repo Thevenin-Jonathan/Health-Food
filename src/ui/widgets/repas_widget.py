@@ -97,11 +97,6 @@ class RepasWidget(QFrame):
         self.repas_layout.addWidget(titre_repas)
 
         # ===== LIGNE 3: RÉSUMÉ DES MACROS =====
-        # self.macro_summary = QLabel(
-        #     f"P: <b>{self.repas_data['total_proteines']:.1f}g</b> | "
-        #     f"G: <b>{self.repas_data['total_glucides']:.1f}g</b> | "
-        #     f"L: <b>{self.repas_data['total_lipides']:.1f}g</b>"
-        # )
         self.macro_summary = QLabel(
             f"<b>P:</b> {self.repas_data['total_proteines']:.1f}g | "
             f"<b>G:</b> {self.repas_data['total_glucides']:.1f}g | "
