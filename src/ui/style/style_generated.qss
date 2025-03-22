@@ -430,6 +430,28 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
 
 /* 
 ============================================
+   STYLE ALTERNATIF POUR LES GROUP BOX
+============================================
+*/
+
+/* Style des titres de groupes */
+QLabel.group-title {
+    font-weight: bold;
+}
+
+/* Frames conteneurs de groupes */
+QFrame.group-content {
+    border: 1px solid #C8E6C9;
+    background-color: white;
+}
+
+/* Style spécifique pour le groupe Repas Actuel */
+QLabel#repasActuelTitle {
+    font-size: 10.5pt;
+}
+
+/* 
+============================================
    COMPOSANTS SPÉCIAUX
 ============================================
 */

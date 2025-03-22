@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QGridLayout,
     QSizePolicy,
+    QFrame,
 )
 from PySide6.QtCore import Qt
 
@@ -158,7 +159,7 @@ class RemplacerRepasDialog(QDialog):
         self.setup_ui()
 
     def setup_ui(self):
-        self.setWindowTitle("Remplacer par une recette")
+        self.setWindowTitle("Remplacer un repas")
         self.setMinimumSize(1200, 700)
 
         main_layout = QVBoxLayout(self)
@@ -171,7 +172,7 @@ class RemplacerRepasDialog(QDialog):
         header_layout.setHorizontalSpacing(10)
 
         # Titre et sélection de recette sur la même ligne
-        title = QLabel("<h2>Remplacer par une recette</h2>")
+        title = QLabel("<h2>Remplacer un repas</h2>")
         header_layout.addWidget(title, 0, 0)
 
         # Sélection de recette
@@ -197,12 +198,27 @@ class RemplacerRepasDialog(QDialog):
         main_splitter = QSplitter(Qt.Horizontal)
         main_splitter.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
-        # PANNEAU GAUCHE: Repas actuel
-        repas_actuel_group = QGroupBox("Repas actuel")
-        repas_actuel_layout = QVBoxLayout(repas_actuel_group)
-        repas_actuel_layout.setContentsMargins(8, 15, 8, 8)
+        # PANNEAU GAUCHE: Repas actuel - Approche avec QLabel et QFrame
+        repas_actuel_container = QWidget()
+        repas_actuel_layout = QVBoxLayout(repas_actuel_container)
+        repas_actuel_layout.setContentsMargins(5, 5, 5, 5)
 
-        # Tableau des aliments actuels
+        # Titre avec QLabel
+        title_label = QLabel("<strong>Repas Actuel</strong>")
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setProperty("class", "group-title")
+        title_label.setObjectName("repasActuelTitle")
+        title_label.setMinimumHeight(25)  # Pour assurer un espacement suffisant
+        repas_actuel_layout.addWidget(title_label)
+
+        # Contenu du groupe
+        content_frame = QFrame()
+        content_frame.setProperty("class", "group-content")
+        content_frame.setObjectName("repasActuelContent")
+        content_layout = QVBoxLayout(content_frame)
+        content_layout.setContentsMargins(2, 2, 2, 2)
+
+        # Tableau des aliments actuels (configuration reste identique)
         self.repas_actuel_table = QTableWidget()
         self.repas_actuel_table.setObjectName("repasActuelTable")
         self.repas_actuel_table.setColumnCount(4)
@@ -210,47 +226,59 @@ class RemplacerRepasDialog(QDialog):
             ["ID", "Aliment", "Quantité", "Calories"]
         )
 
-        # Corriger la hauteur des en-têtes et des lignes
-        self.repas_actuel_table.horizontalHeader().setMinimumHeight(34)
-        self.repas_actuel_table.verticalHeader().setDefaultSectionSize(36)
-
-        # Configuration des colonnes - Fixer largeurs minimales
-        self.repas_actuel_table.setColumnWidth(1, 200)  # Colonne Aliment
-        self.repas_actuel_table.setColumnWidth(2, 100)  # Colonne Quantité
-        self.repas_actuel_table.setColumnWidth(3, 100)  # Colonne Calories
-
+        # Configuration du tableau - le code reste inchangé
+        self.repas_actuel_table.horizontalHeader().setMinimumHeight(30)
+        self.repas_actuel_table.verticalHeader().setDefaultSectionSize(30)
+        self.repas_actuel_table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.repas_actuel_table.setColumnWidth(1, 200)
+        self.repas_actuel_table.setColumnWidth(2, 70)
+        self.repas_actuel_table.setColumnWidth(3, 70)
         self.repas_actuel_table.horizontalHeader().setSectionResizeMode(
             1, QHeaderView.Stretch
         )
         self.repas_actuel_table.horizontalHeader().setSectionResizeMode(
-            2, QHeaderView.ResizeToContents
+            2, QHeaderView.Fixed
         )
         self.repas_actuel_table.horizontalHeader().setSectionResizeMode(
-            3, QHeaderView.ResizeToContents
+            3, QHeaderView.Fixed
         )
-
-        # Masquer la colonne ID
         self.repas_actuel_table.hideColumn(0)
-
-        # Amélioration de l'apparence
         self.repas_actuel_table.setAlternatingRowColors(True)
         self.repas_actuel_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.repas_actuel_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.repas_actuel_table.setSizePolicy(
             QSizePolicy.Expanding, QSizePolicy.Expanding
         )
-        self.repas_actuel_table.verticalHeader().setVisible(
-            False
-        )  # Assurer que les en-têtes verticaux sont visibles
+        self.repas_actuel_table.verticalHeader().setVisible(False)
 
-        repas_actuel_layout.addWidget(self.repas_actuel_table)
+        # Ajouter le tableau au layout du frame
+        content_layout.addWidget(self.repas_actuel_table)
 
-        main_splitter.addWidget(repas_actuel_group)
+        # Ajouter le frame au layout principal
+        repas_actuel_layout.addWidget(content_frame)
+
+        # Ajouter le conteneur au splitter
+        main_splitter.addWidget(repas_actuel_container)
 
         # PANNEAU CENTRAL: Nouveau repas
-        nouveau_repas_group = QGroupBox("Nouveau repas")
-        nouveau_repas_layout = QVBoxLayout(nouveau_repas_group)
-        nouveau_repas_layout.setContentsMargins(8, 15, 8, 8)
+        nouveau_repas_container = QWidget()
+        nouveau_repas_layout = QVBoxLayout(nouveau_repas_container)
+        nouveau_repas_layout.setContentsMargins(5, 5, 5, 5)
+
+        # Titre avec QLabel
+        nouveau_repas_title = QLabel("<strong>Nouveau repas</strong>")
+        nouveau_repas_title.setAlignment(Qt.AlignCenter)
+        nouveau_repas_title.setProperty("class", "group-title")
+        nouveau_repas_title.setObjectName("nouveauRepasTitle")
+        nouveau_repas_title.setMinimumHeight(25)
+        nouveau_repas_layout.addWidget(nouveau_repas_title)
+
+        # Contenu du groupe
+        nouveau_repas_frame = QFrame()
+        nouveau_repas_frame.setProperty("class", "group-content")
+        nouveau_repas_frame.setObjectName("nouveauRepasContent")
+        nouveau_repas_content_layout = QVBoxLayout(nouveau_repas_frame)
+        nouveau_repas_content_layout.setContentsMargins(2, 2, 2, 2)
 
         # Zone de scroll pour les sliders d'aliments
         scroll_area = QScrollArea()
@@ -265,7 +293,7 @@ class RemplacerRepasDialog(QDialog):
         self.scroll_layout.setSpacing(15)
         scroll_area.setWidget(scroll_widget)
 
-        nouveau_repas_layout.addWidget(scroll_area)
+        nouveau_repas_content_layout.addWidget(scroll_area)
 
         # Boutons pour modifier la recette
         btn_layout = QHBoxLayout()
@@ -278,9 +306,11 @@ class RemplacerRepasDialog(QDialog):
         self.btn_remove_ingredient.clicked.connect(self.retirer_ingredient)
         btn_layout.addWidget(self.btn_remove_ingredient)
 
-        nouveau_repas_layout.addLayout(btn_layout)
+        nouveau_repas_content_layout.addLayout(btn_layout)
 
-        main_splitter.addWidget(nouveau_repas_group)
+        nouveau_repas_layout.addWidget(nouveau_repas_frame)
+
+        main_splitter.addWidget(nouveau_repas_container)
 
         # PANNEAU DROIT: Comparaison nutritionnelle
         self.nutrition_comparison = NutritionComparison(db_manager=self.db_manager)
@@ -294,6 +324,7 @@ class RemplacerRepasDialog(QDialog):
         buttons_layout = QHBoxLayout()
 
         self.btn_cancel = QPushButton("Annuler")
+        self.btn_cancel.setObjectName("cancelButton")
         self.btn_cancel.clicked.connect(self.reject)
 
         self.btn_apply = QPushButton("Appliquer les modifications")

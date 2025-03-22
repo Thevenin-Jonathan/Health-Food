@@ -91,8 +91,8 @@ class NutritionComparison(QWidget):
         )
 
         # Corriger la hauteur des en-têtes et lignes
-        self.comparison_table.horizontalHeader().setMinimumHeight(34)
-        self.comparison_table.verticalHeader().setDefaultSectionSize(36)
+        self.comparison_table.horizontalHeader().setMinimumHeight(30)
+        self.comparison_table.verticalHeader().setDefaultSectionSize(30)
 
         # Configurer les colonnes
         self.comparison_table.setColumnWidth(0, 150)  # Nutriment
@@ -105,14 +105,20 @@ class NutritionComparison(QWidget):
             0, QHeaderView.Interactive
         )
         self.comparison_table.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.Interactive
+            1, QHeaderView.Stretch
         )
         self.comparison_table.horizontalHeader().setSectionResizeMode(
-            2, QHeaderView.Interactive
+            2, QHeaderView.Stretch
         )
         self.comparison_table.horizontalHeader().setSectionResizeMode(
-            3, QHeaderView.Interactive
+            3, QHeaderView.Stretch
         )
+
+        # Largeur minimale pour la première colonne
+        self.comparison_table.setColumnWidth(0, 90)
+
+        # Désactiver le scrolling horizontal
+        self.comparison_table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         # Optimiser l'apparence
         self.comparison_table.setAlternatingRowColors(True)
