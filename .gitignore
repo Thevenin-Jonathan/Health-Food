@@ -28,3 +28,4 @@ ENV/
 *.db
 *.log
 src/ui/style/style_generated.qss
+.VSCodeCounter/
