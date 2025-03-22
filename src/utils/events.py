@@ -27,6 +27,8 @@ class EventBus(QObject):
         int
     )  # Signal émis quand des repas sont modifiés (semaine_id)
 
+    recette_modifiee = Signal(int)  # ID de la recette modifiée
+
     utilisateur_modifie = (
         Signal()
     )  # Signal émis quand le profil utilisateur est modifié

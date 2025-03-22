@@ -4,21 +4,21 @@ from .db_connector import DBConnector
 class RepasManager(DBConnector):
     """Gestion des repas dans la base de données"""
 
-    def ajouter_repas(self, nom, jour, ordre, semaine_id=None):
+    def ajouter_repas(self, nom, jour, ordre, semaine_id=None, repas_type_id=None):
         """Ajoute un nouveau repas avec option de numéro de semaine"""
         self.connect()
         self.cursor.execute(
             """
-        INSERT INTO repas (nom, jour, ordre, semaine_id)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO repas (nom, jour, ordre, semaine_id, repas_type_id)
+        VALUES (?, ?, ?, ?, ?)
         """,
-            (nom, jour, ordre, semaine_id),
+            (nom, jour, ordre, semaine_id, repas_type_id),
         )
 
-        last_id = self.cursor.lastrowid
+        repas_id = self.cursor.lastrowid
         self.conn.commit()
         self.disconnect()
-        return last_id
+        return repas_id
 
     def ajouter_aliment_repas(self, repas_id, aliment_id, quantite):
         """Ajoute un aliment à un repas avec sa quantité"""
@@ -98,7 +98,7 @@ class RepasManager(DBConnector):
             # Récupérer les repas pour la semaine spécifique
             self.cursor.execute(
                 """
-                SELECT * FROM repas 
+                SELECT id, nom, jour, ordre, repas_type_id FROM repas 
                 WHERE semaine_id = ? 
                 ORDER BY jour, ordre
                 """,
@@ -108,7 +108,7 @@ class RepasManager(DBConnector):
             # Récupérer les repas sans numéro de semaine (comportement historique)
             self.cursor.execute(
                 """
-                SELECT * FROM repas 
+                SELECT id, nom, jour, ordre, repas_type_id FROM repas 
                 WHERE semaine_id IS NULL 
                 ORDER BY jour, ordre
                 """
@@ -219,6 +219,59 @@ class RepasManager(DBConnector):
 
         self.disconnect()
         return liste_courses
+
+    def update_repas_based_on_recipe(self, repas_type_id):
+        """Met à jour tous les repas basés sur la recette spécifiée"""
+        print(f"Mise à jour des repas basés sur la recette {repas_type_id}")
+        self.connect()
+
+        # 1. Obtenir la recette mise à jour avec ses ingrédients
+        from .db_repas_types import RepasTypesManager
+
+        repas_types_manager = RepasTypesManager(self.db_file)
+        recette = repas_types_manager.get_repas_type(repas_type_id)
+        print(
+            f"Recette obtenue: {recette['nom']} avec {len(recette['aliments'])} ingrédients"
+        )
+
+        # 2. Trouver tous les repas basés sur cette recette
+        self.cursor.execute(
+            """
+            SELECT id, nom, jour, ordre, semaine_id
+            FROM repas
+            WHERE repas_type_id = ?
+            """,
+            (repas_type_id,),
+        )
+
+        repas_list = [dict(row) for row in self.cursor.fetchall()]
+        print(f"Nombre de repas trouvés: {len(repas_list)}")
+
+        # 3. Pour chaque repas, mettre à jour ses ingrédients
+        for repas in repas_list:
+            repas_id = repas["id"]
+            print(f"Mise à jour du repas {repas_id}: {repas['nom']}")
+
+            # Supprimer tous les ingrédients existants
+            self.cursor.execute(
+                "DELETE FROM repas_aliments WHERE repas_id = ?", (repas_id,)
+            )
+
+            # Ajouter les ingrédients de la recette mise à jour
+            for aliment in recette["aliments"]:
+                self.cursor.execute(
+                    """
+                    INSERT INTO repas_aliments (repas_id, aliment_id, quantite)
+                    VALUES (?, ?, ?)
+                    """,
+                    (repas_id, aliment["id"], aliment["quantite"]),
+                )
+
+        self.conn.commit()
+        self.disconnect()
+
+        # Retourner le nombre de repas mis à jour
+        return len(repas_list)
 
     def supprimer_repas(self, repas_id):
         """Supprime un repas et ses aliments associés"""

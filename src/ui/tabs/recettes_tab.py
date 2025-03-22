@@ -460,6 +460,9 @@ class RecettesTab(QWidget):
             self.db_manager.ajouter_aliment_repas_type(recette_id, aliment_id, quantite)
             self.afficher_details_recette(current_row)
 
+        # Notifier que la recette a été modifiée
+        EVENT_BUS.recette_modifiee.emit(recette_id)
+
     def create_nutrition_widget(self, title, value_label):
         """Crée un widget pour l'affichage d'une valeur nutritionnelle"""
         container = QFrame()
@@ -514,8 +517,10 @@ class RecettesTab(QWidget):
 
         dialog = AppliquerRecetteDialog(self)
         if dialog.exec():
-            jour, ordre = dialog.get_data()
-            self.db_manager.appliquer_repas_type_au_jour(recette_id, jour, ordre)
+            jour, ordre, semaine_id = dialog.get_data()
+            self.db_manager.appliquer_repas_type_au_jour(
+                recette_id, jour, ordre, semaine_id
+            )
             QMessageBox.information(
                 self,
                 "Recette appliquée",
@@ -533,7 +538,6 @@ class RecettesTab(QWidget):
         )
 
         if reply == QMessageBox.Yes:
-            # Ajouter cette méthode à db_manager.py
             self.db_manager.supprimer_aliment_repas_type(
                 self.current_recette_id, aliment_id
             )
@@ -541,6 +545,9 @@ class RecettesTab(QWidget):
             # Rafraîchir l'affichage
             current_row = self.recettes_list.currentRow()
             self.afficher_details_recette(current_row)
+
+            # Notifier que la recette a été modifiée
+            EVENT_BUS.recette_modifiee.emit(self.current_recette_id)
 
     def show_ingredient_context_menu(self, position):
         """Affiche un menu contextuel pour les actions sur les ingrédients"""
@@ -566,6 +573,12 @@ class RecettesTab(QWidget):
         # Rafraîchir l'affichage pour mettre à jour les calories et macros
         current_row = self.recettes_list.currentRow()
         self.afficher_details_recette(current_row)
+
+        # Notifier que la recette a été modifiée
+        print(
+            f"Émission du signal recette_modifiee pour la recette ID: {self.current_recette_id}"
+        )
+        EVENT_BUS.recette_modifiee.emit(self.current_recette_id)
 
         # Afficher un message de confirmation
         QMessageBox.information(
@@ -604,6 +617,8 @@ class RecettesTab(QWidget):
                 if self.recettes_list.item(i).data(Qt.UserRole) == recette_id:
                     self.recettes_list.setCurrentRow(i)
                     break
+
+            EVENT_BUS.recette_modifiee.emit(recette_id)
 
     def on_aliment_supprime(self):
         """Appelé lorsqu'un aliment est supprimé"""

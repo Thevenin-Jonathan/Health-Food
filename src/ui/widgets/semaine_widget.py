@@ -29,6 +29,9 @@ class SemaineWidget(QWidget):
         # Liste de widgets jour pour référence
         self.jour_widgets = []
 
+        # Dictionnaire pour suivre les recettes utilisées dans cette semaine
+        self.recettes_utilisees = {}
+
         self.setup_ui()
         self.load_data()
 
@@ -36,8 +39,12 @@ class SemaineWidget(QWidget):
         EVENT_BUS.utilisateur_modifie.connect(self.update_objectifs_utilisateur)
         EVENT_BUS.aliment_supprime.connect(self.on_aliment_supprime)
         EVENT_BUS.repas_modifies.connect(self.on_repas_modifies)
+        EVENT_BUS.recette_modifiee.connect(self.on_recette_modifiee)
 
     def setup_ui(self):
+        # Dictionnaire pour suivre les recettes utilisées dans cette semaine
+        self.recettes_utilisees = {}
+
         main_layout = QVBoxLayout()
         main_layout.setSpacing(5)  # Réduire l'espacement vertical entre éléments
         main_layout.setContentsMargins(
@@ -85,11 +92,22 @@ class SemaineWidget(QWidget):
             if widget:
                 widget.deleteLater()
 
-        # Vider la liste des widgets jour
+        # Vider la liste des widgets jour et le dictionnaire des recettes utilisées
         self.jour_widgets = []
+        self.recettes_utilisees = {}
 
         # Récupérer les données des repas pour la semaine
         repas_semaine = self.db_manager.get_repas_semaine(self.semaine_id)
+
+        # Identifier les recettes utilisées dans cette semaine
+        for jour in JOURS_SEMAINE:
+            for repas in repas_semaine[jour]:
+                if repas.get("repas_type_id"):  # Utilisez get() pour éviter KeyError
+                    # Ajouter la recette au dictionnaire si elle n'y est pas déjà
+                    self.recettes_utilisees[repas["repas_type_id"]] = True
+                    print(
+                        f"Repas '{repas['nom']}' utilise la recette ID: {repas['repas_type_id']}"
+                    )
 
         for col, jour in enumerate(JOURS_SEMAINE):
             # Créer un widget pour le jour
@@ -120,6 +138,28 @@ class SemaineWidget(QWidget):
         """Appelé lorsqu'un repas est modifié dans la semaine"""
         if semaine_id == self.semaine_id:
             self.load_data()
+
+    # Dans SemaineWidget.on_recette_modifiee
+    def on_recette_modifiee(self, recette_id):
+        """Appelé lorsqu'une recette est modifiée"""
+        print(f"Signal reçu: recette_modifiee avec ID: {recette_id}")
+        print(
+            f"Recettes utilisées dans la semaine: {list(self.recettes_utilisees.keys())}"
+        )
+
+        # Vérifier si cette recette est utilisée dans cette semaine
+        if recette_id in self.recettes_utilisees:
+            print(
+                f"La recette {recette_id} est utilisée dans la semaine {self.semaine_id}"
+            )
+            # Mettre à jour tous les repas basés sur cette recette
+            count = self.db_manager.update_repas_based_on_recipe(recette_id)
+            print(f"{count} repas mis à jour avec la recette {recette_id}")
+            # Si oui, recharger les données
+            self.load_data()
+            print("Données rechargées")
+        else:
+            print(f"La recette {recette_id} n'est pas utilisée dans cette semaine")
 
     def charger_objectifs_utilisateur(self):
         """Récupère les objectifs nutritionnels de l'utilisateur"""

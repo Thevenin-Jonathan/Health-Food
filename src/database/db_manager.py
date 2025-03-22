@@ -83,7 +83,7 @@ class DatabaseManager(DBConnector):
         return self.aliment_manager.get_categories_uniques()
 
     # =========== MÉTHODES DÉLÉGUÉES À RepasManager ===========
-    def ajouter_repas(self, nom, jour, ordre, semaine_id=None):
+    def ajouter_repas(self, nom, jour, ordre, semaine_id=None, repas_type_id=None):
         """Délègue l'ajout de repas au RepasManager"""
         return self.repas_manager.ajouter_repas(nom, jour, ordre, semaine_id)
 
@@ -128,6 +128,10 @@ class DatabaseManager(DBConnector):
     def modifier_nom_repas(self, repas_id, nouveau_nom):
         """Délègue la modification du nom d'un repas au RepasManager"""
         return self.repas_manager.modifier_nom_repas(repas_id, nouveau_nom)
+
+    def update_repas_based_on_recipe(self, repas_type_id):
+        """Délègue la mise à jour des repas basés sur une recette au RepasManager"""
+        return self.repas_manager.update_repas_based_on_recipe(repas_type_id)
 
     def get_repas(self, repas_id):
         """Délègue la récupération d'un repas par son ID au RepasManager"""

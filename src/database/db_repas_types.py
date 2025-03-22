@@ -179,7 +179,14 @@ class RepasTypesManager(DBConnector):
         nom_repas = nom_personnalise if nom_personnalise else repas_type["nom"]
 
         # Créer le repas avec le numéro de semaine et le nom approprié
-        repas_id = repas_manager.ajouter_repas(nom_repas, jour, ordre, semaine_id)
+        # Important : ajouter aussi l'ID de la recette pour pouvoir suivre les modifications
+        repas_id = repas_manager.ajouter_repas(
+            nom_repas,
+            jour,
+            ordre,
+            semaine_id,
+            repas_type_id,  # Stocker l'ID de la recette dans le repas
+        )
 
         # Ajouter tous les aliments du repas type au nouveau repas
         for aliment in repas_type["aliments"]:

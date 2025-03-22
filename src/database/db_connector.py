@@ -94,14 +94,15 @@ class DBConnector:
         # Table des repas
         self.cursor.execute(
             """
-        CREATE TABLE IF NOT EXISTS repas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nom TEXT NOT NULL,
-            jour TEXT NOT NULL,
-            ordre INTEGER,
-            semaine_id INTEGER DEFAULT NULL
-        )
-        """
+            CREATE TABLE IF NOT EXISTS repas (
+                id INTEGER PRIMARY KEY,
+                nom TEXT NOT NULL,
+                jour TEXT NOT NULL,
+                ordre INTEGER DEFAULT 1,
+                semaine_id INTEGER,
+                repas_type_id INTEGER
+            )
+            """
         )
 
         # Table des aliments dans les repas
