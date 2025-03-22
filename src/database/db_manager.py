@@ -133,6 +133,12 @@ class DatabaseManager(DBConnector):
         """Délègue la récupération d'un repas par son ID au RepasManager"""
         return self.repas_manager.get_repas(repas_id)
 
+    def modifier_quantite_aliment_repas(self, repas_id, aliment_id, quantite):
+        """Délègue la modification de la quantité d'un aliment dans un repas au RepasManager"""
+        return self.repas_manager.modifier_quantite_aliment_repas(
+            repas_id, aliment_id, quantite
+        )
+
     # =========== MÉTHODES DÉLÉGUÉES À RepasTypesManager ===========
     def ajouter_repas_type(self, nom, description):
         """Délègue l'ajout d'un repas type au RepasTypesManager"""

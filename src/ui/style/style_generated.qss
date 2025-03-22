@@ -996,3 +996,9 @@ QFrame.repas-widget QLabel[class="aliment-item"] {
     line-height: 130%;
     min-height: 16px;
 }
+
+QFrame.repas-widget QLabel[class="aliment-item"]:hover {
+    background-color: #f0f0f0;
+    border-radius: 3px;
+    color: #4CAF50;
+}

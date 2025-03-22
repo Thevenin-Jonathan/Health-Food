@@ -25,9 +25,9 @@ class RepasManager(DBConnector):
         self.connect()
         self.cursor.execute(
             """
-        INSERT INTO repas_aliments (repas_id, aliment_id, quantite)
-        VALUES (?, ?, ?)
-        """,
+            INSERT INTO repas_aliments (repas_id, aliment_id, quantite)
+            VALUES (?, ?, ?)
+            """,
             (repas_id, aliment_id, quantite),
         )
 
@@ -35,6 +35,22 @@ class RepasManager(DBConnector):
         self.conn.commit()
         self.disconnect()
         return last_id
+
+    def modifier_quantite_aliment_repas(self, repas_id, aliment_id, quantite):
+        """Modifie la quantité d'un aliment dans un repas"""
+        self.connect()
+        self.cursor.execute(
+            """
+            UPDATE repas_aliments 
+            SET quantite = ? 
+            WHERE repas_id = ? AND aliment_id = ?
+            """,
+            (quantite, repas_id, aliment_id),
+        )
+        self.conn.commit()
+        rows_affected = self.cursor.rowcount > 0
+        self.disconnect()
+        return rows_affected
 
     def supprimer_aliment_repas(self, repas_id, aliment_id):
         """Supprime un aliment d'un repas"""

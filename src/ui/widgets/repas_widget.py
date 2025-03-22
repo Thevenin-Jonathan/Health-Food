@@ -20,6 +20,38 @@ from src.ui.dialogs.repas_edition_dialog import RepasEditionDialog
 from src.utils.events import EVENT_BUS
 
 
+class EditableAlimentLabel(QLabel):
+    """Label d'aliment avec édition du poids par double-clic"""
+
+    weightChanged = Signal(int, int)  # (aliment_id, nouvelle_quantité)
+
+    def __init__(self, text, aliment_id, quantite_actuelle, parent=None):
+        super().__init__(text, parent)
+        self.aliment_id = aliment_id
+        self.quantite_actuelle = quantite_actuelle
+        self.setCursor(
+            Qt.PointingHandCursor
+        )  # Curseur main pour indiquer qu'on peut cliquer
+        self.setToolTip("Double-cliquez pour modifier la quantité")
+
+    def mouseDoubleClickEvent(self, event):
+        """Gérer le double-clic pour éditer la quantité"""
+        # Demander la nouvelle quantité avec QInputDialog
+        new_quantity, ok = QInputDialog.getInt(
+            self,
+            "Modifier la quantité",
+            "Nouvelle quantité (en grammes):",
+            self.quantite_actuelle,  # Valeur par défaut
+            1,  # Minimum
+            5000,  # Maximum
+            1,  # Pas
+        )
+
+        if ok and new_quantity != self.quantite_actuelle:
+            # Émettre le signal avec l'ID de l'aliment et la nouvelle quantité
+            self.weightChanged.emit(self.aliment_id, new_quantity)
+
+
 class EditableTitleLabel(QLabel):
     """Label avec édition directe par double-clic"""
 
@@ -242,19 +274,24 @@ class RepasWidget(QFrame):
         btn_remove.clicked.connect(lambda: self.remove_food_from_meal(aliment["id"]))
         alim_layout.addWidget(btn_remove)
 
-        # Texte de base de l'aliment
-        alim_text = f"{aliment['nom']} ({aliment['quantite']}g) - {aliment['calories'] * aliment['quantite'] / 100:.0f} kcal"
-        alim_label = QLabel(alim_text)
-        alim_label.setProperty("class", "aliment-item")
-        alim_label.setWordWrap(True)
-        alim_layout.addWidget(alim_label)
-        alim_layout.addStretch()
-
-        # Calculer les valeurs nutritionnelles pour le tooltip
+        # Calculer les valeurs nutritionnelles et le texte
         calories = aliment["calories"] * aliment["quantite"] / 100
         proteines = aliment["proteines"] * aliment["quantite"] / 100
         glucides = aliment["glucides"] * aliment["quantite"] / 100
         lipides = aliment["lipides"] * aliment["quantite"] / 100
+
+        # Texte de base de l'aliment
+        alim_text = f"{aliment['nom']} ({aliment['quantite']}g) - {calories:.0f} kcal"
+
+        # Utiliser notre nouveau label éditable
+        alim_label = EditableAlimentLabel(
+            alim_text, aliment["id"], aliment["quantite"], self
+        )
+        alim_label.setProperty("class", "aliment-item")
+        alim_label.setWordWrap(True)
+        alim_label.weightChanged.connect(self.update_aliment_weight)
+        alim_layout.addWidget(alim_label)
+        alim_layout.addStretch()
 
         # Créer un tooltip riche avec les informations détaillées
         tooltip_text = f"""<b>{aliment['nom']}</b> ({aliment['quantite']}g)<br>
@@ -271,6 +308,43 @@ class RepasWidget(QFrame):
 
         # Ajouter le widget conteneur au layout parent
         parent_layout.addWidget(alim_container)
+
+    def update_aliment_weight(self, aliment_id, new_quantity):
+        """Met à jour le poids d'un aliment dans le repas"""
+        # Mettre à jour la base de données
+        self.db_manager.modifier_quantite_aliment_repas(
+            self.repas_data["id"], aliment_id, new_quantity
+        )
+
+        # Récupérer les données mises à jour du repas
+        repas_updated = self.db_manager.get_repas(self.repas_data["id"])
+        if repas_updated:
+            # Conserver l'état d'expansion
+            was_expanded = self.is_expanded
+
+            # Mettre à jour les données locales
+            self.repas_data = repas_updated
+
+            # Reconstruire l'interface du repas sans recharger tout le contenu
+            self.clear_and_rebuild_details()
+            self.update_summaries()
+
+            # Restaurer l'état d'expansion
+            if was_expanded:
+                self.is_expanded = True
+                self.details_widget.setVisible(True)
+                self.expand_btn.setText("▲")
+                self.expand_btn.setStyleSheet(
+                    """
+                    border-top-left-radius: 0px;
+                    border-top-right-radius: 0px;
+                    border-bottom-left-radius: 12px;
+                    border-bottom-right-radius: 12px;
+                    """
+                )
+
+            # Mettre à jour les totaux du jour parent sans tout recharger
+            self.notify_parent_day_widget()
 
     def add_food_to_meal(self):
         """Ajouter un aliment au repas"""
