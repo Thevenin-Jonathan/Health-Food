@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QComboBox,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from src.utils.events import EVENT_BUS
 
 
@@ -23,7 +23,15 @@ class ExportImportDialog(QDialog):
     def __init__(self, parent=None, db_manager=None):
         super().__init__(parent)
         self.db_manager = db_manager
+
+        # Initialiser l'interface
         self.setup_ui()
+
+        # Connecter les signaux
+        self.connect_signals()
+
+        # Mettre à jour l'état initial
+        self.update_planning_selection_visibility()
 
     def setup_ui(self):
         self.setWindowTitle("Exportation / Importation des données")
@@ -41,30 +49,42 @@ class ExportImportDialog(QDialog):
 
         # Section d'exportation
         export_group = QGroupBox("Exportation des données")
-        export_layout = QVBoxLayout(export_group)
+        self.export_layout = QVBoxLayout(export_group)
 
         # Options d'exportation
         self.export_aliments_cb = QCheckBox("Aliments")
         self.export_recettes_cb = QCheckBox("Recettes")
         self.export_planning_cb = QCheckBox("Planning hebdomadaire")
 
-        export_layout.addWidget(self.export_aliments_cb)
-        export_layout.addWidget(self.export_recettes_cb)
-        export_layout.addWidget(self.export_planning_cb)
+        self.export_layout.addWidget(self.export_aliments_cb)
+        self.export_layout.addWidget(self.export_recettes_cb)
+        self.export_layout.addWidget(self.export_planning_cb)
 
-        # Semaine pour l'exportation du planning
-        planning_layout = QHBoxLayout()
-        planning_layout.addWidget(QLabel("Semaine:"))
+        # Label et combo pour la sélection de semaine (initialement cachés)
+        self.semaine_layout = QHBoxLayout()
+        self.semaine_layout.setContentsMargins(20, 0, 0, 0)
+
+        self.semaine_label = QLabel("Semaine:")
+        self.semaine_layout.addWidget(self.semaine_label)
+
         self.export_semaine_combo = QComboBox()
+        self.export_semaine_combo.setMinimumWidth(200)
         self.charger_semaines()
-        planning_layout.addWidget(self.export_semaine_combo)
-        export_layout.addLayout(planning_layout)
+        self.semaine_layout.addWidget(self.export_semaine_combo)
+        self.semaine_layout.addStretch(1)
+
+        # Ajouter ce layout au layout principal
+        self.export_layout.addLayout(self.semaine_layout)
+
+        # Cacher initialement les widgets de sélection de semaine
+        self.semaine_label.setVisible(False)
+        self.export_semaine_combo.setVisible(False)
 
         # Bouton d'exportation
         self.export_btn = QPushButton("Exporter")
         self.export_btn.setObjectName("primaryButton")
         self.export_btn.clicked.connect(self.exporter_donnees)
-        export_layout.addWidget(self.export_btn)
+        self.export_layout.addWidget(self.export_btn)
 
         main_layout.addWidget(export_group)
 
@@ -102,6 +122,25 @@ class ExportImportDialog(QDialog):
         buttons_layout.addWidget(self.close_btn)
 
         main_layout.addLayout(buttons_layout)
+
+    def connect_signals(self):
+        """Connecte les signaux aux slots"""
+        self.export_planning_cb.stateChanged.connect(
+            self.update_planning_selection_visibility
+        )
+
+    def update_planning_selection_visibility(self):
+        """Met à jour la visibilité des widgets de sélection de semaine"""
+        is_visible = self.export_planning_cb.isChecked()
+        self.semaine_label.setVisible(is_visible)
+        self.export_semaine_combo.setVisible(is_visible)
+
+        # Forcer un redimensionnement du dialogue
+        QTimer.singleShot(0, self.adjustSize)
+
+        print(
+            f"État de la case Planning : {is_visible}, Label visible : {self.semaine_label.isVisible()}, Combo visible : {self.export_semaine_combo.isVisible()}"
+        )
 
     def charger_semaines(self):
         """Charge les semaines disponibles dans la combobox"""
