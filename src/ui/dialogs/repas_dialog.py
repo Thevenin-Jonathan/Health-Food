@@ -47,6 +47,7 @@ class RepasDialog(QDialog):
 
         # Ordre dans la journée
         self.ordre_input = QSpinBox()
+        self.ordre_input.setProperty("class", "spin-box-vertical")
         self.ordre_input.setMinimum(1)
         self.ordre_input.setValue(1)
         self.layout.addRow("Position dans la journée:", self.ordre_input)
