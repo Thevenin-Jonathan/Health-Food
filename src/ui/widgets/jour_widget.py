@@ -50,8 +50,8 @@ class JourWidget(QWidget):
         jour_header.addWidget(titre_jour)
 
         # Bouton pour ajouter un repas à ce jour
-        btn_add_day = QPushButton("✚")
-        btn_add_day.setObjectName("addButton")
+        btn_add_day = QPushButton("✚ Ajouter un repas")
+        btn_add_day.setObjectName("addMealButton")
         btn_add_day.setToolTip(f"Ajouter un repas le {self.jour}")
         btn_add_day.clicked.connect(self.add_meal)
         jour_header.addWidget(btn_add_day)
