@@ -58,29 +58,13 @@ class PlanningTab(QWidget):
         # Panel de contrôle des semaines
         control_layout = QHBoxLayout()
 
-        # Style commun pour les boutons verts
-        button_style = """
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                font-weight: bold;
-                padding: 8px 16px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """
-
         self.btn_add_week = QPushButton("Ajouter une semaine")
         self.btn_add_week.clicked.connect(self.ajouter_semaine)
-        self.btn_add_week.setStyleSheet(button_style)
         control_layout.addWidget(self.btn_add_week)
 
         # Ajout du bouton pour renommer la semaine courante
         self.btn_rename_week = QPushButton("Renommer la semaine courante")
         self.btn_rename_week.clicked.connect(self.renommer_semaine_courante)
-        self.btn_rename_week.setStyleSheet(button_style)
         control_layout.addWidget(self.btn_rename_week)
 
         # Ajouter un espacement
@@ -89,7 +73,6 @@ class PlanningTab(QWidget):
         # Ajouter le bouton d'impression
         self.btn_print_planning = QPushButton("⎙ Imprimer")
         self.btn_print_planning.clicked.connect(self.imprimer_planning_courant)
-        self.btn_print_planning.setStyleSheet(button_style)
         self.btn_print_planning.setEnabled(False)  # Désactivé par défaut
         control_layout.addWidget(self.btn_print_planning)
 
