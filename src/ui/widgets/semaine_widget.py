@@ -44,18 +44,6 @@ class SemaineWidget(QWidget):
             5, 5, 5, 5
         )  # Réduire les marges autour du widget principal
 
-        # # Bouton pour imprimer le planning
-        # print_layout = QHBoxLayout()
-        # self.btn_print = QPushButton("Imprimer le planning")
-        # # Utiliser une icône standard disponible
-        # self.btn_print.setIcon(
-        #     self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogListView)
-        # )
-        # self.btn_print.clicked.connect(self.print_planning)
-        # print_layout.addStretch()
-        # print_layout.addWidget(self.btn_print)
-        # main_layout.addLayout(print_layout)
-
         # Conteneur pour les jours avec scroll
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -69,9 +57,14 @@ class SemaineWidget(QWidget):
             2, 2, 2, 2
         )  # Réduire les marges du conteneur
 
-        # Définir une largeur maximum pour les colonnes des jours
-        self.days_layout.setColumnMinimumWidth(0, 300)  # Largeur minimum
-        self.days_layout.setColumnStretch(0, 1)  # Facteur d'étirement
+        # Définir la même largeur minimum pour TOUTES les colonnes
+        for col in range(len(JOURS_SEMAINE)):
+            self.days_layout.setColumnMinimumWidth(
+                col, 280
+            )  # Même largeur minimum pour tous les jours
+            self.days_layout.setColumnStretch(
+                col, 1
+            )  # Même facteur d'étirement pour tous
 
         self.days_container.setLayout(self.days_layout)
 
