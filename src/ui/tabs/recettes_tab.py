@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QStyledItemDelegate,
     QSpinBox,
     QSizePolicy,
+    QFrame,
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCursor
@@ -183,11 +184,15 @@ class RecettesTab(QWidget):
         header.setSectionResizeMode(3, QHeaderView.Fixed)  # Macros
         header.setSectionResizeMode(4, QHeaderView.Fixed)  # Actions
 
+        self.detail_ingredients.verticalHeader().setVisible(
+            False
+        )  # Masquer les en-têtes de ligne verticaux
+
         # Définir des largeurs fixes pour les colonnes non élastiques
         self.detail_ingredients.setColumnWidth(1, 90)  # Quantité
         self.detail_ingredients.setColumnWidth(2, 80)  # Calories
         self.detail_ingredients.setColumnWidth(3, 180)  # Macros
-        self.detail_ingredients.setColumnWidth(4, 60)  # Actions
+        self.detail_ingredients.setColumnWidth(4, 70)  # Actions
 
         # Définir une hauteur minimale pour le tableau
         self.detail_ingredients.setSizePolicy(
@@ -212,11 +217,50 @@ class RecettesTab(QWidget):
             self.show_ingredient_context_menu
         )
 
-        self.detail_nutrition = QLabel(
-            "Valeurs nutritionnelles de la recette sélectionnée"
+        # Ajouter un titre pour la section des valeurs nutritionnelles
+        nutrition_title = QLabel("<h4>Valeurs nutritionnelles</h4>")
+        nutrition_title.setProperty("class", "subsection-title")
+        self.right_layout.addWidget(nutrition_title)
+
+        # Créer un conteneur stylisé pour les valeurs nutritionnelles
+        nutrition_container = QFrame()
+        nutrition_container.setObjectName("nutritionFrame")
+        nutrition_container.setProperty("class", "nutrition-summary")
+        nutrition_layout = QHBoxLayout(nutrition_container)
+
+        # Créer quatre sections pour les macronutriments principaux
+        self.calories_label = QLabel("0 kcal")
+        self.calories_label.setAlignment(Qt.AlignCenter)
+        self.calories_label.setProperty("class", "nutrition-value")
+
+        self.proteines_label = QLabel("0g")
+        self.proteines_label.setAlignment(Qt.AlignCenter)
+        self.proteines_label.setProperty("class", "nutrition-value")
+
+        self.glucides_label = QLabel("0g")
+        self.glucides_label.setAlignment(Qt.AlignCenter)
+        self.glucides_label.setProperty("class", "nutrition-value")
+
+        self.lipides_label = QLabel("0g")
+        self.lipides_label.setAlignment(Qt.AlignCenter)
+        self.lipides_label.setProperty("class", "nutrition-value")
+
+        # Créer des conteneurs individuels pour chaque macro avec icône/titre
+        calories_widget = self.create_nutrition_widget("Calories", self.calories_label)
+        proteines_widget = self.create_nutrition_widget(
+            "Protéines", self.proteines_label
         )
-        self.right_layout.addWidget(QLabel("<h4>Valeurs nutritionnelles</h4>"))
-        self.right_layout.addWidget(self.detail_nutrition)
+        glucides_widget = self.create_nutrition_widget("Glucides", self.glucides_label)
+        lipides_widget = self.create_nutrition_widget("Lipides", self.lipides_label)
+
+        # Ajouter les widgets au layout
+        nutrition_layout.addWidget(calories_widget)
+        nutrition_layout.addWidget(proteines_widget)
+        nutrition_layout.addWidget(glucides_widget)
+        nutrition_layout.addWidget(lipides_widget)
+
+        # Ajouter le conteneur au layout principal
+        self.right_layout.addWidget(nutrition_container)
 
         # Bouton pour ajouter un ingrédient à la recette sélectionnée
         button_container = QWidget()
@@ -255,8 +299,10 @@ class RecettesTab(QWidget):
 
     def afficher_details_recette(self, row):
         """Affiche les détails de la recette sélectionnée"""
-        # Nettoyer l'affichage actuel
-        self.detail_nutrition.setText("")
+        self.calories_label.setText("0 kcal")
+        self.proteines_label.setText("0g")
+        self.glucides_label.setText("0g")
+        self.lipides_label.setText("0g")
         self.detail_ingredients.setRowCount(0)
 
         if row < 0:
@@ -315,21 +361,7 @@ class RecettesTab(QWidget):
 
             btn_delete = QPushButton("×")
             btn_delete.setFixedSize(16, 16)  # Taille réduite et carrée
-            btn_delete.setStyleSheet(
-                """
-              QPushButton {
-                color: white;
-                background-color: #e74c3c;
-                font-weight: bold;
-                font-size: 14px;
-                padding: 0px;
-                margin: 0px;
-              }
-              QPushButton:hover {
-                background-color: #c0392b;
-              }
-              """
-            )
+            btn_delete.setObjectName("deleteButton")
             btn_delete.setToolTip("Supprimer cet ingrédient")
             btn_delete.clicked.connect(
                 lambda checked, aid=aliment["id"]: self.supprimer_ingredient(aid)
@@ -345,12 +377,23 @@ class RecettesTab(QWidget):
                         Qt.UserRole, aliment["id"]
                     )
 
-        # Afficher les valeurs nutritionnelles totales
-        nutrition = f"<b>Calories:</b> {recette['total_calories']:.0f} kcal<br>"
-        nutrition += f"<b>Protéines:</b> {recette['total_proteines']:.1f}g<br>"
-        nutrition += f"<b>Glucides:</b> {recette['total_glucides']:.1f}g<br>"
-        nutrition += f"<b>Lipides:</b> {recette['total_lipides']:.1f}g"
-        self.detail_nutrition.setText(nutrition)
+        # Mettre à jour les valeurs nutritionnelles avec mise en forme
+        self.calories_label.setText(f"{recette['total_calories']:.0f} kcal")
+        self.proteines_label.setText(f"{recette['total_proteines']:.1f}g")
+        self.glucides_label.setText(f"{recette['total_glucides']:.1f}g")
+        self.lipides_label.setText(f"{recette['total_lipides']:.1f}g")
+
+        # Ajouter des couleurs selon les valeurs
+        self.calories_label.setStyleSheet(
+            f"color: {'#e74c3c' if recette['total_calories'] > 500 else '#2ecc71'};"
+        )
+        self.proteines_label.setStyleSheet(f"color: #3498db;")
+        self.glucides_label.setStyleSheet(
+            f"color: {'#e67e22' if recette['total_glucides'] > 50 else '#2ecc71'};"
+        )
+        self.lipides_label.setStyleSheet(
+            f"color: {'#e74c3c' if recette['total_lipides'] > 20 else '#2ecc71'};"
+        )
 
     def ajouter_recette(self):
         """Ajoute une nouvelle recette"""
@@ -402,6 +445,47 @@ class RecettesTab(QWidget):
             aliment_id, quantite = dialog.get_data()
             self.db_manager.ajouter_aliment_repas_type(recette_id, aliment_id, quantite)
             self.afficher_details_recette(current_row)
+
+    def create_nutrition_widget(self, title, value_label):
+        """Crée un widget pour l'affichage d'une valeur nutritionnelle"""
+        container = QFrame()
+        container.setProperty("class", "nutrition-item")
+        layout = QVBoxLayout(container)
+        layout.setSpacing(2)
+        layout.setContentsMargins(8, 12, 8, 12)
+
+        # Titre avec icône (emoji) et texte
+        title_layout = QHBoxLayout()
+        title_layout.setSpacing(4)
+
+        # Choisir l'icône (emoji) selon le type de macro
+        icon = ""
+        if title == "Calories":
+            icon = "🔥"  # Feu pour calories
+        elif title == "Protéines":
+            icon = "💪"  # Muscle pour protéines
+        elif title == "Glucides":
+            icon = "🌾"  # Blé pour glucides
+        elif title == "Lipides":
+            icon = "💧"  # Goutte pour lipides
+
+        icon_label = QLabel(icon)
+        icon_label.setProperty("class", "nutrition-icon")
+        title_label = QLabel(title)
+        title_label.setProperty("class", "nutrition-title")
+
+        title_layout.addWidget(icon_label)
+        title_layout.addWidget(title_label)
+        title_layout.addStretch(1)
+
+        # Valeur nutritionnelle (grande et en gras)
+        value_label.setAlignment(Qt.AlignCenter)
+
+        # Ajouter au layout
+        layout.addLayout(title_layout)
+        layout.addWidget(value_label)
+
+        return container
 
     def appliquer_au_planning(self):
         """Applique la recette sélectionnée au planning"""

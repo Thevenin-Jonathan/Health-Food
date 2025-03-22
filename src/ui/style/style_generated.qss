@@ -232,7 +232,6 @@ QPushButton#deleteButton, QPushButton#deleteBigButton {
     color: #e74c3c;
     font-weight: bold;
     border-radius: 4px;
-    padding: 0px;
 }
 
 QPushButton#deleteButton {
@@ -700,4 +699,59 @@ QSplitter::handle:vertical {
 /* Style au survol, pour rendre le séparateur plus visible quand l'utilisateur veut le déplacer */
 QSplitter::handle:hover {
     background-color: #4CAF50;  /* Couleur plus visible au survol */
+}
+
+/* 
+============================================
+   STYLES DES VALEURS NUTRITIONNELLES
+============================================
+*/
+
+/* Cadre contenant les valeurs nutritionnelles */
+QFrame.nutrition-summary {
+    background-color: white;
+    border: 1px solid #C8E6C9;
+    border-radius: 4px;
+    padding: 5px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
+/* Éléments individuels des valeurs nutritionnelles */
+QFrame.nutrition-item {
+    background-color: #e0f0e0;
+    border-radius: 4px;
+    padding: 5px;
+    margin: 2px;
+}
+
+/* Titre des valeurs nutritionnelles */
+QLabel.nutrition-title {
+    font-weight: bold;
+    color: #388E3C;
+    font-size: 9pt;
+}
+
+/* Valeurs nutritionnelles */
+QLabel.nutrition-value {
+    font-weight: bold;
+    font-size: 12pt;
+    padding: 2px;
+}
+
+/* Couleurs spécifiques pour les macros */
+QLabel.nutrition-value[type="calories"] {
+    color: #e74c3c;
+}
+
+QLabel.nutrition-value[type="proteines"] {
+    color: #3498db;
+}
+
+QLabel.nutrition-value[type="glucides"] {
+    color: #e67e22;
+}
+
+QLabel.nutrition-value[type="lipides"] {
+    color: #8e44ad;
 }
