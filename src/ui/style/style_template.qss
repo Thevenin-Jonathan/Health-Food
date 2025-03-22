@@ -929,6 +929,11 @@ QLabel.repas-title {
     padding: 2px 0;
 }
 
+QLabel.repas-title:hover {
+    text-decoration: underline;
+    color: $PRIMARY_COLOR;
+}
+
 /* Bouton des calories */
 QLabel.calories-label {
     background-color: $BACKGROUND_COLOR;

@@ -9,13 +9,47 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QWidget,
     QScrollArea,
+    QLineEdit,
+    QInputDialog,
 )
-from PySide6.QtCore import Qt, QMimeData, QByteArray
+from PySide6.QtCore import Qt, QMimeData, QByteArray, Signal
 from PySide6.QtGui import QDrag, QPainter, QPixmap
 from src.ui.dialogs.aliment_repas_dialog import AlimentRepasDialog
 from src.ui.dialogs.remplacer_repas_dialog import RemplacerRepasDialog
 from src.ui.dialogs.repas_edition_dialog import RepasEditionDialog
 from src.utils.events import EVENT_BUS
+
+
+class EditableTitleLabel(QLabel):
+    """Label avec édition directe par double-clic"""
+
+    titleChanged = Signal(str)
+
+    def __init__(self, text, parent=None):
+        super().__init__(text, parent)
+        self.setCursor(
+            Qt.PointingHandCursor
+        )  # Curseur main pour indiquer qu'on peut cliquer
+
+    def mouseDoubleClickEvent(self, event):
+        """Gérer le double-clic pour éditer le titre"""
+        # Extraire le texte actuel (enlever les balises HTML)
+        current_text = self.text().replace("<b>", "").replace("</b>", "")
+
+        # Demander le nouveau titre avec QInputDialog
+        new_title, ok = QInputDialog.getText(
+            self,
+            "Modifier le titre",
+            "Nouveau titre du repas:",
+            QLineEdit.Normal,
+            current_text,
+        )
+
+        if ok and new_title:
+            # Mettre à jour le texte avec le format en gras
+            self.setText(f"<b>{new_title}</b>")
+            # Émettre le signal avec le nouveau titre
+            self.titleChanged.emit(new_title)
 
 
 class RepasWidget(QFrame):
@@ -64,14 +98,6 @@ class RepasWidget(QFrame):
         buttons_layout = QHBoxLayout()
         buttons_layout.setSpacing(2)
 
-        # Bouton d'édition
-        btn_edit = QPushButton("✐")
-        btn_edit.setObjectName("editButton")
-        btn_edit.setFixedSize(24, 24)
-        btn_edit.setToolTip("Modifier ce repas")
-        btn_edit.clicked.connect(self.edit_repas)
-        buttons_layout.addWidget(btn_edit)
-
         # Bouton pour remplacer le repas par une recette
         btn_replace = QPushButton("⇄")
         btn_replace.setObjectName("replaceButton")
@@ -91,11 +117,14 @@ class RepasWidget(QFrame):
         header_layout.addLayout(buttons_layout)
         self.repas_layout.addLayout(header_layout)
 
-        # ===== LIGNE 2: NOM DU REPAS =====
-        titre_repas = QLabel(f"<b>{self.repas_data['nom']}</b>")
-        titre_repas.setAlignment(Qt.AlignLeft)
-        titre_repas.setProperty("class", "repas-title")
-        self.repas_layout.addWidget(titre_repas)
+        # ===== LIGNE 2: NOM DU REPAS (ÉDITABLE PAR DOUBLE-CLIC) =====
+        # Créer un QLabel spécial pour le titre qui va gérer le double-clic
+        self.titre_repas = EditableTitleLabel(f"<b>{self.repas_data['nom']}</b>", self)
+        self.titre_repas.setAlignment(Qt.AlignLeft)
+        self.titre_repas.setProperty("class", "repas-title")
+        self.titre_repas.setToolTip("Double-cliquez pour modifier le titre")
+        self.titre_repas.titleChanged.connect(self.update_repas_title)
+        self.repas_layout.addWidget(self.titre_repas)
 
         # ===== LIGNE 3: RÉSUMÉ DES MACROS =====
         self.macro_summary = QLabel(
@@ -185,6 +214,17 @@ class RepasWidget(QFrame):
         # Informer le container parent qu'il doit se réajuster
         if self.parent():
             self.parent().updateGeometry()
+
+    def update_repas_title(self, new_title):
+        """Met à jour le titre du repas dans la base de données"""
+        # Mettre à jour la base de données
+        self.db_manager.modifier_nom_repas(self.repas_data["id"], new_title)
+
+        # Mettre à jour les données locales
+        self.repas_data["nom"] = new_title
+
+        # Notifier le changement
+        EVENT_BUS.repas_modifies.emit(self.semaine_id)
 
     def add_aliment_to_layout(self, aliment, parent_layout):
         """Ajoute un aliment au layout avec son bouton de suppression"""
