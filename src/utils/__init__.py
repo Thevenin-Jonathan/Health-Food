@@ -19,6 +19,7 @@ from .config import (
 
 # Importation des utilitaires d'interface utilisateur
 from .ui_helpers import (
+    DialogAutoSelectFilter,
     ButtonCursorHandler,
     AutoSelectTextEdit,
     AutoSelectSpinBox,
@@ -43,6 +44,8 @@ __all__ = [
     "DB_FOLDER",
     "JOURS_SEMAINE",
     # UI Helpers
+    "DialogAutoSelectFilter",
+    "ButtonCursorHandler",
     "AutoSelectTextEdit",
     "AutoSelectSpinBox",
     "AutoSelectDoubleSpinBox",

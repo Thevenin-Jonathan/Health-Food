@@ -29,27 +29,31 @@ class ButtonCursorHandler(QObject):
 
 
 class LineEditSelectAllFilter(QObject):
-    """Filtre d'événements qui sélectionne tout le texte au focus ou au clic"""
+    """Filtre d'événements qui sélectionne tout le texte au clic souris uniquement"""
 
     def eventFilter(self, obj, event):
         if isinstance(obj, QLineEdit):
-            if event.type() == QEvent.FocusIn:
-                QTimer.singleShot(0, obj.selectAll)
-            elif event.type() == QEvent.MouseButtonPress:
+            # Sélectionner uniquement au clic de souris, pas au focus clavier
+            if event.type() == QEvent.MouseButtonPress:
                 QTimer.singleShot(0, obj.selectAll)
         return False
 
 
 class AutoSelectTextEdit(QLineEdit):
-    """QLineEdit qui sélectionne automatiquement tout son texte lors du focus"""
+    """QLineEdit qui sélectionne automatiquement tout son texte lors du clic souris"""
 
-    def focusInEvent(self, event):
-        super().focusInEvent(event)
-        self.selectAll()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if obj == self and event.type() == QEvent.MouseButtonPress:
+            QTimer.singleShot(0, self.selectAll)
+        return super().eventFilter(obj, event)
 
 
 class AutoSelectSpinBox(QSpinBox):
-    """QSpinBox qui sélectionne automatiquement tout son texte lors du focus"""
+    """QSpinBox qui sélectionne automatiquement tout son texte lors du clic souris"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -60,24 +64,16 @@ class AutoSelectSpinBox(QSpinBox):
             lambda: None
         )  # Empêcher la désélection
 
-    def focusInEvent(self, event):
-        """Sélectionne tout le texte quand le widget reçoit le focus"""
-        super().focusInEvent(event)
-        # Utiliser un timer pour sélectionner après l'événement standard
-        QTimer.singleShot(0, self.lineEdit().selectAll)
-
     def eventFilter(self, obj, event):
-        """Sélectionne tout le texte lors d'un clic"""
+        """Sélectionne tout le texte lors d'un clic (pas de sélection au focus)"""
         if obj == self.lineEdit():
             if event.type() == QEvent.MouseButtonPress:
-                QTimer.singleShot(0, obj.selectAll)
-            elif event.type() == QEvent.FocusIn:
                 QTimer.singleShot(0, obj.selectAll)
         return super().eventFilter(obj, event)
 
 
 class AutoSelectDoubleSpinBox(QDoubleSpinBox):
-    """QDoubleSpinBox qui sélectionne automatiquement le texte lors du focus"""
+    """QDoubleSpinBox qui sélectionne automatiquement le texte lors du clic souris"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -88,18 +84,10 @@ class AutoSelectDoubleSpinBox(QDoubleSpinBox):
             lambda: None
         )  # Empêcher la désélection
 
-    def focusInEvent(self, event):
-        """Sélectionne tout le texte quand le widget reçoit le focus"""
-        super().focusInEvent(event)
-        # Utiliser un timer pour sélectionner après l'événement standard
-        QTimer.singleShot(0, self.lineEdit().selectAll)
-
     def eventFilter(self, obj, event):
-        """Sélectionne tout le texte lors d'un clic"""
+        """Sélectionne tout le texte lors d'un clic (pas de sélection au focus)"""
         if obj == self.lineEdit():
             if event.type() == QEvent.MouseButtonPress:
-                QTimer.singleShot(0, obj.selectAll)
-            elif event.type() == QEvent.FocusIn:
                 QTimer.singleShot(0, obj.selectAll)
         return super().eventFilter(obj, event)
 
@@ -117,3 +105,22 @@ def apply_auto_select_to_widget(widget):
 
     for child in widget.findChildren(QDoubleSpinBox):
         child.lineEdit().installEventFilter(LineEditSelectAllFilter(child.lineEdit()))
+
+
+# Classe pour intercepter les dialogues et appliquer l'auto-select
+class DialogAutoSelectFilter(QObject):
+    """Filtre d'événements qui applique la sélection automatique à tous les dialogues"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.app = QApplication.instance()
+        self.app.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        from PySide6.QtWidgets import QDialog
+
+        # Lorsqu'un widget reçoit un événement Show et que c'est un QDialog
+        if event.type() == QEvent.Show and isinstance(obj, QDialog):
+            # Utiliser QTimer pour s'assurer que le dialogue est complètement initialisé
+            QTimer.singleShot(10, lambda: apply_auto_select_to_widget(obj))
+        return super().eventFilter(obj, event)
