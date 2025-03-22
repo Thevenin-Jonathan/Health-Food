@@ -400,6 +400,19 @@ QFrame[class="day-total"] {
     border-radius: $BORDER_RADIUS;
 }
 
+/* Widget de repas */
+QFrame.repas-widget {
+    background-color: white;
+    border-radius: $BORDER_RADIUS;
+    border: 1px solid lighten($PRIMARY_LIGHT, 10%);
+    padding: 3px;
+}
+
+QFrame.repas-widget:hover {
+    background-color: $PRIMARY_LIGHT;
+    border: 1px solid lighten($PRIMARY_LIGHT, 5%);
+}
+
 /* Labels spéciaux */
 QLabel[class="title"] {
     font-weight: bold;

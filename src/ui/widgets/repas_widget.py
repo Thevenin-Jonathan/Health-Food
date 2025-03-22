@@ -36,21 +36,7 @@ class RepasWidget(QFrame):
 
         # Style visuel
         self.setFrameShape(QFrame.StyledPanel)
-        self.setStyleSheet(
-            """
-            QFrame {
-                background-color: white;
-                border-radius: 5px;
-                border: 1px solid #E0E0E0;
-                padding: 5px;
-                margin: 3px 0px;
-            }
-            QFrame:hover {
-                background-color: #F5F5F5;
-                border: 1px solid #BDBDBD;
-            }
-            """
-        )
+        self.setProperty("class", "repas-widget")
 
         self.setup_ui()
 
