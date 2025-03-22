@@ -59,21 +59,22 @@ class NumericTableItem(QTableWidgetItem):
 class ActionButton(QPushButton):
     """Bouton d'action personnalisé pour les cellules du tableau"""
 
-    def __init__(self, text, icon=None, parent=None):
+    def __init__(self, text, action_type="edit", icon=None, parent=None):
         super().__init__(text, parent)
-        self.setMinimumWidth(80)
-        self.setMaximumWidth(80)
-        self.setMinimumHeight(20)
+
+        # Paramètres de taille
+        self.setMinimumWidth(70)
+        self.setMaximumWidth(70)
+        self.setMinimumHeight(22)
         self.setMaximumHeight(22)
+
+        # Définir la classe et le type d'action pour le ciblage CSS
+        self.setProperty("class", "action-button")
+        self.setProperty("actionType", action_type)
+
+        # Ajouter une icône si fournie
         if icon:
             self.setIcon(QIcon(icon))
-
-        # Réduire la taille de police de 2px
-        font = self.font()
-        font.setPixelSize(
-            max(font.pixelSize() - 2, 8)
-        )  # Éviter les tailles trop petites
-        self.setFont(font)
 
 
 class ButtonContainer(QWidget):
@@ -81,8 +82,10 @@ class ButtonContainer(QWidget):
 
     def __init__(self, button, parent=None):
         super().__init__(parent)
+        self.setProperty("class", "button-container")  # Pour le ciblage CSS
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)  # Marges réduites
+        layout.setSpacing(0)
         layout.setAlignment(Qt.AlignCenter)  # Alignement centré
         layout.addWidget(button)
         self.setLayout(layout)
@@ -95,12 +98,46 @@ class AlimentsTab(TabBase):
         self.load_data()
 
     def setup_ui(self):
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(10)
+        # Créer un layout principal sans marges pour le widget entier
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
 
-        # Ajouter une zone de filtrage
+        # Créer un layout horizontal pour centrer le contenu
+        center_layout = QHBoxLayout()
+        center_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Créer un widget contenant le contenu réel avec sa largeur limitée
+        content_widget = QWidget()
+        content_widget.setMaximumWidth(1200)  # Largeur maximale
+        content_widget.setMinimumWidth(900)  # Largeur minimale
+
+        # Layout pour le contenu principal
+        main_layout = QVBoxLayout(content_widget)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(15)
+
+        # Titre de la page
+        title = QLabel("<h1>Mes Aliments</h1>")
+        title.setAlignment(Qt.AlignCenter)
+        main_layout.addWidget(title)
+
+        # Reste du code pour les filtres, tableau, etc.
+        self._setup_filters(main_layout)
+        self._setup_table(main_layout)
+
+        # Ajouter le widget de contenu au layout central avec des marges extensibles
+        center_layout.addStretch(1)
+        center_layout.addWidget(content_widget)
+        center_layout.addStretch(1)
+
+        # Ajouter le layout central au layout extérieur
+        outer_layout.addLayout(center_layout)
+
+    def _setup_filters(self, main_layout):
+        """Configure les filtres et recherche"""
         filter_layout = QHBoxLayout()
+        filter_layout.setSpacing(10)
 
         # Recherche par texte
         self.search_label = QLabel("Recherche:")
@@ -110,6 +147,7 @@ class AlimentsTab(TabBase):
         self.search_input.setPlaceholderText("Entrez un nom ou mot-clé...")
         self.search_input.setClearButtonEnabled(True)
         self.search_input.textChanged.connect(self.apply_filters)
+        self.search_input.setMinimumWidth(180)
         filter_layout.addWidget(self.search_input)
 
         # Filtre par catégorie
@@ -160,14 +198,19 @@ class AlimentsTab(TabBase):
 
         filter_layout.addStretch()
 
+        # Bouton d'ajout avec style amélioré
         self.btn_add = QPushButton("Ajouter un aliment")
+        self.btn_add.setObjectName("primaryButton")
         self.btn_add.clicked.connect(self.add_aliment)
         filter_layout.addWidget(self.btn_add)
 
         main_layout.addLayout(filter_layout)
 
+    def _setup_table(self, main_layout):
+        """Configure le tableau des aliments"""
         # Tableau des aliments avec les colonnes de boutons d'action
         self.table = QTableWidget()
+        self.table.setObjectName("alimentsTable")
         self.table.setColumnCount(13)  # 11 colonnes de données + 2 colonnes d'actions
         self.table.setHorizontalHeaderLabels(
             [
@@ -182,8 +225,8 @@ class AlimentsTab(TabBase):
                 "Lipides",
                 "Fibres",
                 "Prix/kg",
-                "Modifier",  # Nouvelle colonne pour le bouton Modifier
-                "Supprimer",  # Nouvelle colonne pour le bouton Supprimer
+                "Modifier",
+                "Supprimer",
             ]
         )
 
@@ -194,45 +237,61 @@ class AlimentsTab(TabBase):
         self.table.setSortingEnabled(True)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.show_context_menu)
+        self.table.setAlternatingRowColors(True)
+        self.table.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
+        self.table.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
+
+        # Configurer le viewport pour que la barre de défilement verticale commence après l'en-tête
+        viewport = self.table.viewport()
+        viewport.setContentsMargins(0, 0, 0, 0)
+
+        # S'assurer que les en-têtes restent visibles lors du défilement
+        self.table.horizontalHeader().setFixedHeight(30)  # Hauteur fixe pour l'en-tête
+        self.table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.Fixed
+        )  # Mode fixe
 
         # Masquer la colonne ID
         self.table.hideColumn(0)
 
-        # Définir une taille minimale pour le tableau
-        self.table.setMinimumWidth(1000)
-        self.table.setMinimumHeight(500)
-        main_layout.addWidget(self.table)
-
         # Configuration des largeurs de colonnes
         header = self.table.horizontalHeader()
 
-        # Définir les largeurs des colonnes
+        # Désactiver le défilement horizontal
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        # Définir ensuite les largeurs fixes optimisées pour avoir une vue compacte
         col_widths = {
-            1: 140,  # Nom
-            2: 100,  # Marque
-            3: 100,  # Magasin
-            4: 100,  # Catégorie
-            5: 70,  # Calories
-            6: 70,  # Protéines
-            7: 70,  # Glucides
-            8: 70,  # Lipides
-            9: 70,  # Fibres
-            10: 70,  # Prix/kg
-            11: 70,  # Bouton Modifier
-            12: 70,  # Bouton Supprimer
+            1: (150, QHeaderView.Stretch),  # Nom - largeur dynamique (stretch)
+            2: (110, QHeaderView.Fixed),  # Marque - réduite
+            3: (100, QHeaderView.Fixed),  # Magasin - réduite
+            4: (100, QHeaderView.Fixed),  # Catégorie - réduite
+            5: (70, QHeaderView.Fixed),  # Calories - très compacte
+            6: (70, QHeaderView.Fixed),  # Protéines - très compacte
+            7: (70, QHeaderView.Fixed),  # Glucides - très compacte
+            8: (70, QHeaderView.Fixed),  # Lipides - très compacte
+            9: (65, QHeaderView.Fixed),  # Fibres - très compacte
+            10: (70, QHeaderView.Fixed),  # Prix/kg - très compacte
+            11: (70, QHeaderView.Fixed),  # Bouton Modifier
+            12: (70, QHeaderView.Fixed),  # Bouton Supprimer
         }
 
-        # Appliquer les largeurs définies
-        for col, width in col_widths.items():
-            self.table.setColumnWidth(col, width)
-            if col in [11, 12]:  # Colonnes des boutons
-                header.setSectionResizeMode(col, QHeaderView.Fixed)
-            else:
-                header.setSectionResizeMode(col, QHeaderView.Interactive)
+        # Appliquer les largeurs fixes pour les colonnes qui ne sont pas en Stretch
+        for col, (width, mode) in col_widths.items():
+            if mode == QHeaderView.Fixed:
+                self.table.setColumnWidth(col, width)
+            header.setSectionResizeMode(col, mode)
 
-        # La colonne Nom est extensible mais avec une largeur minimale
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        header.setMinimumSectionSize(100)
+        # Désactiver l'étirement de la dernière section pour éviter le comportement par défaut
+        header.setStretchLastSection(False)
+
+        # Définir une largeur minimale pour la colonne nom
+        # Cette ligne est importante pour que la colonne nom ne soit pas trop étroite
+        self.table.setColumnWidth(1, 150)  # Largeur initiale
+
+        # Centrer le contenu des colonnes numériques
+        for col in range(5, 11):
+            self.table.horizontalHeaderItem(col).setTextAlignment(Qt.AlignCenter)
 
         # Ajouter des tooltips
         self.table.horizontalHeaderItem(5).setToolTip("Calories pour 100g")
@@ -240,6 +299,15 @@ class AlimentsTab(TabBase):
         self.table.horizontalHeaderItem(7).setToolTip("Glucides en g pour 100g")
         self.table.horizontalHeaderItem(8).setToolTip("Lipides en g pour 100g")
         self.table.horizontalHeaderItem(9).setToolTip("Fibres en g pour 100g")
+
+        # Définir une hauteur de ligne raisonnable
+        self.table.verticalHeader().setDefaultSectionSize(36)  # Hauteur de ligne
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
+
+        # Masquer les en-têtes de ligne
+        self.table.verticalHeader().setVisible(False)
+
+        main_layout.addWidget(self.table)
 
     def refresh_data(self):
         """Implémentation de la méthode de base - rafraîchit les données"""
@@ -311,39 +379,52 @@ class AlimentsTab(TabBase):
             self.table.setItem(i, 0, id_item)
 
             # Nom
-            self.table.setItem(i, 1, QTableWidgetItem(aliment["nom"]))
+            nom_item = QTableWidgetItem(aliment["nom"])
+            nom_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            self.table.setItem(i, 1, nom_item)
 
             # Marque
-            self.table.setItem(i, 2, QTableWidgetItem(aliment["marque"] or ""))
+            marque_item = QTableWidgetItem(aliment["marque"] or "")
+            marque_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            self.table.setItem(i, 2, marque_item)
 
             # Magasin
-            self.table.setItem(i, 3, QTableWidgetItem(aliment["magasin"] or ""))
+            magasin_item = QTableWidgetItem(aliment["magasin"] or "")
+            magasin_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            self.table.setItem(i, 3, magasin_item)
 
             # Catégorie
-            self.table.setItem(i, 4, QTableWidgetItem(aliment["categorie"] or ""))
+            categorie_item = QTableWidgetItem(aliment["categorie"] or "")
+            categorie_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            self.table.setItem(i, 4, categorie_item)
 
-            # Valeurs nutritionnelles avec tri numérique correct
+            # Valeurs nutritionnelles avec tri numérique correct et alignement centré
             cal_item = NumericTableItem(
                 aliment["calories"], f"{aliment['calories']:.0f}"
             )
+            cal_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(i, 5, cal_item)
 
             prot_item = NumericTableItem(
                 aliment["proteines"], f"{aliment['proteines']:.1f}"
             )
+            prot_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(i, 6, prot_item)
 
             gluc_item = NumericTableItem(
                 aliment["glucides"], f"{aliment['glucides']:.1f}"
             )
+            gluc_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(i, 7, gluc_item)
 
             lip_item = NumericTableItem(aliment["lipides"], f"{aliment['lipides']:.1f}")
+            lip_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(i, 8, lip_item)
 
             # Fibres
             fibres_val = aliment.get("fibres", 0) or 0
             fibres_item = NumericTableItem(fibres_val, f"{fibres_val:.1f}")
+            fibres_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(i, 9, fibres_item)
 
             # Prix au kg avec tri numérique correct
@@ -351,10 +432,12 @@ class AlimentsTab(TabBase):
             prix_item = NumericTableItem(prix_val)
             if prix_val > 0:
                 prix_item.setText(f"{prix_val:.2f} €")
+            prix_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(i, 10, prix_item)
 
             # Bouton Modifier
-            btn_edit = ActionButton("Modifier")
+            btn_edit = QPushButton("✍")
+            btn_edit.setObjectName("editButton")
             btn_edit.clicked.connect(
                 lambda checked, row=i: self.edit_aliment_from_button(row)
             )
@@ -363,7 +446,8 @@ class AlimentsTab(TabBase):
             self.table.setCellWidget(i, 11, edit_container)
 
             # Bouton Supprimer
-            btn_delete = ActionButton("Supprimer")
+            btn_delete = QPushButton("〤")
+            btn_delete.setObjectName("deleteButton")
             btn_delete.clicked.connect(
                 lambda checked, row=i: self.delete_aliment_from_button(row)
             )

@@ -268,10 +268,12 @@ QPushButton#deleteButton, QPushButton#deleteBigButton {
 
 QPushButton#deleteButton {
     font-size: 15px;
-    min-width: 20px;
-    min-height: 20px;
-    max-width: 20px; 
-    max-height: 20px;
+    min-width: 24px;
+    min-height: 24px;
+    max-width: 24px;
+    max-height: 24px;
+    padding: 0px;
+    margin: 0px;
 }
 
 QPushButton#deleteBigButton {
@@ -298,10 +300,10 @@ QPushButton#editButton {
     color: #f39c12;
     font-weight: bold;
     border-radius: 4px;
-    min-width: 28px;
-    min-height: 28px;
-    max-width: 28px;
-    max-height: 28px;
+    min-width: 24px;
+    min-height: 24px;
+    max-width: 24px;
+    max-height: 24px;
     padding: 0px;
     font-size: 20px;
 }
@@ -457,6 +459,24 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
     background: transparent;
     height: 0px;
     width: 0px;
+}
+
+/* 
+============================================
+   POSITIONNEMENT DE LA BARRE DE DÉFILEMENT 
+============================================
+*/
+
+/* Barre de défilement verticale pour le tableau d'aliments qui commence après l'en-tête */
+QTableWidget#alimentsTable QScrollBar:vertical {
+    width: 8px;
+    margin-top: 30px;  /* Marge supérieure pour laisser de l'espace à l'en-tête */
+    background-color: transparent;
+}
+
+/* Modification de l'apparence de la zone de défilement */
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: transparent;
 }
 
 /* 
@@ -786,4 +806,86 @@ QLabel.nutrition-value[type="glucides"] {
 
 QLabel.nutrition-value[type="lipides"] {
     color: #8e44ad;
+}
+
+/* 
+============================================
+   TABLEAUX - STYLES POUR ALIMENTS
+============================================
+*/
+
+/* Style du tableau d'aliments */
+QTableWidget#alimentsTable {
+    gridline-color: #C8E6C9;
+    border: 1px solid #C8E6C9;
+}
+
+/* Style des cellules */
+QTableWidget#alimentsTable::item {
+    padding: 2px 4px;
+    border-bottom: 1px solid #d9fada;
+}
+
+/* Style des en-têtes de colonne */
+QTableWidget#alimentsTable QHeaderView::section {
+    background-color: #4CAF50;
+    color: white;
+    font-weight: bold;
+    padding: 5px 2px;
+}
+
+/* Style des colonnes numériques */
+QTableWidget#alimentsTable::item[columnType="numeric"] {
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 9pt;
+}
+
+/* Style pour la partie filtre */
+QWidget#AlimentsTab QComboBox, QWidget#AlimentsTab QLineEdit {
+    min-height: 28px;
+    border-radius: 4px;
+    padding: 2px 6px;
+}
+
+/* 
+============================================
+   BOUTONS D'ACTION DANS LE TABLEAU ALIMENTS
+============================================
+*/
+
+/* Style de base pour les boutons d'action dans le tableau */
+QPushButton.action-button {
+    min-width: 70px;
+    max-width: 70px;
+    min-height: 22px;
+    max-height: 22px;
+    font-size: 10px;
+    font-weight: bold;
+    border-radius: 3px;
+    padding: 2px;
+}
+
+/* Bouton Modifier */
+QPushButton.action-button[actionType="edit"] {
+    background-color: #3498db;
+    color: white;
+}
+
+QPushButton.action-button[actionType="edit"]:hover {
+    background-color: #2980b9;
+}
+
+/* Bouton Supprimer */
+QPushButton.action-button[actionType="delete"] {
+    background-color: #e74c3c;
+    color: white;
+}
+
+QPushButton.action-button[actionType="delete"]:hover {
+    background-color: #c0392b;
+}
+
+/* Style pour les conteneurs de boutons dans le tableau */
+QTableWidget#alimentsTable QWidget.button-container {
+    background-color: transparent;
 }
