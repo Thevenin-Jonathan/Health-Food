@@ -56,10 +56,15 @@ QTabBar::tab:hover:!selected {
 QTableWidget {
     gridline-color: #C8E6C9;
     border: 1px solid #C8E6C9;
+    selection-background-color: rgba(76, 175, 80, 0.2);
+    selection-color: #2e3d32;
 }
 
 QTableWidget::item {
-    padding: 4px;
+    padding: 6px;
+    margin: 1px;
+    min-height: 24px;
+    border-bottom: 1px solid #eaeaea;
 }
 
 QTableWidget::item:selected {
@@ -67,11 +72,46 @@ QTableWidget::item:selected {
     color: #2e3d32;
 }
 
-QHeaderView::section {
+/* En-têtes horizontaux (colonnes) */
+QHeaderView::section:horizontal {
     background-color: #4CAF50;
     color: white;
-    padding: 4px;
+    padding: 10px;
     border: 1px solid #C8E6C9;
+    min-height: 30px;
+    font-weight: bold;
+}
+
+/* En-têtes verticaux (lignes) */
+QHeaderView::section:vertical {
+    background-color: #d3f2d4;
+    color: #2e3d32;
+    padding: 6px;
+    border: 1px solid #C8E6C9;
+    min-width: 30px;
+}
+
+/* Survol des en-têtes */
+QHeaderView::section:hover {
+    background-color: #46a24a;
+}
+
+/* Tableaux dans les boîtes de dialogue de comparaison */
+QTableWidget#repasActuelTable,
+QTableWidget#comparisonTable {
+    alternate-background-color: #C8E6C9; /* Couleur alternée légèrement différente */
+}
+
+QTableWidget#repasActuelTable QHeaderView::section,
+QTableWidget#comparisonTable QHeaderView::section {
+    min-height: 34px;
+    padding: 10px;
+}
+
+QTableWidget#repasActuelTable::item,
+QTableWidget#comparisonTable::item {
+    min-height: 36px;
+    padding: 8px;
 }
 
 /* Liste d'arbres */
@@ -398,6 +438,19 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
 QFrame[class="day-total"] {
     background-color: #e0f0e0;
     border-radius: 4px;
+}
+
+/* Widget de repas */
+QFrame.repas-widget {
+    background-color: white;
+    border-radius: 4px;
+    border: 1px solid #ddffde;
+    padding: 3px;
+}
+
+QFrame.repas-widget:hover {
+    background-color: #C8E6C9;
+    border: 1px solid #d3f2d4;
 }
 
 /* Labels spéciaux */

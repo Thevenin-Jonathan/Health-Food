@@ -56,10 +56,15 @@ QTabBar::tab:hover:!selected {
 QTableWidget {
     gridline-color: $PRIMARY_LIGHT;
     border: 1px solid $PRIMARY_LIGHT;
+    selection-background-color: alpha($PRIMARY_COLOR, 0.2);
+    selection-color: $TEXT_COLOR;
 }
 
 QTableWidget::item {
-    padding: $PADDING_SMALL;
+    padding: 6px;
+    margin: 1px;
+    min-height: 24px;
+    border-bottom: 1px solid #eaeaea;
 }
 
 QTableWidget::item:selected {
@@ -67,11 +72,46 @@ QTableWidget::item:selected {
     color: $TEXT_COLOR;
 }
 
-QHeaderView::section {
+/* En-têtes horizontaux (colonnes) */
+QHeaderView::section:horizontal {
     background-color: $PRIMARY_COLOR;
     color: white;
-    padding: $PADDING_SMALL;
+    padding: 10px;
     border: 1px solid $PRIMARY_LIGHT;
+    min-height: 30px;
+    font-weight: bold;
+}
+
+/* En-têtes verticaux (lignes) */
+QHeaderView::section:vertical {
+    background-color: lighten($PRIMARY_LIGHT, 5%);
+    color: $TEXT_COLOR;
+    padding: 6px;
+    border: 1px solid $PRIMARY_LIGHT;
+    min-width: 30px;
+}
+
+/* Survol des en-têtes */
+QHeaderView::section:hover {
+    background-color: darken($PRIMARY_COLOR, 5%);
+}
+
+/* Tableaux dans les boîtes de dialogue de comparaison */
+QTableWidget#repasActuelTable,
+QTableWidget#comparisonTable {
+    alternate-background-color: $PRIMARY_LIGHT; /* Couleur alternée légèrement différente */
+}
+
+QTableWidget#repasActuelTable QHeaderView::section,
+QTableWidget#comparisonTable QHeaderView::section {
+    min-height: 34px;
+    padding: 10px;
+}
+
+QTableWidget#repasActuelTable::item,
+QTableWidget#comparisonTable::item {
+    min-height: 36px;
+    padding: 8px;
 }
 
 /* Liste d'arbres */

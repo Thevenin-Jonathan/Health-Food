@@ -84,24 +84,45 @@ class NutritionComparison(QWidget):
 
         # Tableau de comparaison
         self.comparison_table = QTableWidget()
+        self.comparison_table.setObjectName("comparisonTable")  # Pour le ciblage CSS
         self.comparison_table.setColumnCount(4)
         self.comparison_table.setHorizontalHeaderLabels(
             ["Nutriment", "Repas actuel", "Nouveau repas", "Différence"]
         )
+
+        # Corriger la hauteur des en-têtes et lignes
+        self.comparison_table.horizontalHeader().setMinimumHeight(34)
+        self.comparison_table.verticalHeader().setDefaultSectionSize(36)
+
+        # Configurer les colonnes
+        self.comparison_table.setColumnWidth(0, 150)  # Nutriment
+        self.comparison_table.setColumnWidth(1, 120)  # Repas actuel
+        self.comparison_table.setColumnWidth(2, 120)  # Nouveau repas
+        self.comparison_table.setColumnWidth(3, 120)  # Différence
+
+        # Configurer les modes de redimensionnement
         self.comparison_table.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.Stretch
+            0, QHeaderView.Interactive
         )
         self.comparison_table.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeToContents
+            1, QHeaderView.Interactive
         )
         self.comparison_table.horizontalHeader().setSectionResizeMode(
-            2, QHeaderView.ResizeToContents
+            2, QHeaderView.Interactive
         )
         self.comparison_table.horizontalHeader().setSectionResizeMode(
-            3, QHeaderView.ResizeToContents
+            3, QHeaderView.Interactive
         )
 
-        # Ajouter des lignes pour les macros - incluant les fibres et coût
+        # Optimiser l'apparence
+        self.comparison_table.setAlternatingRowColors(True)
+        self.comparison_table.verticalHeader().setVisible(
+            False
+        )  # Masquer les en-têtes de ligne verticaux
+        self.comparison_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.comparison_table.setEditTriggers(QTableWidget.NoEditTriggers)
+
+        # Ajouter des lignes pour les macros
         self.comparison_table.setRowCount(6)  # 5 macros + coût
         self.comparison_table.setItem(0, 0, QTableWidgetItem("Calories"))
         self.comparison_table.setItem(1, 0, QTableWidgetItem("Protéines"))
@@ -110,6 +131,7 @@ class NutritionComparison(QWidget):
         self.comparison_table.setItem(4, 0, QTableWidgetItem("Fibres"))
         self.comparison_table.setItem(5, 0, QTableWidgetItem("Coût estimé"))
 
+        # Ajouter le tableau au layout
         layout.addWidget(self.comparison_table)
 
         # Séparateur horizontal pour meilleure lisibilité visuelle
@@ -217,15 +239,17 @@ class NutritionComparison(QWidget):
     def update_comparison(self, repas_actuel, repas_nouveau, totaux_jour=None):
         """Met à jour la comparaison avec les données des deux repas"""
         # Calories
-        self.comparison_table.setItem(
-            0, 1, QTableWidgetItem(f"{repas_actuel['total_calories']:.0f} kcal")
-        )
-        self.comparison_table.setItem(
-            0, 2, QTableWidgetItem(f"{repas_nouveau['total_calories']:.0f} kcal")
-        )
+        cal_actuel = QTableWidgetItem(f"{repas_actuel['total_calories']:.0f} kcal")
+        cal_actuel.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.comparison_table.setItem(0, 1, cal_actuel)
+
+        cal_nouveau = QTableWidgetItem(f"{repas_nouveau['total_calories']:.0f} kcal")
+        cal_nouveau.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.comparison_table.setItem(0, 2, cal_nouveau)
 
         diff_cal = repas_nouveau["total_calories"] - repas_actuel["total_calories"]
         diff_cal_item = QTableWidgetItem(f"{diff_cal:+.0f} kcal")
+        diff_cal_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         if diff_cal > 0:
             diff_cal_item.setForeground(QBrush(QColor("red")))
         elif diff_cal < 0:
@@ -233,15 +257,17 @@ class NutritionComparison(QWidget):
         self.comparison_table.setItem(0, 3, diff_cal_item)
 
         # Protéines
-        self.comparison_table.setItem(
-            1, 1, QTableWidgetItem(f"{repas_actuel['total_proteines']:.1f} g")
-        )
-        self.comparison_table.setItem(
-            1, 2, QTableWidgetItem(f"{repas_nouveau['total_proteines']:.1f} g")
-        )
+        prot_actuel = QTableWidgetItem(f"{repas_actuel['total_proteines']:.1f} g")
+        prot_actuel.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.comparison_table.setItem(1, 1, prot_actuel)
+
+        prot_nouveau = QTableWidgetItem(f"{repas_nouveau['total_proteines']:.1f} g")
+        prot_nouveau.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.comparison_table.setItem(1, 2, prot_nouveau)
 
         diff_prot = repas_nouveau["total_proteines"] - repas_actuel["total_proteines"]
         diff_prot_item = QTableWidgetItem(f"{diff_prot:+.1f} g")
+        diff_prot_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         if diff_prot > 0:
             diff_prot_item.setForeground(QBrush(QColor("green")))
         elif diff_prot < 0:
@@ -249,15 +275,17 @@ class NutritionComparison(QWidget):
         self.comparison_table.setItem(1, 3, diff_prot_item)
 
         # Glucides
-        self.comparison_table.setItem(
-            2, 1, QTableWidgetItem(f"{repas_actuel['total_glucides']:.1f} g")
-        )
-        self.comparison_table.setItem(
-            2, 2, QTableWidgetItem(f"{repas_nouveau['total_glucides']:.1f} g")
-        )
+        gluc_actuel = QTableWidgetItem(f"{repas_actuel['total_glucides']:.1f} g")
+        gluc_actuel.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.comparison_table.setItem(2, 1, gluc_actuel)
+
+        gluc_nouveau = QTableWidgetItem(f"{repas_nouveau['total_glucides']:.1f} g")
+        gluc_nouveau.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.comparison_table.setItem(2, 2, gluc_nouveau)
 
         diff_gluc = repas_nouveau["total_glucides"] - repas_actuel["total_glucides"]
         diff_gluc_item = QTableWidgetItem(f"{diff_gluc:+.1f} g")
+        diff_gluc_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         if abs(diff_gluc) < 5:  # Petite différence -> neutre
             pass
         elif diff_gluc > 0:
@@ -267,15 +295,17 @@ class NutritionComparison(QWidget):
         self.comparison_table.setItem(2, 3, diff_gluc_item)
 
         # Lipides
-        self.comparison_table.setItem(
-            3, 1, QTableWidgetItem(f"{repas_actuel['total_lipides']:.1f} g")
-        )
-        self.comparison_table.setItem(
-            3, 2, QTableWidgetItem(f"{repas_nouveau['total_lipides']:.1f} g")
-        )
+        lip_actuel = QTableWidgetItem(f"{repas_actuel['total_lipides']:.1f} g")
+        lip_actuel.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.comparison_table.setItem(3, 1, lip_actuel)
+
+        lip_nouveau = QTableWidgetItem(f"{repas_nouveau['total_lipides']:.1f} g")
+        lip_nouveau.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.comparison_table.setItem(3, 2, lip_nouveau)
 
         diff_lip = repas_nouveau["total_lipides"] - repas_actuel["total_lipides"]
         diff_lip_item = QTableWidgetItem(f"{diff_lip:+.1f} g")
+        diff_lip_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         if abs(diff_lip) < 2:  # Petite différence -> neutre
             pass
         elif diff_lip > 0:
@@ -284,7 +314,7 @@ class NutritionComparison(QWidget):
             diff_lip_item.setForeground(QBrush(QColor("green")))
         self.comparison_table.setItem(3, 3, diff_lip_item)
 
-        # Fibres - Nouveau
+        # Fibres
         total_fibres_actuel = sum(
             (a.get("fibres", 0) * a["quantite"] / 100) for a in repas_actuel["aliments"]
         )
@@ -293,22 +323,24 @@ class NutritionComparison(QWidget):
             for a in repas_nouveau["aliments"]
         )
 
-        self.comparison_table.setItem(
-            4, 1, QTableWidgetItem(f"{total_fibres_actuel:.1f} g")
-        )
-        self.comparison_table.setItem(
-            4, 2, QTableWidgetItem(f"{total_fibres_nouveau:.1f} g")
-        )
+        fibres_actuel = QTableWidgetItem(f"{total_fibres_actuel:.1f} g")
+        fibres_actuel.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.comparison_table.setItem(4, 1, fibres_actuel)
+
+        fibres_nouveau = QTableWidgetItem(f"{total_fibres_nouveau:.1f} g")
+        fibres_nouveau.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.comparison_table.setItem(4, 2, fibres_nouveau)
 
         diff_fibre = total_fibres_nouveau - total_fibres_actuel
         diff_fibre_item = QTableWidgetItem(f"{diff_fibre:+.1f} g")
+        diff_fibre_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         if diff_fibre > 0:
             diff_fibre_item.setForeground(QBrush(QColor("green")))
         elif diff_fibre < 0:
             diff_fibre_item.setForeground(QBrush(QColor("red")))
         self.comparison_table.setItem(4, 3, diff_fibre_item)
 
-        # Coût estimé - Nouveau
+        # Coût estimé
         total_cout_actuel = sum(
             (a.get("prix_kg", 0) * a["quantite"] / 1000)
             for a in repas_actuel["aliments"]
@@ -318,15 +350,17 @@ class NutritionComparison(QWidget):
             for a in repas_nouveau["aliments"]
         )
 
-        self.comparison_table.setItem(
-            5, 1, QTableWidgetItem(f"{total_cout_actuel:.2f} €")
-        )
-        self.comparison_table.setItem(
-            5, 2, QTableWidgetItem(f"{total_cout_nouveau:.2f} €")
-        )
+        cout_actuel = QTableWidgetItem(f"{total_cout_actuel:.2f} €")
+        cout_actuel.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.comparison_table.setItem(5, 1, cout_actuel)
+
+        cout_nouveau = QTableWidgetItem(f"{total_cout_nouveau:.2f} €")
+        cout_nouveau.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.comparison_table.setItem(5, 2, cout_nouveau)
 
         diff_cout = total_cout_nouveau - total_cout_actuel
         diff_cout_item = QTableWidgetItem(f"{diff_cout:+.2f} €")
+        diff_cout_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         if diff_cout > 0:
             diff_cout_item.setForeground(QBrush(QColor("red")))
         elif diff_cout < 0:

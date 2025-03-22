@@ -204,10 +204,21 @@ class RemplacerRepasDialog(QDialog):
 
         # Tableau des aliments actuels
         self.repas_actuel_table = QTableWidget()
+        self.repas_actuel_table.setObjectName("repasActuelTable")
         self.repas_actuel_table.setColumnCount(4)
         self.repas_actuel_table.setHorizontalHeaderLabels(
             ["ID", "Aliment", "Quantité", "Calories"]
         )
+
+        # Corriger la hauteur des en-têtes et des lignes
+        self.repas_actuel_table.horizontalHeader().setMinimumHeight(34)
+        self.repas_actuel_table.verticalHeader().setDefaultSectionSize(36)
+
+        # Configuration des colonnes - Fixer largeurs minimales
+        self.repas_actuel_table.setColumnWidth(1, 200)  # Colonne Aliment
+        self.repas_actuel_table.setColumnWidth(2, 100)  # Colonne Quantité
+        self.repas_actuel_table.setColumnWidth(3, 100)  # Colonne Calories
+
         self.repas_actuel_table.horizontalHeader().setSectionResizeMode(
             1, QHeaderView.Stretch
         )
@@ -217,12 +228,20 @@ class RemplacerRepasDialog(QDialog):
         self.repas_actuel_table.horizontalHeader().setSectionResizeMode(
             3, QHeaderView.ResizeToContents
         )
-        self.repas_actuel_table.hideColumn(0)  # Masquer la colonne ID
+
+        # Masquer la colonne ID
+        self.repas_actuel_table.hideColumn(0)
+
+        # Amélioration de l'apparence
+        self.repas_actuel_table.setAlternatingRowColors(True)
         self.repas_actuel_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.repas_actuel_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.repas_actuel_table.setSizePolicy(
             QSizePolicy.Expanding, QSizePolicy.Expanding
         )
+        self.repas_actuel_table.verticalHeader().setVisible(
+            False
+        )  # Assurer que les en-têtes verticaux sont visibles
 
         repas_actuel_layout.addWidget(self.repas_actuel_table)
 
@@ -314,24 +333,32 @@ class RemplacerRepasDialog(QDialog):
         # Remplir les données
         for i, aliment in enumerate(self.repas_actuel["aliments"]):
             # ID (caché)
-            self.repas_actuel_table.setItem(i, 0, QTableWidgetItem(str(aliment["id"])))
+            id_item = QTableWidgetItem(str(aliment["id"]))
+            self.repas_actuel_table.setItem(i, 0, id_item)
 
             # Nom de l'aliment
             nom = f"{aliment['nom']}"
             if aliment.get("marque"):
                 nom += f" ({aliment['marque']})"
-            self.repas_actuel_table.setItem(i, 1, QTableWidgetItem(nom))
+
+            nom_item = QTableWidgetItem(nom)
+            nom_item.setToolTip(nom)  # Ajouter un tooltip pour les noms longs
+            self.repas_actuel_table.setItem(i, 1, nom_item)
 
             # Quantité
-            self.repas_actuel_table.setItem(
-                i, 2, QTableWidgetItem(f"{aliment['quantite']}g")
-            )
+            quantite_item = QTableWidgetItem(f"{aliment['quantite']:.0f}g")
+            quantite_item.setTextAlignment(
+                Qt.AlignRight | Qt.AlignVCenter
+            )  # Alignement à droite
+            self.repas_actuel_table.setItem(i, 2, quantite_item)
 
             # Calories
             calories = aliment["calories"] * aliment["quantite"] / 100
-            self.repas_actuel_table.setItem(
-                i, 3, QTableWidgetItem(f"{calories:.0f} kcal")
-            )
+            calories_item = QTableWidgetItem(f"{calories:.0f} kcal")
+            calories_item.setTextAlignment(
+                Qt.AlignRight | Qt.AlignVCenter
+            )  # Alignement à droite
+            self.repas_actuel_table.setItem(i, 3, calories_item)
 
     def previsualiser_recette(self):
         """Affiche la prévisualisation de la recette sélectionnée"""
