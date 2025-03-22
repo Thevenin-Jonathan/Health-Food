@@ -343,8 +343,8 @@ class RemplacerRepasDialog(QDialog):
         """Charge les recettes disponibles dans le combo box"""
         self.recette_combo.clear()
 
-        # Ajouter "Aucune recette" comme première option
-        self.recette_combo.addItem("Aucune recette sélectionnée", None)
+        # Ajouter "Aucune repas" comme première option
+        self.recette_combo.addItem("Aucun repas sélectionné", None)
 
         # Charger les recettes depuis la base de données
         recettes = self.db_manager.get_repas_types()

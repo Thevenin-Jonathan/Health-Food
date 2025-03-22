@@ -103,7 +103,7 @@ class RecettesTab(QWidget):
         main_layout.setContentsMargins(20, 20, 20, 20)
 
         # Titre
-        title = QLabel("<h1>Mes Recettes</h1>")
+        title = QLabel("<h1>Mes repas</h1>")
         title.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(title)
 
@@ -113,12 +113,12 @@ class RecettesTab(QWidget):
             splitter, 1
         )  # Stretch factor pour que le splitter prenne tout l'espace disponible
 
-        # Partie gauche : Liste des recettes
+        # Partie gauche : Liste des repas
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)  # Réduire les marges
 
-        left_title = QLabel("<h3>Liste des recettes</h3>")
+        left_title = QLabel("<h3>Liste des repas</h3>")
         left_title.setProperty("class", "section-title")
         left_layout.addWidget(left_title)
 
@@ -135,6 +135,7 @@ class RecettesTab(QWidget):
         self.btn_edit = QPushButton("Modifier")
         self.btn_edit.clicked.connect(self.modifier_recette)
         self.btn_delete = QPushButton("Supprimer")
+        self.btn_delete.setObjectName("cancelButton")
         self.btn_delete.clicked.connect(self.supprimer_recette)
 
         btn_layout.addWidget(self.btn_add)
@@ -143,14 +144,14 @@ class RecettesTab(QWidget):
 
         left_layout.addLayout(btn_layout)
 
-        # Partie droite : Détails de la recette
+        # Partie droite : Détails du repas
         right_widget = QWidget()
         right_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.right_layout = QVBoxLayout(right_widget)
         self.right_layout.setContentsMargins(0, 0, 0, 0)  # Réduire les marges
         self.right_layout.setSpacing(10)  # Meilleur espacement entre les éléments
 
-        self.detail_titre = QLabel("<h3>Détails de la recette</h3>")
+        self.detail_titre = QLabel("<h3>Détails du repas</h3>")
         self.detail_titre.setProperty("class", "section-title")
         self.right_layout.addWidget(self.detail_titre)
 
@@ -302,7 +303,7 @@ class RecettesTab(QWidget):
             self.recettes_list.addItem(item)
 
     def afficher_details_recette(self, row):
-        """Affiche les détails de la recette sélectionnée"""
+        """Affiche les détails du repas sélectionné"""
         self.calories_label.setText("0 kcal")
         self.proteines_label.setText("0g")
         self.glucides_label.setText("0g")
@@ -311,7 +312,7 @@ class RecettesTab(QWidget):
 
         if row < 0:
             # Réinitialiser les widgets quand rien n'est sélectionné
-            self.detail_titre.setText("<h3>Détails de la recette</h3>")
+            self.detail_titre.setText("<h3>Détails du repas</h3>")
             self.detail_description.setPlainText(
                 ""
             )  # Utiliser setPlainText au lieu de setText
@@ -598,7 +599,7 @@ class RecettesTab(QWidget):
             # Recharger les données
             self.load_data()
 
-            # Réafficher les détails de la recette modifiée
+            # Réafficher les détails du repas modifié
             for i in range(self.recettes_list.count()):
                 if self.recettes_list.item(i).data(Qt.UserRole) == recette_id:
                     self.recettes_list.setCurrentRow(i)
