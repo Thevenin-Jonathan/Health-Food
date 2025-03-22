@@ -217,6 +217,10 @@ class RecettesTab(QWidget):
             self.show_ingredient_context_menu
         )
 
+        # Désactiver la sélection de cellules individuelles
+        self.detail_ingredients.setSelectionMode(QTableWidget.NoSelection)
+        self.detail_ingredients.setFocusPolicy(Qt.NoFocus)  # Évite le focus du tableau
+
         # Ajouter un titre pour la section des valeurs nutritionnelles
         nutrition_title = QLabel("<h4>Valeurs nutritionnelles</h4>")
         nutrition_title.setProperty("class", "subsection-title")
@@ -331,11 +335,16 @@ class RecettesTab(QWidget):
             self.detail_ingredients.insertRow(i)
             nom_item = QTableWidgetItem(aliment["nom"])
             nom_item.setData(Qt.UserRole, aliment["id"])  # Stocker l'ID
+            nom_item.setFlags(nom_item.flags() & ~Qt.ItemIsSelectable)
             self.detail_ingredients.setItem(i, 0, nom_item)
 
             # Quantité - éditable
             quantite_item = QTableWidgetItem(f"{aliment['quantite']}g")
             quantite_item.setData(Qt.UserRole, aliment["id"])  # Stocker l'ID
+            quantite_item.setTextAlignment(Qt.AlignCenter)  # Centrer le texte
+            quantite_item.setFlags(
+                (quantite_item.flags() | Qt.ItemIsEditable) & ~Qt.ItemIsSelectable
+            )
             self.detail_ingredients.setItem(i, 1, quantite_item)
 
             # Ajouter l'ID à la liste
@@ -343,24 +352,28 @@ class RecettesTab(QWidget):
 
             # Calories
             calories = aliment["calories"] * aliment["quantite"] / 100
-            self.detail_ingredients.setItem(
-                i, 2, QTableWidgetItem(f"{calories:.0f} kcal")
-            )
+            calories_item = QTableWidgetItem(f"{calories:.0f} kcal")
+            calories_item.setTextAlignment(Qt.AlignCenter)  # Centrer le texte
+            calories_item.setFlags(calories_item.flags() & ~Qt.ItemIsSelectable)
+            self.detail_ingredients.setItem(i, 2, calories_item)
 
             # Macros
             macros = f"P: {aliment['proteines'] * aliment['quantite'] / 100:.1f}g | "
             macros += f"G: {aliment['glucides'] * aliment['quantite'] / 100:.1f}g | "
             macros += f"L: {aliment['lipides'] * aliment['quantite'] / 100:.1f}g"
-            self.detail_ingredients.setItem(i, 3, QTableWidgetItem(macros))
+            macros_item = QTableWidgetItem(macros)
+            macros_item.setTextAlignment(Qt.AlignCenter)  # Centrer le texte
+            macros_item.setFlags(macros_item.flags() & ~Qt.ItemIsSelectable)
+            self.detail_ingredients.setItem(i, 3, macros_item)
 
             # Bouton de suppression (croix rouge) - version améliorée
             btn_container = QWidget()
             btn_layout = QHBoxLayout(btn_container)
-            btn_layout.setContentsMargins(2, 2, 2, 2)  # Réduire les marges
+            btn_layout.setContentsMargins(0, 0, 0, 0)  # Réduire les marges
+            btn_layout.setSpacing(0)
             btn_layout.setAlignment(Qt.AlignCenter)  # Centrer dans la cellule
 
-            btn_delete = QPushButton("×")
-            btn_delete.setFixedSize(16, 16)  # Taille réduite et carrée
+            btn_delete = QPushButton("〤")
             btn_delete.setObjectName("deleteButton")
             btn_delete.setToolTip("Supprimer cet ingrédient")
             btn_delete.clicked.connect(

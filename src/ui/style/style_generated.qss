@@ -114,6 +114,38 @@ QTableWidget#comparisonTable::item {
     padding: 8px;
 }
 
+/* Réduire le padding des cellules du tableau d'ingrédients */
+QTableWidget#ingredientsTable::item {
+    padding: 2px;
+    border-bottom: 1px solid #C8E6C9;
+}
+
+/* Bouton de suppression dans le tableau d'ingrédients */
+QTableWidget#ingredientsTable QPushButton#deleteButton {
+    background-color: transparent;
+    color: #e74c3c;
+    font-weight: bold;
+    border-radius: 3px;  /* Rayon de bordure réduit */
+    font-size: 14px;     /* Taille de police réduite */
+    min-width: 18px;     /* Taille minimale réduite */
+    min-height: 18px;
+    max-width: 18px;     /* Taille maximale réduite */
+    max-height: 18px;
+    padding: 0px;        /* Pas de padding */
+    margin: 0px;         /* Pas de marge */
+}
+
+/* Survol du bouton de suppression dans le tableau */
+QTableWidget#ingredientsTable QPushButton#deleteButton:hover {
+    background-color: #e74c3c;
+    color: white;
+}
+
+/* Style du widget conteneur pour le bouton */
+QTableWidget#ingredientsTable QWidget {
+    background-color: transparent;  /* Fond transparent */
+}
+
 /* Liste d'arbres */
 QTreeWidget {
     border: 1px solid #C8E6C9;
