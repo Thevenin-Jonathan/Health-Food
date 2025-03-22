@@ -27,3 +27,4 @@ ENV/
 .vscode/
 *.db
 *.log
+src/ui/style/style_generated.qss
