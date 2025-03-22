@@ -28,6 +28,7 @@ if __name__ == "__main__":
     # Appliquer la sélection automatique à tous les champs de saisie
     apply_auto_select_to_widget(window)
 
-    window.showMaximized()
+    # window.showMaximized()
+    window.show()
 
     sys.exit(app.exec())
