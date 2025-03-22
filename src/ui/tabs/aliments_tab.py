@@ -161,20 +161,6 @@ class AlimentsTab(TabBase):
         filter_layout.addStretch()
 
         self.btn_add = QPushButton("Ajouter un aliment")
-        self.btn_add.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                font-weight: bold;
-                padding: 8px 16px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """
-        )
         self.btn_add.clicked.connect(self.add_aliment)
         filter_layout.addWidget(self.btn_add)
 
@@ -367,23 +353,8 @@ class AlimentsTab(TabBase):
                 prix_item.setText(f"{prix_val:.2f} €")
             self.table.setItem(i, 10, prix_item)
 
-            # Ajouter les boutons comme avant...
             # Bouton Modifier
             btn_edit = ActionButton("Modifier")
-            btn_edit.setStyleSheet(
-                """
-                QPushButton {
-                    background-color: #3498db;
-                    color: white;
-                    border: none;
-                    border-radius: 3px;
-                    font-size: 11px;
-                }
-                QPushButton:hover {
-                    background-color: #2980b9;
-                }
-                """
-            )
             btn_edit.clicked.connect(
                 lambda checked, row=i: self.edit_aliment_from_button(row)
             )
@@ -393,20 +364,6 @@ class AlimentsTab(TabBase):
 
             # Bouton Supprimer
             btn_delete = ActionButton("Supprimer")
-            btn_delete.setStyleSheet(
-                """
-                QPushButton {
-                    background-color: #e74c3c;
-                    color: white;
-                    border: none;
-                    border-radius: 3px;
-                    font-size: 11px;
-                }
-                QPushButton:hover {
-                    background-color: #c0392b;
-                }
-                """
-            )
             btn_delete.clicked.connect(
                 lambda checked, row=i: self.delete_aliment_from_button(row)
             )
