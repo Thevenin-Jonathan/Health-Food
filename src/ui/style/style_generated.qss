@@ -985,8 +985,9 @@ QFrame.repas-widget QPushButton#deleteBigButton {
 
 /* Style pour les aliments dans la liste dépliée */
 QFrame.repas-widget QLabel[class="aliment-item"] {
-    padding: 2px;
-    border-bottom: 1px solid #ddffde;
+    padding: 2px 4px;
     margin: 0;
     font-size: 9pt;
+    line-height: 130%;
+    min-height: 16px;
 }

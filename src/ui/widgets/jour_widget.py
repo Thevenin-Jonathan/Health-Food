@@ -176,6 +176,49 @@ class JourWidget(QWidget):
             total_cal, total_prot, total_gluc, total_lip, self.objectifs_utilisateur
         )
 
+    def get_expanded_repas_ids(self):
+        """Récupère la liste des IDs des repas qui sont actuellement ouverts"""
+        expanded_ids = set()
+
+        # Parcourir tous les widgets de repas dans le layout
+        for i in range(self.repas_layout.count()):
+            item = self.repas_layout.itemAt(i)
+            if item and item.widget():
+                widget = item.widget()
+                if isinstance(widget, RepasWidget) and widget.is_expanded:
+                    expanded_ids.add(widget.repas_data["id"])
+
+        return expanded_ids
+
+    def update_day_totals(self):
+        """Met à jour uniquement les totaux du jour sans recharger les repas"""
+        # Calculer les nouveaux totaux
+        total_calories = 0
+        total_proteines = 0
+        total_glucides = 0
+        total_lipides = 0
+
+        # Parcourir tous les widgets de repas
+        for i in range(self.repas_layout.count()):
+            item = self.repas_layout.itemAt(i)
+            if item and item.widget():
+                widget = item.widget()
+                if isinstance(widget, RepasWidget):
+                    # Ajouter les valeurs nutritionnelles
+                    total_calories += widget.repas_data["total_calories"]
+                    total_proteines += widget.repas_data["total_proteines"]
+                    total_glucides += widget.repas_data["total_glucides"]
+                    total_lipides += widget.repas_data["total_lipides"]
+
+        # Mettre à jour le widget des totaux
+        self.totaux_widget.update_values(
+            total_calories,
+            total_proteines,
+            total_glucides,
+            total_lipides,
+            self.objectifs_utilisateur,
+        )
+
     def dragEnterEvent(self, event):
         """Gère l'entrée d'un drag dans la zone du jour"""
         if event.mimeData().hasFormat("application/x-repas"):

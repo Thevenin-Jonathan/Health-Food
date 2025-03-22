@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QSizePolicy,
     QWidget,
+    QScrollArea,
 )
 from PySide6.QtCore import Qt, QMimeData, QByteArray
 from PySide6.QtGui import QDrag, QPainter, QPixmap
@@ -187,7 +188,9 @@ class RepasWidget(QFrame):
 
     def add_aliment_to_layout(self, aliment, parent_layout):
         """Ajoute un aliment au layout avec son bouton de suppression"""
-        alim_layout = QHBoxLayout()
+        # Créer un widget conteneur pour l'aliment
+        alim_container = QWidget()
+        alim_layout = QHBoxLayout(alim_container)
         alim_layout.setSpacing(2)  # Réduit l'espacement entre les éléments
         alim_layout.setContentsMargins(0, 0, 0, 0)  # Supprime les marges
 
@@ -203,6 +206,7 @@ class RepasWidget(QFrame):
         alim_text = f"{aliment['nom']} ({aliment['quantite']}g) - {aliment['calories'] * aliment['quantite'] / 100:.0f} kcal"
         alim_label = QLabel(alim_text)
         alim_label.setProperty("class", "aliment-item")
+        alim_label.setWordWrap(True)
         alim_layout.addWidget(alim_label)
         alim_layout.addStretch()
 
@@ -225,7 +229,8 @@ class RepasWidget(QFrame):
 
         alim_label.setToolTip(tooltip_text)
 
-        parent_layout.addLayout(alim_layout)
+        # Ajouter le widget conteneur au layout parent
+        parent_layout.addWidget(alim_container)
 
     def add_food_to_meal(self):
         """Ajouter un aliment au repas"""
@@ -235,7 +240,36 @@ class RepasWidget(QFrame):
             self.db_manager.ajouter_aliment_repas(
                 self.repas_data["id"], aliment_id, quantite
             )
-            self.update_parent_widget()
+
+            # Récupérer les données mises à jour
+            repas_updated = self.db_manager.get_repas(self.repas_data["id"])
+            if repas_updated:
+                # Conserver l'état d'expansion
+                was_expanded = self.is_expanded
+
+                # Mettre à jour les données
+                self.repas_data = repas_updated
+
+                # Reconstruire l'interface
+                self.clear_and_rebuild_details()
+                self.update_summaries()
+
+                # Restaurer l'état d'expansion
+                if was_expanded:
+                    self.is_expanded = True
+                    self.details_widget.setVisible(True)
+                    self.expand_btn.setText("▲")
+                    self.expand_btn.setStyleSheet(
+                        """
+                        border-top-left-radius: 0px;
+                        border-top-right-radius: 0px;
+                        border-bottom-left-radius: 12px;
+                        border-bottom-right-radius: 12px;
+                    """
+                    )
+
+                # Mettre à jour les totaux du jour parent
+                self.notify_parent_day_widget()
 
     def delete_meal(self):
         """Supprimer ce repas"""
@@ -262,8 +296,130 @@ class RepasWidget(QFrame):
         )
 
         if reply == QMessageBox.Yes:
+            # Supprimer l'aliment de la base de données
             self.db_manager.supprimer_aliment_repas(self.repas_data["id"], aliment_id)
-            self.update_parent_widget()
+
+            # Récupérer les données mises à jour du repas
+            repas_updated = self.db_manager.get_repas(self.repas_data["id"])
+            if repas_updated:
+                # Conserver l'état d'expansion
+                was_expanded = self.is_expanded
+
+                # Mettre à jour les données locales
+                self.repas_data = repas_updated
+
+                # Reconstruire l'interface du repas sans recharger tout le contenu
+                self.clear_and_rebuild_details()
+                self.update_summaries()
+
+                # Restaurer l'état d'expansion
+                if was_expanded:
+                    self.is_expanded = True
+                    self.details_widget.setVisible(True)
+                    self.expand_btn.setText("▲")
+                    self.expand_btn.setStyleSheet(
+                        """
+                        border-top-left-radius: 0px;
+                        border-top-right-radius: 0px;
+                        border-bottom-left-radius: 12px;
+                        border-bottom-right-radius: 12px;
+                    """
+                    )
+
+                # Mettre à jour les totaux du jour parent sans tout recharger
+                self.notify_parent_day_widget()
+
+    def clear_and_rebuild_details(self):
+        """Efface et reconstruit la section des détails du repas"""
+        # Vider les détails existants
+        while self.details_layout.count():
+            item = self.details_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                # Nettoyer les layouts imbriqués
+                while item.layout().count():
+                    sub_item = item.layout().takeAt(0)
+                    if sub_item.widget():
+                        sub_item.widget().deleteLater()
+
+        # Ajouter les aliments du repas dans la zone détaillée
+        if self.repas_data["aliments"]:
+            # Ajouter un bouton pour ajouter un aliment
+            btn_add_food = QPushButton("+ Ajouter un aliment")
+            btn_add_food.setObjectName("addFoodButton")
+            btn_add_food.clicked.connect(self.add_food_to_meal)
+            self.details_layout.addWidget(btn_add_food)
+
+            # Créer un conteneur de défilement pour les aliments (scroll area)
+            if len(self.repas_data["aliments"]) > 5:
+                aliments_scroll = QScrollArea()
+                aliments_scroll.setWidgetResizable(True)
+                aliments_scroll.setFrameShape(QFrame.NoFrame)
+                aliments_scroll.setMaximumHeight(150)  # Hauteur maximale
+
+                aliments_container = QWidget()
+                aliments_layout = QVBoxLayout(aliments_container)
+                aliments_layout.setContentsMargins(0, 0, 0, 0)
+                aliments_layout.setSpacing(3)
+
+                # Ajouter les aliments au conteneur
+                for aliment in self.repas_data["aliments"]:
+                    self.add_aliment_to_layout(aliment, aliments_layout)
+
+                aliments_scroll.setWidget(aliments_container)
+                self.details_layout.addWidget(aliments_scroll)
+            else:
+                # Si peu d'aliments, les ajouter directement
+                for aliment in self.repas_data["aliments"]:
+                    self.add_aliment_to_layout(aliment, self.details_layout)
+        else:
+            empty_label = QLabel("Aucun aliment")
+            empty_label.setAlignment(Qt.AlignCenter)
+            self.details_layout.addWidget(empty_label)
+
+            # Ajouter un bouton pour ajouter un aliment
+            btn_add_food = QPushButton("+ Ajouter un aliment")
+            btn_add_food.setObjectName("addFoodButton")
+            btn_add_food.clicked.connect(self.add_food_to_meal)
+            self.details_layout.addWidget(btn_add_food)
+
+    def update_summaries(self):
+        """Met à jour les résumés nutritionnels"""
+        # Mettre à jour les calories
+        for i in range(self.repas_layout.count()):
+            layout_item = self.repas_layout.itemAt(i)
+            if isinstance(layout_item, QHBoxLayout):
+                for j in range(layout_item.count()):
+                    item = layout_item.itemAt(j)
+                    if (
+                        item.widget()
+                        and isinstance(item.widget(), QLabel)
+                        and hasattr(item.widget(), "property")
+                    ):
+                        label = item.widget()
+                        if label.property("class") == "calories-label":
+                            label.setText(
+                                f"{self.repas_data['total_calories']:.0f} kcal"
+                            )
+                            break
+
+        # Mettre à jour les macronutriments
+        self.macro_summary.setText(
+            f"<b>P:</b> {self.repas_data['total_proteines']:.1f}g | "
+            f"<b>G:</b> {self.repas_data['total_glucides']:.1f}g | "
+            f"<b>L:</b> {self.repas_data['total_lipides']:.1f}g"
+        )
+
+    def notify_parent_day_widget(self):
+        """Notifie le widget jour parent pour mettre à jour ses totaux sans tout recharger"""
+        # Trouver le widget jour parent
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, "update_day_totals"):
+                parent.update_day_totals()
+                break
+            parent = parent.parent()
 
     def remplacer_repas_par_recette(self):
         """Remplace le repas par une recette"""
