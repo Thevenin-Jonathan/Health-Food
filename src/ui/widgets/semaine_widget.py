@@ -102,12 +102,9 @@ class SemaineWidget(QWidget):
         # Identifier les recettes utilisées dans cette semaine
         for jour in JOURS_SEMAINE:
             for repas in repas_semaine[jour]:
-                if repas.get("repas_type_id"):  # Utilisez get() pour éviter KeyError
+                if repas.get("repas_type_id"):
                     # Ajouter la recette au dictionnaire si elle n'y est pas déjà
                     self.recettes_utilisees[repas["repas_type_id"]] = True
-                    print(
-                        f"Repas '{repas['nom']}' utilise la recette ID: {repas['repas_type_id']}"
-                    )
 
         for col, jour in enumerate(JOURS_SEMAINE):
             # Créer un widget pour le jour
@@ -142,22 +139,11 @@ class SemaineWidget(QWidget):
     # Dans SemaineWidget.on_recette_modifiee
     def on_recette_modifiee(self, recette_id):
         """Appelé lorsqu'une recette est modifiée"""
-        print(f"Signal reçu: recette_modifiee avec ID: {recette_id}")
-        print(
-            f"Recettes utilisées dans la semaine: {list(self.recettes_utilisees.keys())}"
-        )
-
         # Vérifier si cette recette est utilisée dans cette semaine
         if recette_id in self.recettes_utilisees:
-            print(
-                f"La recette {recette_id} est utilisée dans la semaine {self.semaine_id}"
-            )
             # Mettre à jour tous les repas basés sur cette recette
             count = self.db_manager.update_repas_based_on_recipe(recette_id)
-            print(f"{count} repas mis à jour avec la recette {recette_id}")
-            # Si oui, recharger les données
             self.load_data()
-            print("Données rechargées")
         else:
             print(f"La recette {recette_id} n'est pas utilisée dans cette semaine")
 

@@ -574,10 +574,6 @@ class RecettesTab(QWidget):
         current_row = self.recettes_list.currentRow()
         self.afficher_details_recette(current_row)
 
-        # Notifier que la recette a été modifiée
-        print(
-            f"Émission du signal recette_modifiee pour la recette ID: {self.current_recette_id}"
-        )
         EVENT_BUS.recette_modifiee.emit(self.current_recette_id)
 
         # Afficher un message de confirmation

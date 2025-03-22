@@ -298,10 +298,6 @@ class PlanningTab(QWidget):
                 break
 
         if semaine_id is not None:
-            print(
-                f"Suppression de la semaine {semaine_id} de la base de données"
-            )  # Log pour débugger
-
             # Supprimer de la base de données
             self.db_manager.supprimer_semaine(semaine_id)
 

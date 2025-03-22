@@ -1,4 +1,5 @@
 from .db_connector import DBConnector
+from .db_repas_types import RepasTypesManager
 
 
 class RepasManager(DBConnector):
@@ -222,19 +223,11 @@ class RepasManager(DBConnector):
 
     def update_repas_based_on_recipe(self, repas_type_id):
         """Met à jour tous les repas basés sur la recette spécifiée"""
-        print(f"Mise à jour des repas basés sur la recette {repas_type_id}")
         self.connect()
-
-        # 1. Obtenir la recette mise à jour avec ses ingrédients
-        from .db_repas_types import RepasTypesManager
 
         repas_types_manager = RepasTypesManager(self.db_file)
         recette = repas_types_manager.get_repas_type(repas_type_id)
-        print(
-            f"Recette obtenue: {recette['nom']} avec {len(recette['aliments'])} ingrédients"
-        )
 
-        # 2. Trouver tous les repas basés sur cette recette
         self.cursor.execute(
             """
             SELECT id, nom, jour, ordre, semaine_id
@@ -245,12 +238,9 @@ class RepasManager(DBConnector):
         )
 
         repas_list = [dict(row) for row in self.cursor.fetchall()]
-        print(f"Nombre de repas trouvés: {len(repas_list)}")
 
-        # 3. Pour chaque repas, mettre à jour ses ingrédients
         for repas in repas_list:
             repas_id = repas["id"]
-            print(f"Mise à jour du repas {repas_id}: {repas['nom']}")
 
             # Supprimer tous les ingrédients existants
             self.cursor.execute(
