@@ -1061,4 +1061,23 @@ QGroupBox.options-group {
     font-size: 12px;
 }
 
+/* Style pour les cases à cocher dans QTreeWidget */
+QTreeWidget::indicator {
+    width: 12px;
+    height: 12px;
+    border: 1px solid $PRIMARY_LIGHT;
     border-radius: 3px;
+    background-color: white;
+    padding: 2px;
+}
+
+QTreeWidget::indicator:checked {
+    background-color: $PRIMARY_COLOR;  /* Utilise la couleur primaire du thème */
+    border: 1px solid $PRIMARY_LIGHT;
+    image: url(src/ui/icons/checkmark-thin.svg);  /* Icône blanche de coche si vous en avez une */
+}
+
+QTreeWidget::indicator:indeterminate {
+    background-color: $PRIMARY_LIGHT;
+    border: 1px solid $PRIMARY_COLOR;
+}
