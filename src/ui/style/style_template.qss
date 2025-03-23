@@ -396,6 +396,8 @@ QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
     border-radius: $BORDER_RADIUS;
     padding: $PADDING_SMALL;
     background-color: white;
+    color: $INPUT_TEXT_COLOR;
+    selection-background-color: $PRIMARY_COLOR;
 }
 
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {
