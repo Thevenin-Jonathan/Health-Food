@@ -5,17 +5,23 @@ from PySide6.QtWidgets import (
     QLabel,
     QGroupBox,
     QWidget,
+    QComboBox,
+    QFormLayout,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from src.ui.dialogs.export_import_dialog import ExportImportDialog
+from src.utils.theme_manager import ThemeManager
 from .tab_base import TabBase
 
 
 class OptionsTab(TabBase):
     """Onglet des options de l'application"""
 
+    theme_changed = Signal(str)
+
     def __init__(self, db_manager):
         super().__init__(db_manager)
+        self.theme_manager = ThemeManager(db_manager)
         self.setup_ui()
 
     def setup_ui(self):
@@ -42,6 +48,41 @@ class OptionsTab(TabBase):
         title.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(title)
 
+        # Groupe pour les thèmes
+        themes_group = QGroupBox("Personnalisation de l'interface :")
+        themes_group.setProperty("class", "options-group")
+        themes_layout = QVBoxLayout(themes_group)
+
+        # Description
+        themes_description = QLabel(
+            "Choisissez un thème pour personnaliser l'apparence de l'application."
+        )
+        themes_description.setWordWrap(True)
+        themes_description.setProperty("class", "export-import-description")
+        themes_layout.addWidget(themes_description)
+
+        # Formulaire pour la sélection de thème
+        form_layout = QFormLayout()
+
+        # Combobox pour sélectionner le thème
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(self.theme_manager.get_available_themes())
+
+        # Sélectionner le thème actuel
+        current_theme = self.theme_manager.get_current_theme()
+        index = self.theme_combo.findText(current_theme)
+        if index >= 0:
+            self.theme_combo.setCurrentIndex(index)
+
+        # Connecter le signal de changement
+        self.theme_combo.currentTextChanged.connect(self.on_theme_changed)
+
+        form_layout.addRow("Thème :", self.theme_combo)
+        themes_layout.addLayout(form_layout)
+
+        # Ajouter le groupe de thèmes
+        main_layout.addWidget(themes_group)
+
         # Groupe pour l'exportation/importation
         export_import_group = QGroupBox("Exportation et Importation des données :")
         export_import_group.setProperty("class", "options-group")
@@ -66,8 +107,6 @@ class OptionsTab(TabBase):
 
         main_layout.addWidget(export_import_group)
 
-        # Ajouter d'autres groupes d'options si nécessaire...
-
         # Ajouter un espace extensible en bas
         main_layout.addStretch()
 
@@ -78,6 +117,19 @@ class OptionsTab(TabBase):
 
         # Ajouter le layout central au layout extérieur
         outer_layout.addLayout(center_layout)
+
+    def on_theme_changed(self, theme_name):
+        """Appelé lorsque l'utilisateur change de thème"""
+        print(f"Thème sélectionné: {theme_name}")
+
+        # Mettre à jour le thème actuel dans le gestionnaire de thèmes
+        self.theme_manager.current_theme_name = theme_name
+
+        # Sauvegarder le thème dans la BD
+        self.db_manager.save_user_theme(theme_name)
+
+        # Émettre le signal de changement de thème
+        self.theme_changed.emit(theme_name)
 
     def show_export_import_dialog(self):
         """Affiche le dialogue d'exportation/importation"""

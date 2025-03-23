@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QInputDialog,
     QTabBar,
-    QApplication,
 )
 from PySide6.QtCore import Signal, Qt, QTimer
 

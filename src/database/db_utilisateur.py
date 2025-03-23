@@ -278,3 +278,39 @@ class UserManager(DBConnector):
             "glucides_pct": glucides_pct,
             "lipides_pct": lipides_pct,
         }
+
+    # Dans UserManager, ajouter ces méthodes
+    def save_user_theme(self, theme_name):
+        """Sauvegarde le thème choisi par l'utilisateur"""
+        self.connect()
+
+        # Vérifier s'il existe un utilisateur
+        self.cursor.execute("SELECT id FROM utilisateur LIMIT 1")
+        user = self.cursor.fetchone()
+
+        if user:
+            # Mettre à jour le thème
+            self.cursor.execute(
+                "UPDATE utilisateur SET theme_actif = ? WHERE id = ?",
+                (theme_name, user["id"]),
+            )
+        else:
+            # Créer un utilisateur avec le thème par défaut
+            self.cursor.execute(
+                "INSERT INTO utilisateur (theme_actif) VALUES (?)", (theme_name,)
+            )
+
+        self.conn.commit()
+        self.disconnect()
+        return True
+
+    def get_user_theme(self):
+        """Récupère le thème de l'utilisateur"""
+        self.connect()
+        self.cursor.execute("SELECT theme_actif FROM utilisateur LIMIT 1")
+        result = self.cursor.fetchone()
+        self.disconnect()
+
+        if result and result["theme_actif"]:
+            return result["theme_actif"]
+        return "Vert Nature"  # Thème par défaut

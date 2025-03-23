@@ -77,7 +77,8 @@ class DBConnector:
             objectif_calories INTEGER,
             objectif_proteines INTEGER,
             objectif_glucides INTEGER,
-            objectif_lipides INTEGER
+            objectif_lipides INTEGER,
+            theme_actif TEXT DEFAULT 'Vert Nature'
         )
         """
         )

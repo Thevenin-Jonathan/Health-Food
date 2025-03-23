@@ -28,6 +28,7 @@ class QSSPreprocessor:
             # Couleurs d'arrière-plan et de texte
             "$BACKGROUND_COLOR": "#f5f9f5",
             "$TEXT_COLOR": "#2e3d32",
+            "$INPUT_TEXT_COLOR": "#2e3d32",
             "$TEXT_HINT": "#666666",
             "$LIGHT_BG_COLOR": "#e0f0e0",
             # Couleurs spécifiques qui apparaissent dans votre CSS

@@ -34,6 +34,14 @@ class DatabaseManager(DBConnector):
         """Délègue le calcul des besoins caloriques au UserManager"""
         return self.user_manager.calculer_calories_journalieres(user_data)
 
+    def save_user_theme(self, theme_name):
+        """Délègue la sauvegarde du thème utilisateur"""
+        return self.user_manager.save_user_theme(theme_name)
+
+    def get_user_theme(self):
+        """Délègue la récupération du thème utilisateur"""
+        return self.user_manager.get_user_theme()
+
     # =========== MÉTHODES DÉLÉGUÉES À AlimentManager ===========
     def ajouter_aliment(self, data):
         """Délègue l'ajout d'aliment à l'AlimentManager"""
@@ -85,7 +93,9 @@ class DatabaseManager(DBConnector):
     # =========== MÉTHODES DÉLÉGUÉES À RepasManager ===========
     def ajouter_repas(self, nom, jour, ordre, semaine_id=None, repas_type_id=None):
         """Délègue l'ajout de repas au RepasManager"""
-        return self.repas_manager.ajouter_repas(nom, jour, ordre, semaine_id)
+        return self.repas_manager.ajouter_repas(
+            nom, jour, ordre, semaine_id, repas_type_id
+        )
 
     def ajouter_aliment_repas(self, repas_id, aliment_id, quantite):
         """Délègue l'ajout d'aliment à un repas au RepasManager"""

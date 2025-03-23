@@ -7,7 +7,7 @@ from src.utils.ui_helpers import (
     DialogAutoSelectFilter,
     apply_auto_select_to_widget,
 )
-from src.utils.qss_preprocessor import process_qss
+from src.utils.theme_manager import ThemeManager
 
 
 if __name__ == "__main__":
@@ -19,26 +19,35 @@ if __name__ == "__main__":
     # Initialiser le gestionnaire de sélection automatique pour les dialogues
     dialog_select_handler = DialogAutoSelectFilter()
 
-    # Générer le QSS à partir du template en utilisant le préprocesseur
-    qss_content = process_qss(
-        "src/ui/style/style_template.qss",
-        "src/ui/style/style_generated.qss",  # Crée un fichier généré (optionnel)
-    )
-
-    # Appliquer le style généré
-    app.setStyleSheet(qss_content)
-
     # Initialiser la base de données
     db_manager = DatabaseManager()
     db_manager.init_db()
 
+    # Initialiser le gestionnaire de thèmes
+    theme_manager = ThemeManager(db_manager)
+
+    # Fonction pour appliquer un thème
+    def apply_theme(theme_name):
+        print(f"Application du thème : {theme_name}")
+        # Mettre à jour le thème actuel
+        theme_manager.current_theme_name = theme_name
+        # Générer et appliquer le style
+        qss = theme_manager.generate_stylesheet("src/ui/style/style_template.qss")
+        app.setStyleSheet(qss)
+
+    # Appliquer le thème initial en utilisant le thème stocké en base de données
+    initial_theme = theme_manager.get_current_theme()
+    apply_theme(initial_theme)
+
     # Créer et afficher la fenêtre principale
     window = MainWindow(db_manager)
+
+    # Connecter le signal de changement de thème à notre fonction
+    window.options_tab.theme_changed.connect(apply_theme)
 
     # Appliquer la sélection automatique à tous les champs de saisie
     apply_auto_select_to_widget(window)
 
-    # window.showMaximized()
     window.show()
 
     sys.exit(app.exec())
