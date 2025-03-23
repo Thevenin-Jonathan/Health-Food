@@ -528,13 +528,22 @@ class AlimentsTab(TabBase):
         )
 
         if reply == QMessageBox.Yes:
-            self.db_manager.supprimer_aliment(aliment_id)
+            print(f"Demande de suppression de l'aliment {aliment_id} - {aliment_nom}")
+            result = self.db_manager.supprimer_aliment(aliment_id)
 
-            # Émettre le signal pour notifier les autres composants
-            EVENT_BUS.aliment_supprime.emit(aliment_id)
-            EVENT_BUS.aliments_modifies.emit()
-
-            self.load_data()
+            if result:
+                print(f"Suppression réussie, émission des signaux de notification")
+                # Émettre le signal pour notifier les autres composants
+                EVENT_BUS.aliment_supprime.emit(aliment_id)
+                EVENT_BUS.aliments_modifies.emit()
+                self.load_data()
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Erreur de suppression",
+                    f"Impossible de supprimer l'aliment '{aliment_nom}'.\n"
+                    "Veuillez vérifier les logs pour plus d'informations.",
+                )
 
     def add_aliment(self):
         """Ajoute un nouvel aliment"""

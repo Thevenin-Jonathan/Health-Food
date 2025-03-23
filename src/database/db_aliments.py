@@ -64,47 +64,88 @@ class AlimentsManager(DBConnector):
         """Supprime un aliment et toutes ses références dans les repas"""
         self.connect()
 
-        # Vérifier si l'aliment est utilisé dans des repas
-        self.cursor.execute(
-            """
-            SELECT COUNT(*) FROM repas_aliments
-            WHERE aliment_id = ?
-            """,
-            (aliment_id,),
-        )
-        count_repas = self.cursor.fetchone()[0]
+        try:
+            # Début d'une transaction explicite
+            self.cursor.execute("BEGIN TRANSACTION")
 
-        self.cursor.execute(
-            """
-            SELECT COUNT(*) FROM repas_types_aliments
-            WHERE aliment_id = ?
-            """,
-            (aliment_id,),
-        )
-        count_repas_types = self.cursor.fetchone()[0]
+            # Afficher des informations pour déboguer le problème
+            print(f"Tentative de suppression de l'aliment avec ID: {aliment_id}")
 
-        # Supprimer d'abord les références dans les repas_aliments
-        if count_repas > 0:
+            # Vérifier si l'aliment existe
             self.cursor.execute(
-                "DELETE FROM repas_aliments WHERE aliment_id = ?", (aliment_id,)
+                "SELECT id, nom FROM aliments WHERE id = ?", (aliment_id,)
             )
+            aliment = self.cursor.fetchone()
 
-        # Supprimer les références dans les repas_types_aliments
-        if count_repas_types > 0:
-            self.cursor.execute(
-                "DELETE FROM repas_types_aliments WHERE aliment_id = ?", (aliment_id,)
-            )
+            if not aliment:
+                print(f"Erreur: Aliment avec ID {aliment_id} introuvable.")
+                self.conn.rollback()
+                self.disconnect()
+                return False
 
-        # Enfin, supprimer l'aliment lui-même
-        self.cursor.execute("DELETE FROM aliments WHERE id = ?", (aliment_id,))
+            print(f"Aliment trouvé: {aliment['nom']} (ID: {aliment['id']})")
 
-        # Afficher des informations de débogage
-        print(
-            f"Suppression de l'aliment {aliment_id}. Références supprimées: {count_repas} dans repas, {count_repas_types} dans recettes."
-        )
+            # Vérifier les références dans les tables
+            tables_to_check = [
+                ("repas_aliments", "aliment_id"),
+                ("repas_types_aliments", "aliment_id"),
+            ]
 
-        self.conn.commit()
-        self.disconnect()
+            references = {}
+            for table, id_column in tables_to_check:
+                self.cursor.execute(
+                    f"SELECT COUNT(*) FROM {table} WHERE {id_column} = ?", (aliment_id,)
+                )
+                count = self.cursor.fetchone()[0]
+                references[table] = count
+                print(f"Références dans {table}: {count}")
+
+            # Supprimer d'abord les références dans les repas_aliments
+            if references["repas_aliments"] > 0:
+                print(
+                    f"Suppression de {references['repas_aliments']} références dans repas_aliments"
+                )
+                self.cursor.execute(
+                    "DELETE FROM repas_aliments WHERE aliment_id = ?", (aliment_id,)
+                )
+
+            # Supprimer les références dans les repas_types_aliments
+            if references["repas_types_aliments"] > 0:
+                print(
+                    f"Suppression de {references['repas_types_aliments']} références dans repas_types_aliments"
+                )
+                self.cursor.execute(
+                    "DELETE FROM repas_types_aliments WHERE aliment_id = ?",
+                    (aliment_id,),
+                )
+
+            # Finalement, supprimer l'aliment lui-même
+            print(f"Suppression de l'aliment {aliment_id}")
+            self.cursor.execute("DELETE FROM aliments WHERE id = ?", (aliment_id,))
+
+            # Vérifier que l'aliment a bien été supprimé
+            self.cursor.execute("SELECT id FROM aliments WHERE id = ?", (aliment_id,))
+            if self.cursor.fetchone():
+                print(
+                    f"⚠️ Erreur: L'aliment {aliment_id} existe toujours après la suppression!"
+                )
+                self.conn.rollback()
+                self.disconnect()
+                return False
+
+            # Valider la transaction
+            self.conn.commit()
+            print(f"✓ Suppression réussie de l'aliment {aliment_id}")
+            return True
+
+        except Exception as e:
+            # En cas d'erreur, afficher le message et annuler la transaction
+            print(f"❌ Erreur lors de la suppression de l'aliment {aliment_id}: {e}")
+            self.conn.rollback()
+            return False
+
+        finally:
+            self.disconnect()
 
     def get_aliments(
         self,
