@@ -156,6 +156,14 @@ class PlanningTab(QWidget):
         EVENT_BUS.aliment_supprime.connect(self.on_aliment_supprime)
         EVENT_BUS.aliments_modifies.connect(self.refresh_data)
 
+        # Activer le bouton d'impression si nous avons au moins une semaine
+        if self.tabs_semaines.count() > 1:  # Au moins un onglet + le "+"
+            self.btn_print_planning.setEnabled(True)
+
+        # Sélectionner explicitement le premier onglet pour s'assurer que tout est correctement initialisé
+        if self.tabs_semaines.count() > 1:
+            QTimer.singleShot(50, lambda: self.tabs_semaines.setCurrentIndex(0))
+
         self.first_load = False
 
     def ajouter_onglet_plus(self):
