@@ -161,15 +161,26 @@ class SemaineWidget(QWidget):
             print(f"La recette {recette_id} n'est pas utilisée dans cette semaine")
 
     def charger_objectifs_utilisateur(self):
-        """Récupère les objectifs nutritionnels de l'utilisateur"""
-        user_data = self.db_manager.get_utilisateur()
-        return {
-            "calories": user_data.get("objectif_calories", 2500),
-            "proteines": user_data.get("objectif_proteines", 180),
-            "glucides": user_data.get("objectif_glucides", 250),
-            "lipides": user_data.get("objectif_lipides", 70),
-            "cout": 70,
-        }
+        """Récupère les objectifs nutritionnels de l'utilisateur avec des valeurs par défaut sécuritaires"""
+        try:
+            user_data = self.db_manager.get_utilisateur()
+            return {
+                "calories": max(1, user_data.get("objectif_calories", 2500)),
+                "proteines": max(1, user_data.get("objectif_proteines", 180)),
+                "glucides": max(1, user_data.get("objectif_glucides", 250)),
+                "lipides": max(1, user_data.get("objectif_lipides", 70)),
+                "cout": 70,
+            }
+        except Exception as e:
+            print(f"Erreur lors du chargement des objectifs utilisateur: {e}")
+            # Retourner des valeurs par défaut en cas d'erreur
+            return {
+                "calories": 2500,
+                "proteines": 180,
+                "glucides": 250,
+                "lipides": 70,
+                "cout": 70,
+            }
 
     def update_objectifs_utilisateur(self):
         """Met à jour les objectifs quand le profil utilisateur est modifié"""

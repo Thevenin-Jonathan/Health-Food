@@ -21,6 +21,48 @@ class DatabaseManager(DBConnector):
         self.repas_manager = RepasManager(self.db_file)
         self.repas_types_manager = RepasTypesManager(self.db_file)
 
+    def init_db(self):
+        """Initialise la structure de la base de données et crée un utilisateur par défaut si nécessaire"""
+        # Créer les tables de la base de données
+        super().init_db()
+
+        # Une fois les tables créées, vérifier si un utilisateur existe déjà
+        self.connect()
+        try:
+            user_count = self.cursor.execute(
+                "SELECT COUNT(*) FROM utilisateur"
+            ).fetchone()[0]
+            if user_count == 0:
+                # Aucun utilisateur trouvé, créer un profil par défaut
+                print("Aucun utilisateur trouvé, création d'un profil par défaut...")
+                default_user_data = {
+                    "nom": "Utilisateur",
+                    "sexe": "Homme",
+                    "age": 30,
+                    "taille": 175,
+                    "poids": 75,
+                    "niveau_activite": "Modéré",
+                    "objectif": "Maintien",
+                    "taux_variation": 0,
+                    "calories_personnalisees": 0,
+                    "regime_alimentaire": "Régime équilibré",
+                    "proteines_g_kg": 1.8,
+                    "glucides_g_kg": 3.0,
+                    "lipides_g_kg": 1.0,
+                    "objectif_calories": 2500,
+                    "objectif_proteines": 125,
+                    "objectif_glucides": 300,
+                    "objectif_lipides": 83,
+                    "theme_actif": "Vert Nature",
+                }
+                self.sauvegarder_utilisateur(default_user_data)
+        except Exception as e:
+            print(
+                f"Erreur lors de la vérification/création de l'utilisateur par défaut: {e}"
+            )
+        finally:
+            self.disconnect()
+
     # =========== MÉTHODES DÉLÉGUÉES À UserManager ===========
     def sauvegarder_utilisateur(self, data):
         """Délègue la sauvegarde des données utilisateur au UserManager"""

@@ -188,6 +188,10 @@ class TotauxMacrosWidget(QFrame):
 
     def _set_progress_bar_color(self, progress_bar, percentage):
         """Définit la couleur de la barre de progression en fonction du pourcentage"""
+        # Vérifier si target est zéro pour éviter la division par zéro
+        if percentage == float("inf") or percentage != percentage:  # inf ou NaN
+            percentage = 0  # Valeur par défaut sécuritaire
+
         # Cadre rouge - plus de 110%
         if percentage > 1.1:
             progress_bar.setStyleSheet(
