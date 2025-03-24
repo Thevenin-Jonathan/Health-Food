@@ -154,7 +154,7 @@ class PlanningTab(QWidget):
 
         # Se connecter aux événements
         EVENT_BUS.aliment_supprime.connect(self.on_aliment_supprime)
-        EVENT_BUS.aliments_modifies.connect(self.refresh_planning)
+        EVENT_BUS.aliments_modifies.connect(self.refresh_data)
 
         self.first_load = False
 
@@ -452,9 +452,9 @@ class PlanningTab(QWidget):
 
     def on_aliment_supprime(self):
         """Appelé quand un aliment est supprimé"""
-        self.refresh_planning()
+        self.refresh_data()
 
-    def refresh_planning(self):
+    def refresh_data(self):
         """Rafraîchit tous les widgets de semaine"""
         for semaine in self.semaines.values():
             semaine.load_data()
