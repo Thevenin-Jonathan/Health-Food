@@ -50,13 +50,13 @@ class PrintManager:
         html += "<style>"
         html += "body { font-family: Arial, sans-serif; margin: 0; padding: 0; width: 100%; }"
         html += "table { width: 100%; border-collapse: collapse; table-layout: fixed; }"
-        html += "th { background-color: #f2f2f2; padding: 12px 5px; border: 2px solid #000; font-weight: bold; font-size: 14pt; text-align: center; }"
-        html += "td { border: 2px solid #000; padding: 8px 5px; vertical-align: top; font-size: 12pt; width: 14%; }"
+        html += "th { background-color: #f2f2f2; padding: 12px 2px; border: 2px solid #000; font-weight: bold; font-size: 10pt; text-align: center; }"
+        html += "td { border: 2px solid #000; padding: 8px 2px; vertical-align: top; font-size: 10pt; width: 14%; }"
         html += ".repas { margin-bottom: 15px; page-break-inside: avoid; }"
         html += (
-            ".repas-title { font-weight: bold; margin-bottom: 8px; font-size: 10pt; }"
+            ".repas-title { font-weight: bold; margin-bottom: 8px; font-size: 8pt; }"
         )
-        html += ".aliment { margin-left: 10px; margin-bottom: 6px; font-size: 8pt; }"
+        html += ".aliment { margin-left: 10px; margin-bottom: 6px; font-size: 6pt; }"
         html += "* { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }"
         html += "@page { size: landscape; margin: 1cm; }"
         html += "</style>"
