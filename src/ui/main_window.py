@@ -15,6 +15,8 @@ class MainWindow(QMainWindow):
         self.db_manager = db_manager
         self.setup_ui()
 
+        EVENT_BUS.donnees_importees.connect(self.refresh_all_tabs)
+
     def setup_ui(self):
         self.setWindowTitle("Nutrition Sportive - Planificateur de Repas")
         self.setMinimumSize(1280, 720)
@@ -87,3 +89,17 @@ class MainWindow(QMainWindow):
             )  # Léger délai pour assurer l'ordre d'exécution
         else:
             print("Erreur: courses_tab n'est pas accessible")
+
+    def refresh_all_tabs(self):
+        """Rafraîchit tous les onglets après une importation de données"""
+        # Rafraîchir tous les onglets qui ont une méthode refresh_data
+        if hasattr(self, "aliments_tab"):
+            self.aliments_tab.refresh_data()
+        if hasattr(self, "recettes_tab"):
+            self.recettes_tab.refresh_data()
+        if hasattr(self, "planning_tab"):
+            self.planning_tab.refresh_data()
+        if hasattr(self, "courses_tab"):
+            self.courses_tab.refresh_data()
+        if hasattr(self, "utilisateur_tab"):
+            self.utilisateur_tab.refresh_data()
