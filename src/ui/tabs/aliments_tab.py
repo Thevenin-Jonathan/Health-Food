@@ -215,6 +215,7 @@ class AlimentsTab(TabBase):
         self.table.setHorizontalHeaderLabels(
             [
                 "ID",
+                "Suppr.",
                 "Nom",
                 "Marque",
                 "Magasin",
@@ -225,7 +226,6 @@ class AlimentsTab(TabBase):
                 "Lipides",
                 "Fibres",
                 "Prix/kg",
-                "Supprimer",
             ]
         )
 
@@ -264,17 +264,17 @@ class AlimentsTab(TabBase):
 
         # Définir ensuite les largeurs fixes optimisées pour avoir une vue compacte
         col_widths = {
-            1: (180, QHeaderView.Stretch),  # Nom - largeur dynamique (stretch)
-            2: (110, QHeaderView.Fixed),  # Marque - réduite
-            3: (100, QHeaderView.Fixed),  # Magasin - réduite
-            4: (100, QHeaderView.Fixed),  # Catégorie - réduite
-            5: (70, QHeaderView.Fixed),  # Calories - très compacte
-            6: (70, QHeaderView.Fixed),  # Protéines - très compacte
-            7: (70, QHeaderView.Fixed),  # Glucides - très compacte
-            8: (70, QHeaderView.Fixed),  # Lipides - très compacte
-            9: (65, QHeaderView.Fixed),  # Fibres - très compacte
-            10: (70, QHeaderView.Fixed),  # Prix/kg - très compacte
-            11: (70, QHeaderView.Fixed),  # Bouton Supprimer
+            1: (60, QHeaderView.Fixed),  # Colonne Supprimer (maintenant en position 1)
+            2: (140, QHeaderView.Stretch),  # Nom - largeur dynamique (stretch)
+            3: (120, QHeaderView.Fixed),  # Marque - réduite
+            4: (100, QHeaderView.Fixed),  # Magasin - réduite
+            5: (140, QHeaderView.Fixed),  # Catégorie - réduite
+            6: (70, QHeaderView.Fixed),  # Calories - très compacte
+            7: (70, QHeaderView.Fixed),  # Protéines - très compacte
+            8: (70, QHeaderView.Fixed),  # Glucides - très compacte
+            9: (70, QHeaderView.Fixed),  # Lipides - très compacte
+            10: (65, QHeaderView.Fixed),  # Fibres - très compacte
+            11: (70, QHeaderView.Fixed),  # Prix/kg - très compacte
         }
 
         # Appliquer les largeurs fixes pour les colonnes qui ne sont pas en Stretch
@@ -288,18 +288,18 @@ class AlimentsTab(TabBase):
 
         # Définir une largeur minimale pour la colonne nom
         # Cette ligne est importante pour que la colonne nom ne soit pas trop étroite
-        self.table.setColumnWidth(1, 150)  # Largeur initiale
+        self.table.setColumnWidth(2, 140)  # Largeur initiale (maintenant en position 2)
 
         # Centrer le contenu des colonnes numériques
-        for col in range(5, 11):
+        for col in range(6, 12):
             self.table.horizontalHeaderItem(col).setTextAlignment(Qt.AlignCenter)
 
         # Ajouter des tooltips
-        self.table.horizontalHeaderItem(5).setToolTip("Calories pour 100g")
-        self.table.horizontalHeaderItem(6).setToolTip("Protéines en g pour 100g")
-        self.table.horizontalHeaderItem(7).setToolTip("Glucides en g pour 100g")
-        self.table.horizontalHeaderItem(8).setToolTip("Lipides en g pour 100g")
-        self.table.horizontalHeaderItem(9).setToolTip("Fibres en g pour 100g")
+        self.table.horizontalHeaderItem(6).setToolTip("Calories pour 100g")
+        self.table.horizontalHeaderItem(7).setToolTip("Protéines en g pour 100g")
+        self.table.horizontalHeaderItem(8).setToolTip("Glucides en g pour 100g")
+        self.table.horizontalHeaderItem(9).setToolTip("Lipides en g pour 100g")
+        self.table.horizontalHeaderItem(10).setToolTip("Fibres en g pour 100g")
 
         # Définir une hauteur de ligne raisonnable
         self.table.verticalHeader().setDefaultSectionSize(36)  # Hauteur de ligne
@@ -345,16 +345,16 @@ class AlimentsTab(TabBase):
         # Déterminer la colonne et l'ordre de tri
         if self.table.isSortingEnabled() and current_sort_column > 0:
             sort_column = {
-                1: "nom",
-                2: "marque",
-                3: "magasin",
-                4: "categorie",
-                5: "calories",
-                6: "proteines",
-                7: "glucides",
-                8: "lipides",
-                9: "fibres",
-                10: "prix_kg",
+                2: "nom",
+                3: "marque",
+                4: "magasin",
+                5: "categorie",
+                6: "calories",
+                7: "proteines",
+                8: "glucides",
+                9: "lipides",
+                10: "fibres",
+                11: "prix_kg",
             }.get(current_sort_column, "nom")
             sort_order = current_sort_order == Qt.AscendingOrder
 
@@ -379,54 +379,65 @@ class AlimentsTab(TabBase):
             id_item.setData(Qt.DisplayRole, aliment["id"])
             self.table.setItem(i, 0, id_item)
 
+            # Bouton Supprimer (maintenant à la colonne 1)
+            btn_delete = QPushButton("〤")
+            btn_delete.setObjectName("deleteButton")
+            aliment_id = aliment["id"]
+            btn_delete.clicked.connect(
+                lambda checked, aid=aliment_id: self.delete_aliment_by_id(aid)
+            )
+            # Utiliser le conteneur pour centrer le bouton
+            delete_container = ButtonContainer(btn_delete)
+            self.table.setCellWidget(i, 1, delete_container)
+
             # Nom
             nom_item = QTableWidgetItem(aliment["nom"])
             nom_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            self.table.setItem(i, 1, nom_item)
+            self.table.setItem(i, 2, nom_item)
 
             # Marque
             marque_item = QTableWidgetItem(aliment["marque"] or "")
             marque_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            self.table.setItem(i, 2, marque_item)
+            self.table.setItem(i, 3, marque_item)
 
             # Magasin
             magasin_item = QTableWidgetItem(aliment["magasin"] or "")
             magasin_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            self.table.setItem(i, 3, magasin_item)
+            self.table.setItem(i, 4, magasin_item)
 
             # Catégorie
             categorie_item = QTableWidgetItem(aliment["categorie"] or "")
             categorie_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            self.table.setItem(i, 4, categorie_item)
+            self.table.setItem(i, 5, categorie_item)
 
             # Valeurs nutritionnelles avec tri numérique correct et alignement centré
             cal_item = NumericTableItem(
                 aliment["calories"], f"{aliment['calories']:.0f}"
             )
             cal_item.setTextAlignment(Qt.AlignCenter)
-            self.table.setItem(i, 5, cal_item)
+            self.table.setItem(i, 6, cal_item)
 
             prot_item = NumericTableItem(
                 aliment["proteines"], f"{aliment['proteines']:.1f}"
             )
             prot_item.setTextAlignment(Qt.AlignCenter)
-            self.table.setItem(i, 6, prot_item)
+            self.table.setItem(i, 7, prot_item)
 
             gluc_item = NumericTableItem(
                 aliment["glucides"], f"{aliment['glucides']:.1f}"
             )
             gluc_item.setTextAlignment(Qt.AlignCenter)
-            self.table.setItem(i, 7, gluc_item)
+            self.table.setItem(i, 8, gluc_item)
 
             lip_item = NumericTableItem(aliment["lipides"], f"{aliment['lipides']:.1f}")
             lip_item.setTextAlignment(Qt.AlignCenter)
-            self.table.setItem(i, 8, lip_item)
+            self.table.setItem(i, 9, lip_item)
 
             # Fibres
             fibres_val = aliment.get("fibres", 0) or 0
             fibres_item = NumericTableItem(fibres_val, f"{fibres_val:.1f}")
             fibres_item.setTextAlignment(Qt.AlignCenter)
-            self.table.setItem(i, 9, fibres_item)
+            self.table.setItem(i, 10, fibres_item)
 
             # Prix au kg avec tri numérique correct
             prix_val = aliment.get("prix_kg", 0) or 0
@@ -434,17 +445,7 @@ class AlimentsTab(TabBase):
             if prix_val > 0:
                 prix_item.setText(f"{prix_val:.2f} €")
             prix_item.setTextAlignment(Qt.AlignCenter)
-            self.table.setItem(i, 10, prix_item)
-
-            # Bouton Supprimer (maintenant à la colonne 11 au lieu de 12)
-            btn_delete = QPushButton("〤")
-            btn_delete.setObjectName("deleteButton")
-            btn_delete.clicked.connect(
-                lambda checked, row=i: self.delete_aliment_from_button(row)
-            )
-            # Utiliser le conteneur pour centrer le bouton
-            delete_container = ButtonContainer(btn_delete)
-            self.table.setCellWidget(i, 11, delete_container)
+            self.table.setItem(i, 11, prix_item)
 
         # Réactiver le tri avec la même colonne et ordre qu'avant
         self.table.setSortingEnabled(True)
@@ -475,7 +476,7 @@ class AlimentsTab(TabBase):
         self.edit_aliment_by_id(aliment_id)
 
     def delete_aliment_from_button(self, row):
-        """Supprimer un aliment depuis le bouton dans le tableau"""
+        """Supprimer un aliment depuis le bouton dans le tableau - Obsolète, garder pour compatibilité"""
         aliment_id = int(self.table.item(row, 0).text())
         self.delete_aliment_by_id(aliment_id)
 
@@ -509,41 +510,46 @@ class AlimentsTab(TabBase):
 
     def delete_aliment_by_id(self, aliment_id):
         """Supprime un aliment par son ID avec confirmation"""
-        # Trouver le nom de l'aliment pour la confirmation
-        for row in range(self.table.rowCount()):
-            if int(self.table.item(row, 0).text()) == aliment_id:
-                aliment_nom = self.table.item(row, 1).text()
-                break
-        else:
-            aliment_nom = f"Aliment #{aliment_id}"
+        try:
+            # Récupérer l'aliment directement dans la base de données
+            aliment = self.db_manager.get_aliment(aliment_id)
+            aliment_nom = aliment["nom"]
 
-        # Demander confirmation
-        reply = QMessageBox.question(
-            self,
-            "Confirmer la suppression",
-            f"Êtes-vous sûr de vouloir supprimer l'aliment '{aliment_nom}' ?\n\n"
-            "Attention: cette action supprimera également cet aliment de tous les repas où il est utilisé.",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
+            # Demander confirmation
+            reply = QMessageBox.question(
+                self,
+                "Confirmer la suppression",
+                f"Êtes-vous sûr de vouloir supprimer l'aliment '{aliment_nom}' ?\n\n"
+                "Attention: cette action supprimera également cet aliment de tous les repas où il est utilisé.",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
 
-        if reply == QMessageBox.Yes:
-            print(f"Demande de suppression de l'aliment {aliment_id} - {aliment_nom}")
-            result = self.db_manager.supprimer_aliment(aliment_id)
-
-            if result:
-                print(f"Suppression réussie, émission des signaux de notification")
-                # Émettre le signal pour notifier les autres composants
-                EVENT_BUS.aliment_supprime.emit(aliment_id)
-                EVENT_BUS.aliments_modifies.emit()
-                self.load_data()
-            else:
-                QMessageBox.warning(
-                    self,
-                    "Erreur de suppression",
-                    f"Impossible de supprimer l'aliment '{aliment_nom}'.\n"
-                    "Veuillez vérifier les logs pour plus d'informations.",
+            if reply == QMessageBox.Yes:
+                print(
+                    f"Demande de suppression de l'aliment {aliment_id} - {aliment_nom}"
                 )
+                result = self.db_manager.supprimer_aliment(aliment_id)
+
+                if result:
+                    print(f"Suppression réussie, émission des signaux de notification")
+                    # Émettre le signal pour notifier les autres composants
+                    EVENT_BUS.aliment_supprime.emit(aliment_id)
+                    EVENT_BUS.aliments_modifies.emit()
+                    self.load_data()
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "Erreur de suppression",
+                        f"Impossible de supprimer l'aliment '{aliment_nom}'.\n"
+                        "Veuillez vérifier les logs pour plus d'informations.",
+                    )
+        except Exception as e:
+            QMessageBox.warning(
+                self,
+                "Erreur",
+                f"Une erreur est survenue lors de la suppression: {str(e)}",
+            )
 
     def add_aliment(self):
         """Ajoute un nouvel aliment"""
@@ -600,8 +606,15 @@ class AlimentsTab(TabBase):
 
     def show_context_menu(self, position):
         """Affiche un menu contextuel pour les actions rapides"""
-        menu = QMenu()
+        # Trouver l'index de la ligne sous le curseur
+        index = self.table.indexAt(position)
+        if not index.isValid():
+            return
 
+        row = index.row()
+        aliment_id = int(self.table.item(row, 0).text())
+
+        menu = QMenu()
         edit_action = menu.addAction("Modifier")
         delete_action = menu.addAction("Supprimer")
 
@@ -609,14 +622,14 @@ class AlimentsTab(TabBase):
 
         # Exécuter l'action choisie
         if action == edit_action:
-            self.edit_aliment()
+            self.edit_aliment_by_id(aliment_id)
         elif action == delete_action:
-            self.delete_aliment()
+            self.delete_aliment_by_id(aliment_id)
 
     def edit_aliment_from_double_click(self, row, column):
         """Éditer un aliment depuis un double-clic sur une ligne du tableau"""
         # Ignorer les clics sur la colonne de suppression
-        if column == 11:  # Colonne de suppression
+        if column == 1:  # Colonne de suppression
             return
 
         aliment_id = int(self.table.item(row, 0).text())
