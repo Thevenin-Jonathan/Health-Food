@@ -155,7 +155,7 @@ class SemaineWidget(QWidget):
         # Vérifier si cette recette est utilisée dans cette semaine
         if recette_id in self.recettes_utilisees:
             # Mettre à jour tous les repas basés sur cette recette
-            count = self.db_manager.update_repas_based_on_recipe(recette_id)
+            self.db_manager.update_repas_based_on_recipe(recette_id)
             self.load_data()
         else:
             print(f"La recette {recette_id} n'est pas utilisée dans cette semaine")
