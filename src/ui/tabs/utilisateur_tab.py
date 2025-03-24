@@ -114,6 +114,7 @@ class UtilisateurTab(TabBase):
 
         # Groupe des informations personnelles
         personal_group = QGroupBox("Informations personnelles")
+        personal_group.setProperty("class", "important-group")
         personal_layout = QFormLayout()
 
         self.nom_edit = QLineEdit()
@@ -160,6 +161,7 @@ class UtilisateurTab(TabBase):
 
         # Groupe du niveau d'activité
         activity_group = QGroupBox("Niveau d'activité physique")
+        activity_group.setProperty("class", "important-group")
         activity_layout = QFormLayout()
 
         self.activite_combo = QComboBox()
@@ -206,9 +208,12 @@ class UtilisateurTab(TabBase):
 
         # Colonne de droite: Objectifs et calculs
         right_column = QVBoxLayout()
+        right_column.setSpacing(0)
+        right_column.setContentsMargins(0, 0, 0, 0)
 
         # Sélection du mode de calcul (nouveau)
         mode_group = QGroupBox("Mode de calcul")
+        mode_group.setProperty("class", "important-group")
         mode_layout = QHBoxLayout()
 
         self.mode_auto_radio = QRadioButton("Calcul automatique")
@@ -235,6 +240,7 @@ class UtilisateurTab(TabBase):
 
         # Groupe des objectifs (mode auto)
         objectif_group_auto = QGroupBox("Objectifs")
+        objectif_group_auto.setProperty("class", "important-group")
         objectif_layout_auto = QFormLayout()
 
         self.objectif_combo = QComboBox()
@@ -297,6 +303,7 @@ class UtilisateurTab(TabBase):
 
         # Groupe de la répartition des macros (commun aux deux modes)
         macros_group = QGroupBox("Répartition des macronutriments")
+        macros_group.setProperty("class", "important-group")
         macros_layout = QVBoxLayout()
 
         # Préréglages de régimes
@@ -317,10 +324,10 @@ class UtilisateurTab(TabBase):
         macros_layout.addLayout(presets_layout)
 
         # Ligne de séparation
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
-        macros_layout.addWidget(line)
+        # line = QFrame()
+        # line.setFrameShape(QFrame.HLine)
+        # line.setFrameShadow(QFrame.Sunken)
+        # macros_layout.addWidget(line)
 
         # Table des macronutriments
         macro_table = QGridLayout()
