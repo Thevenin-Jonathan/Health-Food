@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QApplication,
 )
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import Qt, QPoint, QThread
 from PySide6.QtGui import QPainter, QColor, QPen
 from src.ui.widgets.repas_widget import RepasWidget
 from src.ui.widgets.totaux_macros_widget import TotauxMacrosWidget
@@ -381,12 +381,65 @@ class JourWidget(QWidget):
         super().dragEndEvent(event)
 
     def dropEvent(self, event):
-        """Gère le drop d'un repas dans le jour avec exécution en arrière-plan"""
+        """Gère le drop d'un repas dans le jour avec détection d'annulation"""
         if event.mimeData().hasFormat("application/x-repas"):
             # Récupérer les données du repas
             data = event.mimeData().data("application/x-repas").data().decode()
             repas_id, jour_origine = data.split("|")
             repas_id = int(repas_id)
+
+            # Vérifier si on déplace le repas au même jour
+            meme_jour = jour_origine == self.jour
+
+            # Si nous sommes dans le même jour, vérifier si le repas est déposé au même endroit
+            if meme_jour:
+                try:
+                    # Trouver le repas dans la liste et son ordre actuel
+                    repas_actuel = None
+                    for repas in self.repas_list:
+                        if repas["id"] == repas_id:
+                            repas_actuel = repas
+                            break
+
+                    if repas_actuel:
+                        ordre_actuel = repas_actuel["ordre"]
+
+                        # Déterminer si le repas est déposé à sa position actuelle ou à proximité
+                        position_similaire = False
+
+                        # Cas 1: Drop à la même position ou position adjacente
+                        if self.drop_index >= 0 and len(self.repas_list) > 0:
+                            # Si on dépose à la position actuelle ou juste après
+                            if (
+                                ordre_actuel == self.drop_index
+                                or ordre_actuel == self.drop_index - 1
+                            ):
+                                position_similaire = True
+                            # Si on dépose juste avant
+                            elif ordre_actuel == self.drop_index + 1:
+                                position_similaire = True
+
+                        # Cas 2: Drop en fin de liste et le repas est déjà le dernier
+                        elif self.drop_index == -1 and ordre_actuel == len(
+                            self.repas_list
+                        ):
+                            position_similaire = True
+
+                        if position_similaire:
+                            # Réinitialiser l'indicateur de drop sans faire de modifications
+                            self.drop_index = -1
+                            self.repas_container.set_drop_indicator(None)
+
+                            # Simple rafraîchissement visuel pour réinitialiser l'interface
+                            self.update()
+
+                            event.acceptProposedAction()
+                            return
+                except Exception as e:
+                    print(
+                        f"Erreur lors de la vérification de la position d'origine: {e}"
+                    )
+                    # On continue avec le comportement normal en cas d'erreur
 
             # Trier les repas existants par ordre
             sorted_repas = sorted(self.repas_list, key=lambda r: r.get("ordre", 1))
@@ -441,8 +494,6 @@ class JourWidget(QWidget):
             self.repas_container.set_drop_indicator(None)
 
             # Créer et configurer le thread et le worker
-            from PySide6.QtCore import QThread
-
             self.thread = QThread()
             self.worker = PlanningOperationWorker(
                 self.db_manager,
