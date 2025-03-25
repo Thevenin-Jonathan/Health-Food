@@ -16,6 +16,7 @@ from PySide6.QtGui import QDrag, QPainter, QPixmap
 from src.ui.dialogs.aliment_repas_dialog import AlimentRepasDialog
 from src.ui.dialogs.remplacer_repas_dialog import RemplacerRepasDialog
 from src.ui.dialogs.repas_edition_dialog import RepasEditionDialog
+from src.ui.dialogs.correction_nutrition_dialog import CorrectionNutritionDialog
 from src.utils.events import EVENT_BUS
 
 
@@ -310,7 +311,7 @@ class RepasWidget(QFrame):
         EVENT_BUS.repas_modifies.emit(self.semaine_id)
 
     def add_aliment_to_layout(self, aliment, parent_layout):
-        """Ajoute un aliment au layout avec son bouton de suppression"""
+        """Ajoute un aliment au layout avec son bouton de suppression et alertes éventuelles"""
         # Créer un widget conteneur pour l'aliment
         alim_container = QWidget()
         alim_layout = QHBoxLayout(alim_container)
@@ -331,6 +332,15 @@ class RepasWidget(QFrame):
         glucides = aliment["glucides"] * aliment["quantite"] / 100
         lipides = aliment["lipides"] * aliment["quantite"] / 100
 
+        # Vérification de la cohérence des calories de l'aliment
+        calories_calculees = (proteines * 4) + (glucides * 4) + (lipides * 9)
+
+        # Calculer l'écart en pourcentage
+        if calories_calculees > 0:  # Éviter la division par zéro
+            ecart_pct = abs(calories - calories_calculees) / calories_calculees * 100
+        else:
+            ecart_pct = 0
+
         # Texte de base de l'aliment
         alim_text = f"{aliment['nom']} ({aliment['quantite']}g) - {calories:.0f} kcal"
 
@@ -342,6 +352,36 @@ class RepasWidget(QFrame):
         alim_label.setWordWrap(True)
         alim_label.weightChanged.connect(self.update_aliment_weight)
         alim_layout.addWidget(alim_label)
+
+        # Ajouter une icône d'alerte si l'écart est trop important (>5%)
+        if ecart_pct > 5:
+            alert_icon = QLabel("⚠️")
+            alert_icon.setProperty("warning-icon", True)
+            alert_icon.setStyleSheet(
+                """
+                background-color: transparent;
+                border: none;
+                font-size: 12px;
+            """
+            )
+
+            # Créer un tooltip détaillé pour l'aliment
+            diff = calories - calories_calculees
+            signe = "+" if diff > 0 else ""
+            tooltip = (
+                f"<b>Attention</b>: Incohérence calorique dans l'aliment '{aliment['nom']}'<br>"
+                f"Calories indiquées: <b>{calories:.0f} kcal</b><br>"
+                f"Calories calculées: <b>{calories_calculees:.0f} kcal</b><br>"
+                f"Différence: <b>{signe}{diff:.0f} kcal</b> ({ecart_pct:.1f}%)<br><br>"
+                f"Les valeurs nutritionnelles de cet aliment semblent incorrectes."
+            )
+            alert_icon.setToolTip(tooltip)
+            current_aliment = aliment.copy()
+            alert_icon.mousePressEvent = lambda event, a=current_aliment: self.correct_aliment_nutritional_values(
+                a
+            )
+            alim_layout.addWidget(alert_icon)
+
         alim_layout.addStretch()
 
         # Créer un tooltip riche avec les informations détaillées
@@ -354,6 +394,10 @@ class RepasWidget(QFrame):
         if "fibres" in aliment and aliment["fibres"]:
             fibres = aliment["fibres"] * aliment["quantite"] / 100
             tooltip_text += f"<br><b>Fibres:</b> {fibres:.1f}g"
+
+        # Ajouter une note sur l'incohérence dans le tooltip de l'aliment si nécessaire
+        if ecart_pct > 5:
+            tooltip_text += f"<br><br><span style='color:orange;'>⚠️ Incohérence calorique détectée</span>"
 
         alim_label.setToolTip(tooltip_text)
 
@@ -762,3 +806,90 @@ class RepasWidget(QFrame):
             QApplication.restoreOverrideCursor()
 
         super().mouseReleaseEvent(event)
+
+    def correct_aliment_nutritional_values(self, aliment):
+        """Ouvre un dialogue pour corriger les valeurs nutritionnelles d'un aliment"""
+        # Vérifier que l'aliment existe
+        if not aliment or "id" not in aliment:
+            print("Erreur: Aliment incorrect ou invalide")
+            return
+
+        try:
+            # Mémoriser explicitement l'état d'expansion avant tout
+            was_expanded = self.is_expanded
+            print(f"État d'expansion avant correction: {was_expanded}")  # Pour debug
+
+            # Récupérer les données complètes de l'aliment depuis la base de données
+            aliment_complet = self.db_manager.get_aliment(aliment["id"])
+
+            # Ouvrir le dialogue de correction
+            dialog = CorrectionNutritionDialog(self, aliment_complet, self.db_manager)
+
+            if dialog.exec():
+                # Récupérer les valeurs mises à jour
+                updated_values = dialog.get_updated_values()
+
+                # Mettre à jour l'aliment dans la base de données
+                aliment_updated = {
+                    "id": aliment["id"],
+                    "nom": aliment_complet["nom"],
+                    "marque": aliment_complet["marque"],
+                    "magasin": aliment_complet["magasin"],
+                    "categorie": aliment_complet["categorie"],
+                    "calories": updated_values["calories"],
+                    "proteines": updated_values["proteines"],
+                    "glucides": updated_values["glucides"],
+                    "lipides": updated_values["lipides"],
+                    "fibres": aliment_complet["fibres"],
+                    "prix_kg": aliment_complet["prix_kg"],
+                }
+
+                self.db_manager.modifier_aliment(aliment["id"], aliment_updated)
+
+                # Émettre un signal pour informer que l'aliment a été modifié
+                EVENT_BUS.aliments_modifies.emit()
+
+                # Recharger les données du repas
+                repas_updated = self.db_manager.get_repas(self.repas_data["id"])
+                if repas_updated:
+                    # Mettre à jour les données (sans changer l'état d'expansion)
+                    self.repas_data = repas_updated
+
+                    # Reconstruire l'interface
+                    self.clear_and_rebuild_details()
+                    self.update_summaries()
+
+                    # Forcer explicitement l'état d'expansion précédent
+                    if was_expanded:
+                        # Ne pas modifier self.is_expanded ici - le faire après avoir rendu visible
+                        self.details_widget.setVisible(True)
+                        self.expand_btn.setText("▲")
+                        self.expand_btn.setStyleSheet(
+                            """
+                            border-top-left-radius: 0px;
+                            border-top-right-radius: 0px;
+                            border-bottom-left-radius: 12px;
+                            border-bottom-right-radius: 12px;
+                            """
+                        )
+                        # Mettre à jour l'état d'expansion après avoir modifié l'interface
+                        self.is_expanded = True
+                    else:
+                        # Si ce n'était pas expanded, assurez-vous que c'est bien fermé
+                        self.details_widget.setVisible(False)
+                        self.expand_btn.setText("▼")
+                        self.expand_btn.setStyleSheet("")
+                        self.is_expanded = False
+
+                    print(
+                        f"État d'expansion après correction: {self.is_expanded}"
+                    )  # Pour debug
+
+                    # Mettre à jour les totaux du jour parent
+                    self.notify_parent_day_widget()
+
+        except Exception as e:
+            print(f"Erreur lors de la correction des valeurs nutritionnelles: {e}")
+            import traceback
+
+            traceback.print_exc()  # Affiche la stack trace complète
