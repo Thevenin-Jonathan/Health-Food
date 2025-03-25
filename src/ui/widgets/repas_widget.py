@@ -97,6 +97,9 @@ class RepasWidget(QFrame):
         self.jour = jour if jour else repas_data.get("jour", "")
         self.compact_mode = compact_mode
         self.is_expanded = False
+        self.drag_start_position = None
+        self.drag_threshold = 10  # pixels - distance minimale pour démarrer un drag
+        self.is_dragging = False
 
         # Configuration pour drag and drop
         self.setMouseTracking(True)
@@ -589,43 +592,64 @@ class RepasWidget(QFrame):
         super().leaveEvent(event)
 
     def mousePressEvent(self, event):
-        """Gère le clic de souris pour initier le drag and drop"""
+        """Capture la position de départ pour potentiellement démarrer un drag"""
         if event.button() == Qt.LeftButton:
-            # Démarrer l'opération de drag
-            self.setCursor(Qt.ClosedHandCursor)  # Changer le curseur en main fermée
-
-            # Créer un drag
-            drag = QDrag(self)
-            mime_data = QMimeData()
-
-            # Format des données: repas_id|jour
-            data = QByteArray(f"{self.repas_data['id']}|{self.jour}".encode())
-            mime_data.setData("application/x-repas", data)
-
-            drag.setMimeData(mime_data)
-
-            # Définir un feedback visuel (ici, une copie du widget)
-            pixmap = self.grab()
-
-            # Créer une nouvelle image transparente
-            transparent_pixmap = QPixmap(pixmap.size())
-            transparent_pixmap.fill(Qt.transparent)
-            # Dessiner l'image originale avec transparence sur la nouvelle image
-            painter = QPainter(transparent_pixmap)
-            painter.setOpacity(0.7)  # 70% d'opacité (30% de transparence)
-            painter.drawPixmap(0, 0, pixmap)
-            painter.end()
-            drag.setPixmap(transparent_pixmap)
-            drag.setHotSpot(event.pos())
-
-            # Exécuter le drag
-            drag.exec(Qt.MoveAction)
+            # Enregistrer la position de départ pour la comparer plus tard
+            self.drag_start_position = event.pos()
+            self.is_dragging = False
+            self.setCursor(Qt.ClosedHandCursor)
 
         super().mousePressEvent(event)
 
+    def mouseMoveEvent(self, event):
+        """Démarre le drag seulement si la souris a suffisamment bougé"""
+        if not (event.buttons() & Qt.LeftButton):
+            return
+
+        # Si on n'a pas enregistré de position de départ ou si on est déjà en train de faire un drag, on ne fait rien
+        if self.drag_start_position is None or self.is_dragging:
+            return
+
+        # Calculer la distance parcourue
+        distance = (event.pos() - self.drag_start_position).manhattanLength()
+
+        # Si la distance est inférieure au seuil, ne pas démarrer le drag
+        if distance < self.drag_threshold:
+            return
+
+        # Marquer qu'on est en train de faire un drag pour éviter les appels multiples
+        self.is_dragging = True
+
+        # Créer et démarrer le drag comme avant
+        drag = QDrag(self)
+        mime_data = QMimeData()
+
+        # Format des données: repas_id|jour
+        data = QByteArray(f"{self.repas_data['id']}|{self.jour}".encode())
+        mime_data.setData("application/x-repas", data)
+
+        drag.setMimeData(mime_data)
+
+        # Définir un feedback visuel
+        pixmap = self.grab()
+        transparent_pixmap = QPixmap(pixmap.size())
+        transparent_pixmap.fill(Qt.transparent)
+        painter = QPainter(transparent_pixmap)
+        painter.setOpacity(0.7)
+        painter.drawPixmap(0, 0, pixmap)
+        painter.end()
+        drag.setPixmap(transparent_pixmap)
+        drag.setHotSpot(self.drag_start_position)
+
+        # Exécuter le drag
+        drag.exec(Qt.MoveAction)
+
     def mouseReleaseEvent(self, event):
-        """Gère le relâchement du bouton de la souris"""
+        """Réinitialise les variables de suivi du drag"""
         if event.button() == Qt.LeftButton:
+            self.drag_start_position = None
+            self.is_dragging = False
             self.setCursor(Qt.OpenHandCursor)
             QApplication.restoreOverrideCursor()
+
         super().mouseReleaseEvent(event)
