@@ -351,7 +351,6 @@ class RepasWidget(QFrame):
             alert_icon = QLabel("⚠️")
             alert_icon.setProperty("warning-icon", True)
             alert_icon.setProperty("size", "small")
-            alert_icon.setProperty("clickable", True)
 
             # Créer un tooltip détaillé pour l'aliment
             diff = calories - calories_calculees

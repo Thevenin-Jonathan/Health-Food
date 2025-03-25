@@ -529,11 +529,6 @@ QLabel[warning-icon="true"][size="small"] {
     font-size: 12px;
 }
 
-/* Curseur pointeur pour l'icône d'avertissement des aliments */
-QLabel[warning-icon="true"][clickable="true"] {
-    cursor: pointer;
-}
-
 /* 
 ============================================
    COMPOSANTS SPÉCIAUX
