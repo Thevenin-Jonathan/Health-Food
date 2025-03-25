@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
     QApplication,
     QSizePolicy,
     QWidget,
-    QScrollArea,
     QLineEdit,
     QInputDialog,
 )
@@ -120,11 +119,60 @@ class RepasWidget(QFrame):
         header_layout = QHBoxLayout()
         header_layout.setSpacing(3)
 
+        # Vérifier la cohérence des calories
+        calories_affiches = self.repas_data["total_calories"]
+        calories_calcules = (
+            self.repas_data["total_proteines"] * 4
+            + self.repas_data["total_glucides"] * 4
+            + self.repas_data["total_lipides"] * 9
+        )
+
+        # Calculer l'écart en pourcentage
+        if calories_calcules > 0:  # Éviter la division par zéro
+            ecart_pct = (
+                abs(calories_affiches - calories_calcules) / calories_calcules * 100
+            )
+        else:
+            ecart_pct = 0
+
+        # Créer le layout pour le bloc calories et alerte
+        calories_alert_layout = QHBoxLayout()
+        calories_alert_layout.setSpacing(2)
+        calories_alert_layout.setContentsMargins(0, 0, 0, 0)
+
         # Calories (à gauche)
-        calories_label = QLabel(f"{self.repas_data['total_calories']:.0f} kcal")
+        calories_label = QLabel(f"{calories_affiches:.0f} kcal")
         calories_label.setProperty("class", "calories-label")
         calories_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        header_layout.addWidget(calories_label)
+        calories_alert_layout.addWidget(calories_label)
+
+        # Ajouter une icône d'alerte si l'écart est trop important
+        if ecart_pct > 5:
+            alert_icon = QLabel("⚠️")
+            alert_icon.setProperty("warning-icon", True)  # Ajoutez cette propriété
+            alert_icon.setStyleSheet(
+                """
+                background-color: transparent;
+                border: none;
+                font-size: 14px;
+                """
+            )
+
+            # Créer un tooltip détaillé
+            diff = calories_affiches - calories_calcules
+            signe = "+" if diff > 0 else ""
+            tooltip = (
+                f"<b>Attention</b>: Incohérence calorique détectée<br>"
+                f"Calories affichées: <b>{calories_affiches:.0f} kcal</b><br>"
+                f"Calories des macros: <b>{calories_calcules:.0f} kcal</b><br>"
+                f"Différence: <b>{signe}{diff:.0f} kcal</b> ({ecart_pct:.1f}%)<br><br>"
+                f"Cela peut indiquer une erreur dans les valeurs nutritionnelles des aliments."
+            )
+            alert_icon.setToolTip(tooltip)
+            calories_alert_layout.addWidget(alert_icon)
+
+        # Ajouter le layout des calories à l'en-tête
+        header_layout.addLayout(calories_alert_layout)
 
         # Espace flexible entre les calories et les boutons
         header_layout.addStretch(1)
@@ -484,23 +532,84 @@ class RepasWidget(QFrame):
 
     def update_summaries(self):
         """Met à jour les résumés nutritionnels"""
-        # Mettre à jour les calories
+        # Calculer les calories à partir des macros
+        calories_calcules = (
+            self.repas_data["total_proteines"] * 4
+            + self.repas_data["total_glucides"] * 4
+            + self.repas_data["total_lipides"] * 9
+        )
+
+        # Calculer l'écart en pourcentage
+        calories_affiches = self.repas_data["total_calories"]
+        if calories_calcules > 0:
+            ecart_pct = (
+                abs(calories_affiches - calories_calcules) / calories_calcules * 100
+            )
+        else:
+            ecart_pct = 0
+
+        # Nettoyer le layout d'en-tête et recréer les éléments
+        # Trouver le layout des calories dans le layout principal
+        header_layout = None
         for i in range(self.repas_layout.count()):
-            layout_item = self.repas_layout.itemAt(i)
-            if isinstance(layout_item, QHBoxLayout):
-                for j in range(layout_item.count()):
-                    item = layout_item.itemAt(j)
+            item = self.repas_layout.itemAt(i)
+            if isinstance(item, QHBoxLayout):
+                header_layout = item
+                break
+
+        if header_layout:
+            # Trouver le layout calories + alerte
+            calories_alert_layout = None
+            for i in range(header_layout.count()):
+                item = header_layout.itemAt(i)
+                if isinstance(item, QHBoxLayout) and item.count() > 0:
+                    # Vérifier si le premier widget est un QLabel avec la classe "calories-label"
+                    widget = item.itemAt(0).widget()
                     if (
-                        item.widget()
-                        and isinstance(item.widget(), QLabel)
-                        and hasattr(item.widget(), "property")
+                        isinstance(widget, QLabel)
+                        and widget.property("class") == "calories-label"
                     ):
-                        label = item.widget()
-                        if label.property("class") == "calories-label":
-                            label.setText(
-                                f"{self.repas_data['total_calories']:.0f} kcal"
-                            )
-                            break
+                        calories_alert_layout = item
+                        break
+
+            if calories_alert_layout:
+                # Mettre à jour le texte des calories
+                calories_label = calories_alert_layout.itemAt(0).widget()
+                calories_label.setText(f"{self.repas_data['total_calories']:.0f} kcal")
+
+                # Supprimer l'ancien indicateur d'alerte s'il existe
+                if calories_alert_layout.count() > 1:
+                    item = calories_alert_layout.itemAt(1)
+                    if item.widget():
+                        item.widget().deleteLater()
+                        calories_alert_layout.removeItem(item)
+
+                # Ajouter un nouvel indicateur d'alerte si nécessaire
+                if ecart_pct > 5:
+                    alert_icon = QLabel("⚠️")
+                    alert_icon.setProperty(
+                        "warning-icon", True
+                    )  # Ajoutez cette propriété
+                    alert_icon.setStyleSheet(
+                        """
+                        background-color: transparent;
+                        border: none;
+                        font-size: 14px;
+                        """
+                    )
+
+                    # Créer un tooltip détaillé
+                    diff = calories_affiches - calories_calcules
+                    signe = "+" if diff > 0 else ""
+                    tooltip = (
+                        f"<b>Attention</b>: Incohérence calorique détectée<br>"
+                        f"Calories affichées: <b>{calories_affiches:.0f} kcal</b><br>"
+                        f"Calories des macros: <b>{calories_calcules:.0f} kcal</b><br>"
+                        f"Différence: <b>{signe}{diff:.0f} kcal</b> ({ecart_pct:.1f}%)<br><br>"
+                        f"Cela peut indiquer une erreur dans les valeurs nutritionnelles des aliments."
+                    )
+                    alert_icon.setToolTip(tooltip)
+                    calories_alert_layout.addWidget(alert_icon)
 
         # Mettre à jour les macronutriments
         self.macro_summary.setText(

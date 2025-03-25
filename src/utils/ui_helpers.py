@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QDoubleSpinBox,
     QPushButton,
+    QLabel,
 )
 from PySide6.QtCore import QEvent, QObject, QTimer, Qt
 
@@ -18,12 +19,30 @@ class ButtonCursorHandler(QObject):
 
     def eventFilter(self, obj, event):
         # Si c'est un événement d'entrée de souris sur un bouton
-        if event.type() == QEvent.Enter and isinstance(obj, QPushButton):
-            obj.setCursor(Qt.PointingHandCursor)
+        if event.type() == QEvent.Enter:
+            # Gestion des boutons standards
+            if isinstance(obj, QPushButton):
+                obj.setCursor(Qt.PointingHandCursor)
 
-        # Si c'est un événement de sortie de souris sur un bouton
-        elif event.type() == QEvent.Leave and isinstance(obj, QPushButton):
-            obj.setCursor(Qt.ArrowCursor)
+            # Gestion des QLabel avec classe spécifique ou propriété "cursor-pointer"
+            elif isinstance(obj, QLabel):
+                # Vérifier si le label a la propriété "cursor-pointer" ou une classe spécifique
+                if (
+                    obj.property("cursor-pointer") is True
+                    or obj.property("warning-icon") is True
+                ):
+                    obj.setCursor(Qt.PointingHandCursor)
+
+        # Si c'est un événement de sortie de souris
+        elif event.type() == QEvent.Leave:
+            if isinstance(obj, QPushButton):
+                obj.setCursor(Qt.ArrowCursor)
+            elif isinstance(obj, QLabel):
+                if (
+                    obj.property("cursor-pointer") is True
+                    or obj.property("warning-icon") is True
+                ):
+                    obj.setCursor(Qt.ArrowCursor)
 
         return super().eventFilter(obj, event)
 
