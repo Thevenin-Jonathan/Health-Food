@@ -150,14 +150,7 @@ class RepasWidget(QFrame):
         # Ajouter une icône d'alerte si l'écart est trop important
         if ecart_pct > 5:
             alert_icon = QLabel("⚠️")
-            alert_icon.setProperty("warning-icon", True)  # Ajoutez cette propriété
-            alert_icon.setStyleSheet(
-                """
-                background-color: transparent;
-                border: none;
-                font-size: 14px;
-                """
-            )
+            alert_icon.setProperty("warning-icon", True)
 
             # Créer un tooltip détaillé
             diff = calories_affiches - calories_calcules
@@ -357,13 +350,8 @@ class RepasWidget(QFrame):
         if ecart_pct > 5:
             alert_icon = QLabel("⚠️")
             alert_icon.setProperty("warning-icon", True)
-            alert_icon.setStyleSheet(
-                """
-                background-color: transparent;
-                border: none;
-                font-size: 12px;
-            """
-            )
+            alert_icon.setProperty("size", "small")
+            alert_icon.setProperty("clickable", True)
 
             # Créer un tooltip détaillé pour l'aliment
             diff = calories - calories_calculees
@@ -631,16 +619,7 @@ class RepasWidget(QFrame):
                 # Ajouter un nouvel indicateur d'alerte si nécessaire
                 if ecart_pct > 5:
                     alert_icon = QLabel("⚠️")
-                    alert_icon.setProperty(
-                        "warning-icon", True
-                    )  # Ajoutez cette propriété
-                    alert_icon.setStyleSheet(
-                        """
-                        background-color: transparent;
-                        border: none;
-                        font-size: 14px;
-                        """
-                    )
+                    alert_icon.setProperty("warning-icon", True)
 
                     # Créer un tooltip détaillé
                     diff = calories_affiches - calories_calcules

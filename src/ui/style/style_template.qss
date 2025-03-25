@@ -516,6 +516,24 @@ QLabel#repasActuelTitle {
     font-size: 10.5pt;
 }
 
+/* Style pour l'icône d'avertissement */
+QLabel[warning-icon="true"] {
+    background-color: transparent;
+    border: none;
+    font-size: 14px;
+    color: #FF9800;  /* Orange */
+}
+
+/* Version plus petite pour les icônes d'aliments */
+QLabel[warning-icon="true"][size="small"] {
+    font-size: 12px;
+}
+
+/* Curseur pointeur pour l'icône d'avertissement des aliments */
+QLabel[warning-icon="true"][clickable="true"] {
+    cursor: pointer;
+}
+
 /* 
 ============================================
    COMPOSANTS SPÉCIAUX
