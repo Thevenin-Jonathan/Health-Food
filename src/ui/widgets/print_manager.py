@@ -52,11 +52,9 @@ class PrintManager:
         html += "table { width: 100%; border-collapse: collapse; table-layout: fixed; }"
         html += "th { background-color: #f2f2f2; padding: 12px 2px; border: 2px solid #000; font-weight: bold; font-size: 10pt; text-align: center; }"
         html += "td { border: 2px solid #000; padding: 8px 2px; vertical-align: top; font-size: 10pt; width: 14%; }"
-        html += ".repas { margin-bottom: 15px; page-break-inside: avoid; }"
-        html += (
-            ".repas-title { font-weight: bold; margin-bottom: 8px; font-size: 8pt; }"
-        )
-        html += ".aliment { margin-left: 10px; margin-bottom: 6px; font-size: 6pt; }"
+        html += ".repas { margin-bottom: 8px; page-break-inside: avoid; }"
+        html += ".repas-title { font-weight: bold; margin-top: 4px; margin-bottom: 4px; font-size: 8pt; }"
+        html += ".aliment { margin-left: 10px; margin-bottom: 2px; font-size: 6pt; }"
         html += "* { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }"
         html += "@page { size: landscape; margin: 1cm; }"
         html += "</style>"
