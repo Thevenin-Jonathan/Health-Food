@@ -157,8 +157,6 @@ class SemaineWidget(QWidget):
             # Mettre à jour tous les repas basés sur cette recette
             self.db_manager.update_repas_based_on_recipe(recette_id)
             self.load_data()
-        else:
-            print(f"La recette {recette_id} n'est pas utilisée dans cette semaine")
 
     def charger_objectifs_utilisateur(self):
         """Récupère les objectifs nutritionnels de l'utilisateur avec des valeurs par défaut sécuritaires"""

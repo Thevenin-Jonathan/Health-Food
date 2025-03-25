@@ -26,12 +26,10 @@ if __name__ == "__main__":
         db_manager.init_db()
 
         # Initialiser le gestionnaire de thèmes
-        print("Initialisation du gestionnaire de thèmes...")
         theme_manager = ThemeManager(db_manager)
 
         # Fonction pour appliquer un thème
         def apply_theme(theme_name):
-            print(f"Application du thème : {theme_name}")
             # Mettre à jour le thème actuel
             theme_manager.current_theme_name = theme_name
             # Générer et appliquer le style
@@ -49,7 +47,6 @@ if __name__ == "__main__":
             apply_theme("Vert Nature")  # Fallback au thème par défaut
 
         # Créer et afficher la fenêtre principale
-        print("Création de la fenêtre principale...")
         window = MainWindow(db_manager)
 
         # Connecter le signal de changement de thème à notre fonction
