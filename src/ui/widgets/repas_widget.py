@@ -465,28 +465,9 @@ class RepasWidget(QFrame):
             btn_add_food.clicked.connect(self.add_food_to_meal)
             self.details_layout.addWidget(btn_add_food)
 
-            # Créer un conteneur de défilement pour les aliments (scroll area)
-            if len(self.repas_data["aliments"]) > 5:
-                aliments_scroll = QScrollArea()
-                aliments_scroll.setWidgetResizable(True)
-                aliments_scroll.setFrameShape(QFrame.NoFrame)
-                aliments_scroll.setMaximumHeight(150)  # Hauteur maximale
-
-                aliments_container = QWidget()
-                aliments_layout = QVBoxLayout(aliments_container)
-                aliments_layout.setContentsMargins(0, 0, 0, 0)
-                aliments_layout.setSpacing(3)
-
-                # Ajouter les aliments au conteneur
-                for aliment in self.repas_data["aliments"]:
-                    self.add_aliment_to_layout(aliment, aliments_layout)
-
-                aliments_scroll.setWidget(aliments_container)
-                self.details_layout.addWidget(aliments_scroll)
-            else:
-                # Si peu d'aliments, les ajouter directement
-                for aliment in self.repas_data["aliments"]:
-                    self.add_aliment_to_layout(aliment, self.details_layout)
+            # Ajouter directement tous les aliments sans zone de défilement
+            for aliment in self.repas_data["aliments"]:
+                self.add_aliment_to_layout(aliment, self.details_layout)
         else:
             empty_label = QLabel("Aucun aliment")
             empty_label.setAlignment(Qt.AlignCenter)
