@@ -21,37 +21,73 @@ class RepasManager(DBConnector):
         self.disconnect()
         return repas_id
 
-    def ajouter_aliment_repas(self, repas_id, aliment_id, quantite):
+    def ajouter_aliment_repas(self, repas_id, aliment_id, quantite, est_modifie=False):
         """Ajoute un aliment à un repas avec sa quantité"""
         self.connect()
-        self.cursor.execute(
-            """
-            INSERT INTO repas_aliments (repas_id, aliment_id, quantite)
-            VALUES (?, ?, ?)
-            """,
-            (repas_id, aliment_id, quantite),
-        )
+        try:
+            # Vérifier si l'aliment existe déjà dans ce repas
+            self.cursor.execute(
+                """
+                SELECT id FROM repas_aliments 
+                WHERE repas_id = ? AND aliment_id = ?
+                """,
+                (repas_id, aliment_id),
+            )
+            existing = self.cursor.fetchone()
 
-        last_id = self.cursor.lastrowid
-        self.conn.commit()
-        self.disconnect()
-        return last_id
+            if existing:
+                # Mise à jour de la quantité
+                self.cursor.execute(
+                    """
+                    UPDATE repas_aliments 
+                    SET quantite = ?, est_modifie = ? 
+                    WHERE repas_id = ? AND aliment_id = ?
+                    """,
+                    (quantite, 1 if est_modifie else 0, repas_id, aliment_id),
+                )
+            else:
+                # Ajout d'un nouvel aliment
+                self.cursor.execute(
+                    """
+                    INSERT INTO repas_aliments (repas_id, aliment_id, quantite, est_modifie) 
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (repas_id, aliment_id, quantite, 1 if est_modifie else 0),
+                )
 
-    def modifier_quantite_aliment_repas(self, repas_id, aliment_id, quantite):
-        """Modifie la quantité d'un aliment dans un repas"""
+            last_id = self.cursor.lastrowid
+            self.conn.commit()
+            self.disconnect()
+            return last_id
+        except Exception as e:
+            print(
+                f"Erreur lors de l'ajout de l'aliment {aliment_id} au repas {repas_id}: {e}"
+            )
+            self.conn.rollback()
+            self.disconnect()
+            return 0
+
+    def modifier_quantite_aliment_repas(self, repas_id, aliment_id, nouvelle_quantite):
+        """Modifie la quantité d'un aliment dans un repas et marque comme personnalisé"""
         self.connect()
-        self.cursor.execute(
-            """
-            UPDATE repas_aliments 
-            SET quantite = ? 
-            WHERE repas_id = ? AND aliment_id = ?
-            """,
-            (quantite, repas_id, aliment_id),
-        )
-        self.conn.commit()
-        rows_affected = self.cursor.rowcount > 0
-        self.disconnect()
-        return rows_affected
+        try:
+            self.cursor.execute(
+                """
+                UPDATE repas_aliments 
+                SET quantite = ?, est_modifie = 1
+                WHERE repas_id = ? AND aliment_id = ?
+                """,
+                (nouvelle_quantite, repas_id, aliment_id),
+            )
+            self.conn.commit()
+            rows_affected = self.cursor.rowcount > 0
+            self.disconnect()
+            return rows_affected
+        except Exception as e:
+            print(f"Erreur lors de la modification de la quantité: {e}")
+            self.conn.rollback()
+            self.disconnect()
+            return False
 
     def supprimer_aliment_repas(self, repas_id, aliment_id):
         """Supprime un aliment d'un repas"""

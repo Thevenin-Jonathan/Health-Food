@@ -81,10 +81,10 @@ class ExportImportManager(DBConnector):
             if jour not in planning:
                 planning[jour] = []
 
-            # Récupérer les aliments de ce repas
+            # Récupérer les aliments de ce repas avec leur état de modification
             self.cursor.execute(
                 """
-                SELECT a.id, a.nom, a.marque, a.categorie, ra.quantite
+                SELECT a.id, a.nom, a.marque, a.categorie, ra.quantite, ra.est_modifie
                 FROM repas_aliments ra
                 JOIN aliments a ON ra.aliment_id = a.id
                 WHERE ra.repas_id = ?
@@ -92,19 +92,40 @@ class ExportImportManager(DBConnector):
                 (repas["id"],),
             )
 
-            aliments = [
-                {
-                    "id": row["id"],
-                    "nom": row["nom"],
-                    "marque": row["marque"],
-                    "categorie": row["categorie"],
-                    "quantite": row["quantite"],
-                }
-                for row in self.cursor.fetchall()
-            ]
+            aliments = []
+            for row in self.cursor.fetchall():
+                # Convertir la Row SQLite en dictionnaire
+                row_dict = dict(row)
+                # Vérifier si est_modifie existe, en utilisant 0 comme valeur par défaut
+                est_modifie = 0
+                if "est_modifie" in row_dict:
+                    est_modifie = row_dict["est_modifie"]
 
-            repas["aliments"] = aliments
-            planning[jour].append(repas)
+                aliments.append(
+                    {
+                        "id": row_dict["id"],
+                        "nom": row_dict["nom"],
+                        "marque": row_dict["marque"],
+                        "categorie": row_dict["categorie"],
+                        "quantite": row_dict["quantite"],
+                        "est_modifie": bool(est_modifie),
+                    }
+                )
+
+            # Si le repas est basé sur un repas type, stocker cette information
+            repas_export = dict(repas)
+            if repas.get("repas_type_id"):
+                # Récupérer le nom du repas type
+                self.cursor.execute(
+                    "SELECT nom FROM repas_types WHERE id = ?",
+                    (repas["repas_type_id"],),
+                )
+                result = self.cursor.fetchone()
+                if result:
+                    repas_export["repas_type_nom"] = result["nom"]
+
+            repas_export["aliments"] = aliments
+            planning[jour].append(repas_export)
 
         self.disconnect()
         return planning
@@ -200,7 +221,7 @@ class ExportImportManager(DBConnector):
         return count
 
     def importer_planning(self, planning_data, semaine_id=None):
-        """Importe un planning hebdomadaire"""
+        """Importe un planning hebdomadaire avec préservation des modifications de quantités"""
         try:
             if semaine_id is None:
                 # Utiliser l'ID de semaine actuel ou en créer un nouveau
@@ -210,9 +231,25 @@ class ExportImportManager(DBConnector):
             count = 0
             for jour, repas_list in planning_data.items():
                 for repas in repas_list:
-                    # Créer un nouveau repas
+                    repas_type_id = None
+
+                    # Si le repas était basé sur un repas type, essayer de le retrouver
+                    if "repas_type_nom" in repas and repas["repas_type_nom"]:
+                        self.connect()
+                        self.cursor.execute(
+                            "SELECT id FROM repas_types WHERE nom = ?",
+                            (repas["repas_type_nom"],),
+                        )
+                        result = self.cursor.fetchone()
+                        if result:
+                            repas_type_id = result[0]
+                        self.disconnect()
+                    elif "repas_type_id" in repas and repas["repas_type_id"]:
+                        repas_type_id = repas["repas_type_id"]
+
+                    # Créer un nouveau repas avec l'ID du repas type (si disponible)
                     repas_id = self.db_manager.ajouter_repas(
-                        repas["nom"], jour, repas["ordre"], semaine_id
+                        repas["nom"], jour, repas["ordre"], semaine_id, repas_type_id
                     )
 
                     # Ajouter les aliments au repas
@@ -227,8 +264,10 @@ class ExportImportManager(DBConnector):
 
                         if result:
                             aliment_id = result[0]
+                            # Préserver l'état de modification
+                            est_modifie = aliment.get("est_modifie", False)
                             self.db_manager.ajouter_aliment_repas(
-                                repas_id, aliment_id, aliment["quantite"]
+                                repas_id, aliment_id, aliment["quantite"], est_modifie
                             )
                     count += 1
 

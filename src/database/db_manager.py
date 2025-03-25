@@ -107,9 +107,11 @@ class DatabaseManager(DBConnector):
             nom, jour, ordre, semaine_id, repas_type_id
         )
 
-    def ajouter_aliment_repas(self, repas_id, aliment_id, quantite):
+    def ajouter_aliment_repas(self, repas_id, aliment_id, quantite, est_modifie=False):
         """Délègue l'ajout d'aliment à un repas au RepasManager"""
-        return self.repas_manager.ajouter_aliment_repas(repas_id, aliment_id, quantite)
+        return self.repas_manager.ajouter_aliment_repas(
+            repas_id, aliment_id, quantite, est_modifie
+        )
 
     def supprimer_aliment_repas(self, repas_id, aliment_id):
         """Délègue la suppression d'un aliment d'un repas au RepasManager"""

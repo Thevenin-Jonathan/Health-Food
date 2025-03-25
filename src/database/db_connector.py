@@ -124,6 +124,7 @@ class DBConnector:
             repas_id INTEGER,
             aliment_id INTEGER,
             quantite REAL,
+            est_modifie INTEGER DEFAULT 0,
             FOREIGN KEY (repas_id) REFERENCES repas (id) ON DELETE CASCADE,
             FOREIGN KEY (aliment_id) REFERENCES aliments (id) ON DELETE CASCADE
         )
