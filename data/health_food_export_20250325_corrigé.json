@@ -222,19 +222,6 @@
             "prix_kg": 3.5
         },
         {
-            "id": 18,
-            "nom": "Fromage blanc 0%",
-            "marque": "Danone",
-            "magasin": "Intermarché",
-            "categorie": "Produits laitiers",
-            "calories": 54.0,
-            "proteines": 8.0,
-            "glucides": 4.0,
-            "lipides": 0.1,
-            "fibres": 0.0,
-            "prix_kg": 3.2
-        },
-        {
             "id": 19,
             "nom": "Lait écrémé",
             "marque": "Lactel",
@@ -1314,13 +1301,6 @@
             "description": "Petit-déjeuner équilibré riche en protéines et glucides complexes",
             "aliments": [
                 {
-                    "id": 18,
-                    "nom": "Fromage blanc 0%",
-                    "marque": "Danone",
-                    "categorie": "Produits laitiers",
-                    "quantite": 200.0
-                },
-                {
                     "id": 31,
                     "nom": "Cruesli chocolat au lait",
                     "marque": "Quaker",
@@ -1347,6 +1327,13 @@
                     "marque": "BiotechUSA",
                     "categorie": "Compléments alimentaires",
                     "quantite": 10.0
+                },
+                {
+                    "id": 32,
+                    "nom": "Fromage blanc 0%",
+                    "marque": "Marque repère",
+                    "categorie": "Produits laitiers",
+                    "quantite": 200.0
                 }
             ]
         },
@@ -2118,14 +2105,6 @@
                 "repas_type_id": null,
                 "aliments": [
                     {
-                        "id": 18,
-                        "nom": "Fromage blanc 0%",
-                        "marque": "Danone",
-                        "categorie": "Produits laitiers",
-                        "quantite": 200.0,
-                        "est_modifie": false
-                    },
-                    {
                         "id": 31,
                         "nom": "Cruesli chocolat au lait",
                         "marque": "Quaker",
@@ -2155,6 +2134,14 @@
                         "marque": "BiotechUSA",
                         "categorie": "Compléments alimentaires",
                         "quantite": 10.0,
+                        "est_modifie": false
+                    },
+                    {
+                        "id": 32,
+                        "nom": "Fromage blanc 0%",
+                        "marque": "Marque repère",
+                        "categorie": "Produits laitiers",
+                        "quantite": 200.0,
                         "est_modifie": false
                     }
                 ]
@@ -2353,14 +2340,6 @@
                 "repas_type_id": null,
                 "aliments": [
                     {
-                        "id": 18,
-                        "nom": "Fromage blanc 0%",
-                        "marque": "Danone",
-                        "categorie": "Produits laitiers",
-                        "quantite": 200.0,
-                        "est_modifie": false
-                    },
-                    {
                         "id": 31,
                         "nom": "Cruesli chocolat au lait",
                         "marque": "Quaker",
@@ -2390,6 +2369,14 @@
                         "marque": "BiotechUSA",
                         "categorie": "Compléments alimentaires",
                         "quantite": 10.0,
+                        "est_modifie": false
+                    },
+                    {
+                        "id": 32,
+                        "nom": "Fromage blanc 0%",
+                        "marque": "Marque repère",
+                        "categorie": "Produits laitiers",
+                        "quantite": 200.0,
                         "est_modifie": false
                     }
                 ]
@@ -2587,14 +2574,6 @@
                 "repas_type_id": null,
                 "aliments": [
                     {
-                        "id": 18,
-                        "nom": "Fromage blanc 0%",
-                        "marque": "Danone",
-                        "categorie": "Produits laitiers",
-                        "quantite": 200.0,
-                        "est_modifie": false
-                    },
-                    {
                         "id": 31,
                         "nom": "Cruesli chocolat au lait",
                         "marque": "Quaker",
@@ -2624,6 +2603,14 @@
                         "marque": "BiotechUSA",
                         "categorie": "Compléments alimentaires",
                         "quantite": 10.0,
+                        "est_modifie": false
+                    },
+                    {
+                        "id": 32,
+                        "nom": "Fromage blanc 0%",
+                        "marque": "Marque repère",
+                        "categorie": "Produits laitiers",
+                        "quantite": 200.0,
                         "est_modifie": false
                     }
                 ]
@@ -2805,14 +2792,6 @@
                 "repas_type_id": null,
                 "aliments": [
                     {
-                        "id": 18,
-                        "nom": "Fromage blanc 0%",
-                        "marque": "Danone",
-                        "categorie": "Produits laitiers",
-                        "quantite": 200.0,
-                        "est_modifie": false
-                    },
-                    {
                         "id": 31,
                         "nom": "Cruesli chocolat au lait",
                         "marque": "Quaker",
@@ -2842,6 +2821,14 @@
                         "marque": "BiotechUSA",
                         "categorie": "Compléments alimentaires",
                         "quantite": 10.0,
+                        "est_modifie": false
+                    },
+                    {
+                        "id": 32,
+                        "nom": "Fromage blanc 0%",
+                        "marque": "Marque repère",
+                        "categorie": "Produits laitiers",
+                        "quantite": 200.0,
                         "est_modifie": false
                     }
                 ]
@@ -3023,14 +3010,6 @@
                 "repas_type_id": null,
                 "aliments": [
                     {
-                        "id": 18,
-                        "nom": "Fromage blanc 0%",
-                        "marque": "Danone",
-                        "categorie": "Produits laitiers",
-                        "quantite": 200.0,
-                        "est_modifie": false
-                    },
-                    {
                         "id": 31,
                         "nom": "Cruesli chocolat au lait",
                         "marque": "Quaker",
@@ -3060,6 +3039,14 @@
                         "marque": "BiotechUSA",
                         "categorie": "Compléments alimentaires",
                         "quantite": 10.0,
+                        "est_modifie": false
+                    },
+                    {
+                        "id": 32,
+                        "nom": "Fromage blanc 0%",
+                        "marque": "Marque repère",
+                        "categorie": "Produits laitiers",
+                        "quantite": 200.0,
                         "est_modifie": false
                     }
                 ]
@@ -3289,14 +3276,6 @@
                 "repas_type_id": null,
                 "aliments": [
                     {
-                        "id": 18,
-                        "nom": "Fromage blanc 0%",
-                        "marque": "Danone",
-                        "categorie": "Produits laitiers",
-                        "quantite": 200.0,
-                        "est_modifie": false
-                    },
-                    {
                         "id": 31,
                         "nom": "Cruesli chocolat au lait",
                         "marque": "Quaker",
@@ -3326,6 +3305,14 @@
                         "marque": "BiotechUSA",
                         "categorie": "Compléments alimentaires",
                         "quantite": 10.0,
+                        "est_modifie": false
+                    },
+                    {
+                        "id": 32,
+                        "nom": "Fromage blanc 0%",
+                        "marque": "Marque repère",
+                        "categorie": "Produits laitiers",
+                        "quantite": 200.0,
                         "est_modifie": false
                     }
                 ]
@@ -3531,14 +3518,6 @@
                 "repas_type_id": null,
                 "aliments": [
                     {
-                        "id": 18,
-                        "nom": "Fromage blanc 0%",
-                        "marque": "Danone",
-                        "categorie": "Produits laitiers",
-                        "quantite": 200.0,
-                        "est_modifie": false
-                    },
-                    {
                         "id": 31,
                         "nom": "Cruesli chocolat au lait",
                         "marque": "Quaker",
@@ -3568,6 +3547,14 @@
                         "marque": "BiotechUSA",
                         "categorie": "Compléments alimentaires",
                         "quantite": 10.0,
+                        "est_modifie": false
+                    },
+                    {
+                        "id": 32,
+                        "nom": "Fromage blanc 0%",
+                        "marque": "Marque repère",
+                        "categorie": "Produits laitiers",
+                        "quantite": 200.0,
                         "est_modifie": false
                     }
                 ]
