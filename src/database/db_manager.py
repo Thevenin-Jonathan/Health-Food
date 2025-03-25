@@ -3,6 +3,7 @@ from .db_utilisateur import UserManager
 from .db_aliments import AlimentsManager
 from .db_repas import RepasManager
 from .db_repas_types import RepasTypesManager
+from .db_export_import import ExportImportManager
 
 
 class DatabaseManager(DBConnector):
@@ -20,48 +21,15 @@ class DatabaseManager(DBConnector):
         self.aliment_manager = AlimentsManager(self.db_file)
         self.repas_manager = RepasManager(self.db_file)
         self.repas_types_manager = RepasTypesManager(self.db_file)
+        self.export_import_manager = ExportImportManager(self.db_file, self)
 
     def init_db(self):
         """Initialise la structure de la base de données et crée un utilisateur par défaut si nécessaire"""
         # Créer les tables de la base de données
         super().init_db()
 
-        # Une fois les tables créées, vérifier si un utilisateur existe déjà
-        self.connect()
-        try:
-            user_count = self.cursor.execute(
-                "SELECT COUNT(*) FROM utilisateur"
-            ).fetchone()[0]
-            if user_count == 0:
-                # Aucun utilisateur trouvé, créer un profil par défaut
-                print("Aucun utilisateur trouvé, création d'un profil par défaut...")
-                default_user_data = {
-                    "nom": "Utilisateur",
-                    "sexe": "Homme",
-                    "age": 30,
-                    "taille": 175,
-                    "poids": 75,
-                    "niveau_activite": "Modéré",
-                    "objectif": "Maintien",
-                    "taux_variation": 0,
-                    "calories_personnalisees": 0,
-                    "regime_alimentaire": "Régime équilibré",
-                    "proteines_g_kg": 1.8,
-                    "glucides_g_kg": 3.0,
-                    "lipides_g_kg": 1.0,
-                    "objectif_calories": 2500,
-                    "objectif_proteines": 125,
-                    "objectif_glucides": 300,
-                    "objectif_lipides": 83,
-                    "theme_actif": "Vert Nature",
-                }
-                self.sauvegarder_utilisateur(default_user_data)
-        except Exception as e:
-            print(
-                f"Erreur lors de la vérification/création de l'utilisateur par défaut: {e}"
-            )
-        finally:
-            self.disconnect()
+        # Déléguer la création d'un utilisateur par défaut au UserManager
+        self.user_manager.creer_utilisateur_par_defaut_si_necessaire()
 
     # =========== MÉTHODES DÉLÉGUÉES À UserManager ===========
     def sauvegarder_utilisateur(self, data):
@@ -282,123 +250,25 @@ class DatabaseManager(DBConnector):
 
     # =========== MÉTHODES D'EXPORTATION ET D'IMPORTATION ===========
     def exporter_aliments(self):
-        """Exporte tous les aliments de la base de données"""
-        self.connect()
-        self.cursor.execute("SELECT * FROM aliments")
-        aliments = [dict(row) for row in self.cursor.fetchall()]
-        self.disconnect()
-        return aliments
+        """Délègue l'exportation des aliments au ExportImportManager"""
+        return self.export_import_manager.exporter_aliments()
 
     def exporter_repas_types(self):
-        """Exporte tous les repas types avec leurs aliments"""
-        return self.repas_types_manager.get_repas_types()
+        """Délègue l'exportation des repas types au ExportImportManager"""
+        return self.export_import_manager.exporter_repas_types()
 
     def exporter_planning(self, semaine_id=None):
-        """Exporte les repas d'une semaine spécifique ou de la semaine courante"""
-        return self.repas_manager.get_repas_semaine(semaine_id)
+        """Délègue l'exportation du planning au ExportImportManager"""
+        return self.export_import_manager.exporter_planning(semaine_id)
 
     def importer_aliments(self, aliments_data):
-        """Importe des aliments depuis un dictionnaire"""
-        count = 0
-        for aliment in aliments_data:
-            # Vérifier si l'aliment existe déjà par nom et marque
-            self.connect()
-            self.cursor.execute(
-                "SELECT id FROM aliments WHERE nom = ? AND marque = ?",
-                (aliment["nom"], aliment["marque"]),
-            )
-            existing = self.cursor.fetchone()
-            self.disconnect()
-
-            if existing:
-                # Mise à jour de l'aliment existant
-                aliment_id = existing[0]
-                self.modifier_aliment(aliment_id, aliment)
-            else:
-                # Ajout d'un nouvel aliment
-                self.ajouter_aliment(aliment)
-            count += 1
-        return count
+        """Délègue l'importation des aliments au ExportImportManager"""
+        return self.export_import_manager.importer_aliments(aliments_data)
 
     def importer_repas_types(self, repas_types_data):
-        """Importe des repas types depuis un dictionnaire"""
-        count = 0
-        for repas_type in repas_types_data:
-            # Vérifier si le repas type existe déjà
-            self.connect()
-            self.cursor.execute(
-                "SELECT id FROM repas_types WHERE nom = ?", (repas_type["nom"],)
-            )
-            existing = self.cursor.fetchone()
-            self.disconnect()
-
-            aliments = repas_type.pop("aliments", [])
-
-            if existing:
-                # Mise à jour du repas type existant
-                repas_type_id = existing[0]
-                self.modifier_repas_type(
-                    repas_type_id, repas_type["nom"], repas_type.get("description", "")
-                )
-
-                # Supprimer les aliments existants
-                for aliment in self.repas_types_manager.get_repas_type(repas_type_id)[
-                    "aliments"
-                ]:
-                    self.supprimer_aliment_repas_type(repas_type_id, aliment["id"])
-            else:
-                # Ajout d'un nouveau repas type
-                repas_type_id = self.ajouter_repas_type(
-                    repas_type["nom"], repas_type.get("description", "")
-                )
-
-            # Ajouter les aliments au repas type
-            for aliment in aliments:
-                # Chercher l'ID de l'aliment par nom
-                self.connect()
-                self.cursor.execute(
-                    "SELECT id FROM aliments WHERE nom = ?", (aliment["nom"],)
-                )
-                result = self.cursor.fetchone()
-                self.disconnect()
-
-                if result:
-                    aliment_id = result[0]
-                    self.ajouter_aliment_repas_type(
-                        repas_type_id, aliment_id, aliment["quantite"]
-                    )
-            count += 1
-        return count
+        """Délègue l'importation des repas types au ExportImportManager"""
+        return self.export_import_manager.importer_repas_types(repas_types_data)
 
     def importer_planning(self, planning_data, semaine_id=None):
-        """Importe un planning hebdomadaire"""
-        if semaine_id is None:
-            # Utiliser l'ID de semaine actuel ou en créer un nouveau
-            semaines = self.get_semaines_existantes()
-            semaine_id = max(semaines) + 1 if semaines else 1
-
-        count = 0
-        for jour, repas_list in planning_data.items():
-            for repas in repas_list:
-                # Créer un nouveau repas
-                repas_id = self.ajouter_repas(
-                    repas["nom"], jour, repas["ordre"], semaine_id
-                )
-
-                # Ajouter les aliments au repas
-                for aliment in repas.get("aliments", []):
-                    # Chercher l'ID de l'aliment par nom
-                    self.connect()
-                    self.cursor.execute(
-                        "SELECT id FROM aliments WHERE nom = ?", (aliment["nom"],)
-                    )
-                    result = self.cursor.fetchone()
-                    self.disconnect()
-
-                    if result:
-                        aliment_id = result[0]
-                        self.ajouter_aliment_repas(
-                            repas_id, aliment_id, aliment["quantite"]
-                        )
-                count += 1
-        return count
+        """Délègue l'importation du planning au ExportImportManager"""
+        return self.export_import_manager.importer_planning(planning_data, semaine_id)
