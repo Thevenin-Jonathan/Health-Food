@@ -38,24 +38,28 @@ class CorrectionNutritionDialog(QDialog):
         self.calories_input.setRange(0, 1000)
         self.calories_input.setValue(self.aliment["calories"])
         self.calories_input.setSuffix(" kcal")
+        self.calories_input.setProperty("class", "spin-box-vertical")
         form_layout.addRow("Calories (pour 100g):", self.calories_input)
 
         self.proteines_input = QDoubleSpinBox()
         self.proteines_input.setRange(0, 100)
         self.proteines_input.setValue(self.aliment["proteines"])
         self.proteines_input.setSuffix(" g")
+        self.proteines_input.setProperty("class", "spin-box-vertical")
         form_layout.addRow("Protéines (pour 100g):", self.proteines_input)
 
         self.glucides_input = QDoubleSpinBox()
         self.glucides_input.setRange(0, 100)
         self.glucides_input.setValue(self.aliment["glucides"])
         self.glucides_input.setSuffix(" g")
+        self.glucides_input.setProperty("class", "spin-box-vertical")
         form_layout.addRow("Glucides (pour 100g):", self.glucides_input)
 
         self.lipides_input = QDoubleSpinBox()
         self.lipides_input.setRange(0, 100)
         self.lipides_input.setValue(self.aliment["lipides"])
         self.lipides_input.setSuffix(" g")
+        self.lipides_input.setProperty("class", "spin-box-vertical")
         form_layout.addRow("Lipides (pour 100g):", self.lipides_input)
 
         layout.addLayout(form_layout)
