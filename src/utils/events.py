@@ -35,7 +35,7 @@ class EventBus(QObject):
 
     # Signaux pour l'exportation/importation
     donnees_importees = Signal()  # Signal émis quand des données sont importées
-
+    planning_modifie = Signal()  # Signal émis quand le planning est modifié
     # Instance unique (singleton)
     _instance = None
 

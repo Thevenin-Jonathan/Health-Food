@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QScrollArea,
     QSizePolicy,
+    QApplication,
 )
 from PySide6.QtCore import Qt, QPoint
 from PySide6.QtGui import QPainter, QColor, QPen
@@ -14,6 +15,7 @@ from src.ui.widgets.repas_widget import RepasWidget
 from src.ui.widgets.totaux_macros_widget import TotauxMacrosWidget
 from src.ui.dialogs.repas_dialog import RepasDialog
 from src.utils.events import EVENT_BUS
+from src.utils.planning_worker import PlanningOperationWorker
 
 
 class JourWidget(QWidget):
@@ -379,7 +381,7 @@ class JourWidget(QWidget):
         super().dragEndEvent(event)
 
     def dropEvent(self, event):
-        """Gère le drop d'un repas dans le jour"""
+        """Gère le drop d'un repas dans le jour avec exécution en arrière-plan"""
         if event.mimeData().hasFormat("application/x-repas"):
             # Récupérer les données du repas
             data = event.mimeData().data("application/x-repas").data().decode()
@@ -431,26 +433,104 @@ class JourWidget(QWidget):
                 # Fallback: mettre à la fin
                 nouvel_ordre = len(sorted_repas) + 1
 
-            # Mettre à jour le repas dans la base de données
-            self.db_manager.changer_jour_repas(repas_id, self.jour, nouvel_ordre)
+            # Afficher un overlay de chargement
+            self.show_loading_overlay("Déplacement du repas en cours...")
 
             # Réinitialiser l'indicateur de drop
             self.drop_index = -1
             self.repas_container.set_drop_indicator(None)
 
+            # Créer et configurer le thread et le worker
+            from PySide6.QtCore import QThread
+
+            self.thread = QThread()
+            self.worker = PlanningOperationWorker(
+                self.db_manager,
+                "move_repas",
+                repas_id=repas_id,
+                jour_dest=self.jour,
+                ordre_dest=nouvel_ordre,
+                semaine_id=self.semaine_id,
+            )
+
+            # Configurer les connexions
+            self.worker.moveToThread(self.thread)
+            self.thread.started.connect(self.worker.run)
+            self.worker.operation_completed.connect(self.on_operation_completed)
+            self.worker.operation_completed.connect(self.thread.quit)
+            self.worker.operation_completed.connect(self.worker.deleteLater)
+            self.thread.finished.connect(self.thread.deleteLater)
+
+            # Démarrer le thread
+            self.thread.start()
+
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def show_loading_overlay(self, message="Opération en cours..."):
+        """Affiche un overlay de chargement sur le widget"""
+
+        if not hasattr(self, "loading_overlay"):
+            self.loading_overlay = QWidget(self)
+            self.loading_overlay.setStyleSheet(
+                """
+                background-color: rgba(0, 0, 0, 50%);
+                border-radius: 5px;
+            """
+            )
+            overlay_layout = QVBoxLayout(self.loading_overlay)
+
+            self.loading_label = QLabel(message)
+            self.loading_label.setStyleSheet(
+                """
+                color: white;
+                font-weight: bold;
+                background-color: rgba(40, 40, 40, 80%);
+                border-radius: 5px;
+                padding: 10px;
+            """
+            )
+            self.loading_label.setAlignment(Qt.AlignCenter)
+
+            overlay_layout.addStretch()
+            overlay_layout.addWidget(self.loading_label, 0, Qt.AlignCenter)
+            overlay_layout.addStretch()
+        else:
+            self.loading_label.setText(message)
+
+        # Redimensionner l'overlay pour couvrir tout le widget
+        self.loading_overlay.resize(self.size())
+        self.loading_overlay.show()
+        self.loading_overlay.raise_()
+
+        # Forcer le rafraîchissement de l'interface
+        QApplication.processEvents()
+
+    def hide_loading_overlay(self):
+        """Cache l'overlay de chargement"""
+        if hasattr(self, "loading_overlay"):
+            self.loading_overlay.hide()
+
+    def on_operation_completed(self, success, message, data):
+        """Callback appelé lorsque l'opération est terminée"""
+        self.hide_loading_overlay()
+
+        if success:
             # Notifier que les repas ont été modifiés
-            EVENT_BUS.repas_modifies.emit(self.semaine_id)
+            semaine_id = data.get("semaine_id") if data else self.semaine_id
+            EVENT_BUS.repas_modifies.emit(semaine_id)
+            EVENT_BUS.planning_modifie.emit()
 
             # Recharger les données
             parent = self.parent()
             if parent and hasattr(parent, "load_data"):
                 parent.load_data()
-
-            self.db_manager.normaliser_ordres(self.jour, self.semaine_id)
-
-            event.acceptProposedAction()
         else:
-            event.ignore()
+            # En cas d'erreur, afficher un message
+            from PySide6.QtWidgets import QMessageBox
+
+            QMessageBox.warning(self, "Erreur", message)
 
     def paintEvent(self, event):
         """Surcharge pour dessiner l'indicateur de drop"""

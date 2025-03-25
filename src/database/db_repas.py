@@ -388,19 +388,56 @@ class RepasManager(DBConnector):
     def changer_jour_repas(self, repas_id, nouveau_jour, nouvel_ordre):
         """Change le jour et l'ordre d'un repas"""
         self.connect()
-        self.cursor.execute(
-            """
-            UPDATE repas
-            SET jour = ?, ordre = ?
-            WHERE id = ?
-            """,
-            (nouveau_jour, nouvel_ordre, repas_id),
-        )
-        # Stocker le nombre de lignes affectées avant de fermer la connexion
-        rows_affected = self.cursor.rowcount
-        self.conn.commit()
-        self.disconnect()
-        return rows_affected > 0
+        try:
+            # Lancer une transaction pour optimiser les performances
+            self.cursor.execute("BEGIN TRANSACTION")
+
+            # Obtenir le jour et l'ordre actuels du repas
+            self.cursor.execute(
+                "SELECT jour, ordre FROM repas WHERE id = ?", (repas_id,)
+            )
+            result = self.cursor.fetchone()
+
+            if not result:
+                self.conn.rollback()
+                self.disconnect()
+                return False
+
+            jour_origine = result["jour"]
+            ordre_origine = result["ordre"]
+
+            # Mettre à jour le repas
+            self.cursor.execute(
+                """
+                UPDATE repas
+                SET jour = ?, ordre = ?
+                WHERE id = ?
+                """,
+                (nouveau_jour, nouvel_ordre, repas_id),
+            )
+
+            # Réorganiser les ordres dans le jour d'origine
+            if jour_origine != nouveau_jour:
+                self.cursor.execute(
+                    """
+                    UPDATE repas
+                    SET ordre = ordre - 1
+                    WHERE jour = ? AND ordre > ?
+                    """,
+                    (jour_origine, ordre_origine),
+                )
+
+            # Valider la transaction
+            self.conn.commit()
+            return True
+
+        except Exception as e:
+            print(f"Erreur lors du changement de jour du repas {repas_id}: {e}")
+            self.conn.rollback()
+            return False
+
+        finally:
+            self.disconnect()
 
     def modifier_nom_repas(self, repas_id, nouveau_nom):
         """Modifie le nom d'un repas existant"""
