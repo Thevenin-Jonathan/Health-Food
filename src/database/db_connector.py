@@ -1,16 +1,39 @@
 import sqlite3
 import os
+import sys
+
+
+def get_resource_path(relative_path):
+    """Retourne le chemin absolu de la ressource"""
+    if hasattr(sys, "_MEIPASS"):
+        # PyInstaller crée un dossier temporaire et stocke le chemin dans _MEIPASS
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 
 class DBConnector:
     """Classe de base pour la gestion des connexions à la base de données"""
 
     def __init__(self, db_file="nutrition_sportive.db"):
-        # Calculer le chemin absolu vers le répertoire de projet
-        project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+        # Déterminer si on est dans un environnement PyInstaller ou en développement
+        if hasattr(sys, "_MEIPASS"):
+            # En mode exécutable (PyInstaller)
+            # Utiliser le dossier data à côté de l'exécutable
+            base_dir = (
+                os.path.dirname(sys.executable)
+                if getattr(sys, "frozen", False)
+                else os.path.abspath(".")
+            )
+            data_dir = os.path.join(base_dir, "data")
+        else:
+            # En mode développement
+            # Calculer le chemin absolu vers le répertoire de projet
+            project_dir = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "../..")
+            )
+            data_dir = os.path.join(project_dir, "data")
 
         # S'assurer que le dossier data existe
-        data_dir = os.path.join(project_dir, "data")
         os.makedirs(data_dir, exist_ok=True)
 
         # Chemin absolu vers le fichier de la base de données
