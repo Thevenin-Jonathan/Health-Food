@@ -1,5 +1,1 @@
 - Portion repas
-- Se souvenir des checkbox de la liste de course
-- Ajouter une colonne de quantité dans la liste de course
-- Ajouter la possibilité d'ajouter manuelement des aliment a la liste de course
-- Ajouter plus de macro aux aliments

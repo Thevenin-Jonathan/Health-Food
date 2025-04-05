@@ -192,5 +192,17 @@ class DBConnector:
             """
         )
 
+        # Table pour stocker les multiplicateurs de repas pour la liste de courses
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS repas_multiplicateurs (
+                repas_id INTEGER PRIMARY KEY,
+                multiplicateur INTEGER DEFAULT 1,
+                ignore_course BOOLEAN DEFAULT 0,
+                FOREIGN KEY (repas_id) REFERENCES repas (id) ON DELETE CASCADE
+            )
+            """
+        )
+
         self.conn.commit()
         self.disconnect()

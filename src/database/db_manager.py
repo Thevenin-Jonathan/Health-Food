@@ -187,6 +187,16 @@ class DatabaseManager(DBConnector):
         """Délègue la suppression du nom personnalisé d'une semaine au RepasManager"""
         return self.repas_manager.supprimer_nom_semaine(semaine_id)
 
+    def set_repas_multiplicateur(self, repas_id, multiplicateur=1, ignore_course=False):
+        """Délègue la définition du multiplicateur de repas au RepasManager"""
+        return self.repas_manager.set_repas_multiplicateur(
+            repas_id, multiplicateur, ignore_course
+        )
+
+    def get_repas_multiplicateur(self, repas_id):
+        """Délègue la récupération du multiplicateur de repas au RepasManager"""
+        return self.repas_manager.get_repas_multiplicateur(repas_id)
+
     # =========== MÉTHODES DÉLÉGUÉES À RepasTypesManager ===========
     def ajouter_repas_type(self, nom, description):
         """Délègue l'ajout d'un repas type au RepasTypesManager"""

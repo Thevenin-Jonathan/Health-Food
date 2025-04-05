@@ -266,60 +266,114 @@ class RepasManager(DBConnector):
         return semaines
 
     def generer_liste_courses(self, semaine_id=None):
-        """Génère une liste de courses organisée par magasin et catégorie pour une semaine spécifique"""
-        self.connect()
+        """Génère une liste de courses organisée par magasin et catégorie pour une semaine donnée"""
+        try:
+            # S'assurer que la connexion est bien établie avant d'exécuter des requêtes
+            self.connect()
 
-        # Requête conditionnelle selon si une semaine est spécifiée
-        if semaine_id is not None:
-            self.cursor.execute(
+            # Vérifier que la connexion et le curseur sont valides
+            if not self.conn or not self.cursor:
+                print("Erreur: Impossible d'établir une connexion à la base de données")
+                return {}
+
+            # Récupérer tous les repas pour la semaine choisie
+            if semaine_id is not None:
+                query = """
+                SELECT r.id, r.nom, r.jour 
+                FROM repas r
+                WHERE r.semaine_id = ?
                 """
-            SELECT a.*, ra.quantite, a.magasin, a.categorie, a.prix_kg 
-            FROM repas_aliments ra
-            JOIN aliments a ON ra.aliment_id = a.id
-            JOIN repas r ON ra.repas_id = r.id
-            WHERE r.semaine_id = ?
-            ORDER BY a.magasin, a.categorie, a.nom
-            """,
-                (semaine_id,),
-            )
-        else:
-            # Si pas de semaine spécifiée, récupérer tous les aliments
-            self.cursor.execute(
+                params = [semaine_id]
+            else:
+                query = """
+                SELECT r.id, r.nom, r.jour 
+                FROM repas r
                 """
-            SELECT a.*, ra.quantite, a.magasin, a.categorie, a.prix_kg 
-            FROM repas_aliments ra
-            JOIN aliments a ON ra.aliment_id = a.id
-            ORDER BY a.magasin, a.categorie, a.nom
-            """
-            )
+                params = []
 
-        aliments = [dict(row) for row in self.cursor.fetchall()]
+            self.cursor.execute(query, params)
+            repas_list = [dict(row) for row in self.cursor.fetchall()]
 
-        # Organiser par magasin et catégorie
-        liste_courses = {}
-        for aliment in aliments:
-            magasin = aliment["magasin"] or "Non spécifié"
-            categorie = aliment["categorie"] or "Non spécifiée"
+            # Organiser par magasin et catégorie
+            liste_courses = {}
 
-            if magasin not in liste_courses:
-                liste_courses[magasin] = {}
+            # Pour chaque repas, récupérer et ajuster les aliments
+            for repas in repas_list:
+                repas_id = repas["id"]
 
-            if categorie not in liste_courses[magasin]:
-                liste_courses[magasin][categorie] = []
+                # Obtenir les informations sur le multiplicateur du repas
+                multi_info = self.get_repas_multiplicateur(repas_id)
 
-            # Vérifier si l'aliment existe déjà dans la liste
-            aliment_existe = False
-            for item in liste_courses[magasin][categorie]:
-                if item["id"] == aliment["id"]:
-                    item["quantite"] += aliment["quantite"]
-                    aliment_existe = True
-                    break
+                # Sauter ce repas s'il est marqué comme "déjà préparé"
+                if multi_info.get("ignore_course", False):
+                    continue
 
-            if not aliment_existe:
-                liste_courses[magasin][categorie].append(aliment)
+                # Facteur multiplicateur
+                multiplicateur = multi_info.get("multiplicateur", 1)
 
-        self.disconnect()
-        return liste_courses
+                # Récupérer les aliments du repas
+                self.connect()  # S'assurer que la connexion est active
+                self.cursor.execute(
+                    """
+                    SELECT a.id, a.nom, a.marque, a.categorie, a.magasin, a.prix_kg, ra.quantite
+                    FROM repas_aliments ra
+                    JOIN aliments a ON ra.aliment_id = a.id
+                    WHERE ra.repas_id = ?
+                    """,
+                    (repas_id,),
+                )
+
+                aliments = self.cursor.fetchall()
+
+                # Ajouter les aliments à la liste de courses
+                for aliment in aliments:
+                    id_aliment, nom, marque, categorie, magasin, prix_kg, quantite = (
+                        aliment
+                    )
+
+                    # Ajuster la quantité selon le multiplicateur
+                    quantite_ajustee = quantite * multiplicateur
+
+                    # Utiliser "Non spécifié" si le magasin est null
+                    magasin = magasin or "Non spécifié"
+                    categorie = categorie or "Non catégorisé"
+
+                    if magasin not in liste_courses:
+                        liste_courses[magasin] = {}
+
+                    if categorie not in liste_courses[magasin]:
+                        liste_courses[magasin][categorie] = []
+
+                    # Vérifier si l'aliment existe déjà dans la liste
+                    aliment_existe = False
+                    for item in liste_courses[magasin][categorie]:
+                        if item["id"] == id_aliment:
+                            item["quantite"] += quantite_ajustee
+                            aliment_existe = True
+                            break
+
+                    if not aliment_existe:
+                        liste_courses[magasin][categorie].append(
+                            {
+                                "id": id_aliment,
+                                "nom": nom,
+                                "marque": marque,
+                                "prix_kg": prix_kg,
+                                "quantite": quantite_ajustee,
+                            }
+                        )
+
+            return liste_courses
+        except Exception as e:
+            print(f"Erreur lors de la génération de la liste de courses: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return {}
+        finally:
+            # S'assurer de fermer proprement la connexion
+            if hasattr(self, "conn") and self.conn:
+                self.disconnect()
 
     def update_repas_based_on_recipe(self, repas_type_id):
         """Met à jour tous les repas basés sur la recette spécifiée"""
@@ -540,3 +594,89 @@ class RepasManager(DBConnector):
         self.cursor.execute("DELETE FROM semaines WHERE id = ?", (semaine_id,))
         self.conn.commit()
         self.disconnect()
+
+    def set_repas_multiplicateur(self, repas_id, multiplicateur=1, ignore_course=False):
+        """Définit le multiplicateur pour un repas dans la liste de courses
+
+        Args:
+            repas_id: ID du repas
+            multiplicateur: Nombre de fois à multiplier les quantités (1 par défaut = normal)
+            ignore_course: Si True, le repas n'apparaît pas dans la liste de courses
+
+        Returns:
+            bool: True si l'opération a réussi
+        """
+
+        self.connect()
+        try:
+            # Vérifier si une entrée existe déjà
+            self.cursor.execute(
+                "SELECT repas_id FROM repas_multiplicateurs WHERE repas_id = ?",
+                (repas_id,),
+            )
+            exists = self.cursor.fetchone()
+
+            if exists:
+                # Mettre à jour l'entrée existante
+                self.cursor.execute(
+                    """
+                    UPDATE repas_multiplicateurs
+                    SET multiplicateur = ?, ignore_course = ?
+                    WHERE repas_id = ?
+                    """,
+                    (multiplicateur, 1 if ignore_course else 0, repas_id),
+                )
+            else:
+                # Créer une nouvelle entrée
+                self.cursor.execute(
+                    """
+                    INSERT INTO repas_multiplicateurs (repas_id, multiplicateur, ignore_course)
+                    VALUES (?, ?, ?)
+                    """,
+                    (repas_id, multiplicateur, 1 if ignore_course else 0),
+                )
+
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(f"Erreur lors de la définition du multiplicateur de repas: {e}")
+            self.conn.rollback()
+            return False
+        finally:
+            self.disconnect()
+
+    def get_repas_multiplicateur(self, repas_id):
+        """Récupère le multiplicateur pour un repas
+
+        Args:
+            repas_id: ID du repas
+
+        Returns:
+            dict: {multiplicateur: int, ignore_course: bool} ou valeurs par défaut si non défini
+        """
+        # État de la connexion à l'entrée de la méthode
+        connection_was_active = self.conn is not None
+
+        try:
+            # Établir une connexion si nécessaire
+            if not connection_was_active:
+                self.connect()
+
+            self.cursor.execute(
+                "SELECT multiplicateur, ignore_course FROM repas_multiplicateurs WHERE repas_id = ?",
+                (repas_id,),
+            )
+            row = self.cursor.fetchone()
+
+            if row:
+                return {"multiplicateur": row[0], "ignore_course": bool(row[1])}
+            else:
+                # Valeurs par défaut si aucun enregistrement
+                return {"multiplicateur": 1, "ignore_course": False}
+        except Exception as e:
+            print(f"Erreur lors de la récupération du multiplicateur de repas: {e}")
+            return {"multiplicateur": 1, "ignore_course": False}
+        finally:
+            # Fermer la connexion uniquement si elle n'était pas active à l'entrée
+            if not connection_was_active and self.conn:
+                self.disconnect()

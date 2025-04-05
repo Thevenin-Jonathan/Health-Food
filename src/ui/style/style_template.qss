@@ -570,6 +570,48 @@ QLabel.nutrition-info {
     line-height: 150%;
 }
 
+/* Style de base pour le bouton multiplicateur */
+QPushButton#multiButton {
+    border-radius: $BORDER_RADIUS;
+    font-weight: bold;
+    max-width: 60px;
+    min-height: 24px;
+    max-height: 24px;
+    padding: 0px 4px;
+    margin: 0px;
+}
+
+/* Style pour le bouton quand le repas est déjà préparé */
+QPushButton#multiButton[status="prepared"] {
+    background-color: $PRIMARY_COLOR;
+    color: white;
+}
+
+QPushButton#multiButton[status="prepared"]:hover {
+    background-color: $PRIMARY_DARK;
+}
+
+/* Style pour le bouton quand le repas a un multiplicateur > 1 */
+QPushButton#multiButton[status="multiplied"] {
+    background-color: $INFO_COLOR;
+    color: white;
+}
+
+QPushButton#multiButton[status="multiplied"]:hover {
+    background-color: $INFO_DARK;
+}
+
+/* Style pour le bouton normal (multiplicateur = 1) */
+QPushButton#multiButton[status="normal"] {
+    background-color: #f0f0f0;
+    color: $PRIMARY_COLOR;
+    border: 1px solid #d0d0d0;
+}
+
+QPushButton#multiButton[status="normal"]:hover {
+    background-color: #e0e0e0;
+}
+
 /* 
 ============================================
    BOUTONS RADIO

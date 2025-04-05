@@ -72,6 +72,16 @@ class CoursesTab(TabBase):
         desc.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(desc)
 
+        # Description
+        desc = QLabel(
+            "Cette liste est générée à partir des repas planifiés pour la semaine.<br>"
+            "<i>Astuce : Pour les repas déjà préparés ou à préparer en quantité multiple, "
+            'utilisez le bouton "×1" sur la carte du repas.</i>'
+        )
+        desc.setWordWrap(True)
+        desc.setAlignment(Qt.AlignCenter)
+        main_layout.addWidget(desc)
+
         # Sélection de semaine et boutons dans la même section
         top_controls = QHBoxLayout()
 

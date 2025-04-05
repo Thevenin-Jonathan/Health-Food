@@ -10,6 +10,11 @@ from PySide6.QtWidgets import (
     QWidget,
     QLineEdit,
     QInputDialog,
+    QDialog,
+    QRadioButton,
+    QSpinBox,
+    QDialogButtonBox,
+    QButtonGroup,
 )
 from PySide6.QtCore import Qt, QMimeData, QByteArray, Signal
 from PySide6.QtGui import QDrag, QPainter, QPixmap
@@ -170,6 +175,41 @@ class RepasWidget(QFrame):
 
         # Espace flexible entre les calories et les boutons
         header_layout.addStretch(1)
+
+        # Obtenir l'info de multiplicateur pour ce repas
+        repas_multi_info = self.db_manager.get_repas_multiplicateur(
+            self.repas_data["id"]
+        )
+        multiplicateur = repas_multi_info.get("multiplicateur", 1)
+        ignore_course = repas_multi_info.get("ignore_course", False)
+
+        # Créer le bouton de multiplicateur
+        self.btn_multi = QPushButton()
+        self.btn_multi.setObjectName("multiButton")
+
+        # Définir le texte et le style du bouton en fonction des paramètres
+        if ignore_course:
+            self.btn_multi.setText("Préparé")
+            self.btn_multi.setProperty("status", "prepared")
+            self.btn_multi.setToolTip(
+                "Déjà préparé - n'apparaît pas dans la liste de courses"
+            )
+        else:
+            self.btn_multi.setText(f"× {multiplicateur}")
+            if multiplicateur > 1:
+                self.btn_multi.setProperty("status", "multiplied")
+                self.btn_multi.setToolTip(
+                    f"Quantités multipliées par {multiplicateur} dans la liste de courses"
+                )
+            else:
+                self.btn_multi.setProperty("status", "normal")
+                self.btn_multi.setToolTip(
+                    "Cliquez pour modifier la quantité dans la liste de courses"
+                )
+
+        # Connecter le clic du bouton
+        self.btn_multi.clicked.connect(self.modifier_multiplicateur)
+        header_layout.addWidget(self.btn_multi)
 
         # Boutons d'actions (à droite)
         buttons_layout = QHBoxLayout()
@@ -480,6 +520,107 @@ class RepasWidget(QFrame):
         if reply == QMessageBox.Yes:
             self.db_manager.supprimer_repas(self.repas_data["id"])
             self.update_parent_widget()
+
+    def modifier_multiplicateur(self):
+        """Ouvre une boîte de dialogue pour modifier le multiplicateur du repas"""
+        # Récupérer les infos actuelles
+        repas_multi_info = self.db_manager.get_repas_multiplicateur(
+            self.repas_data["id"]
+        )
+        multiplicateur_actuel = repas_multi_info.get("multiplicateur", 1)
+        ignore_actuel = repas_multi_info.get("ignore_course", False)
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Paramètres pour la liste de courses")
+        dialog.setMinimumWidth(300)
+
+        layout = QVBoxLayout(dialog)
+
+        # Titre explicatif
+        titre = QLabel("<b>Comment traiter ce repas dans la liste de courses ?</b>")
+        layout.addWidget(titre)
+
+        # Options
+        group = QButtonGroup(dialog)
+
+        # Option 1: Quantité normale
+        option_normale = QRadioButton("Quantité normale (×1)")
+        option_normale.setChecked(not ignore_actuel and multiplicateur_actuel == 1)
+        group.addButton(option_normale)
+        layout.addWidget(option_normale)
+
+        # Option 2: Multiplier les quantités
+        option_multi_container = QHBoxLayout()
+        option_multi = QRadioButton("Multiplier les quantités par:")
+        option_multi.setChecked(not ignore_actuel and multiplicateur_actuel > 1)
+        group.addButton(option_multi)
+        option_multi_container.addWidget(option_multi)
+
+        # Spinbox pour le facteur
+        self.multi_spin = QSpinBox()
+        self.multi_spin.setMinimum(2)
+        self.multi_spin.setMaximum(10)
+        self.multi_spin.setValue(max(2, multiplicateur_actuel))
+        option_multi_container.addWidget(self.multi_spin)
+
+        layout.addLayout(option_multi_container)
+
+        # Option 3: Déjà préparé
+        option_ignore = QRadioButton("Ce repas est déjà préparé (ne pas l'inclure)")
+        option_ignore.setChecked(ignore_actuel)
+        group.addButton(option_ignore)
+        layout.addWidget(option_ignore)
+
+        # Boutons standard
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        # Exécuter la boîte de dialogue
+        if dialog.exec():
+            # Récupérer les valeurs
+            if option_normale.isChecked():
+                multiplicateur = 1
+                ignore_course = False
+            elif option_multi.isChecked():
+                multiplicateur = self.multi_spin.value()
+                ignore_course = False
+            else:  # option_ignore
+                multiplicateur = 1
+                ignore_course = True
+
+            # Sauvegarder les modifications
+            self.db_manager.set_repas_multiplicateur(
+                self.repas_data["id"],
+                multiplicateur=multiplicateur,
+                ignore_course=ignore_course,
+            )
+
+            # Mettre à jour l'apparence du bouton
+            if ignore_course:
+                self.btn_multi.setText("Préparé")
+                self.btn_multi.setStyleSheet("background-color: #4CAF50; color: white;")
+                self.btn_multi.setToolTip(
+                    "Déjà préparé - n'apparaît pas dans la liste de courses"
+                )
+            else:
+                self.btn_multi.setText(f"× {multiplicateur}")
+                if multiplicateur > 1:
+                    self.btn_multi.setStyleSheet(
+                        "background-color: #2196F3; color: white;"
+                    )
+                    self.btn_multi.setToolTip(
+                        f"Quantités multipliées par {multiplicateur} dans la liste de courses"
+                    )
+                else:
+                    self.btn_multi.setStyleSheet("")
+                    self.btn_multi.setToolTip(
+                        "Cliquez pour modifier la quantité dans la liste de courses"
+                    )
+
+            # Notifier que les repas ont été modifiés
+            EVENT_BUS.repas_modifies.emit(self.semaine_id)
 
     def remove_food_from_meal(self, aliment_id):
         """Supprimer un aliment du repas"""
