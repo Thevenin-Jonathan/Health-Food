@@ -558,6 +558,7 @@ class RepasWidget(QFrame):
 
         # Spinbox pour le facteur
         self.multi_spin = QSpinBox()
+        self.multi_spin.setProperty("class", "spin-box-vertical")
         self.multi_spin.setMinimum(2)
         self.multi_spin.setMaximum(10)
         self.multi_spin.setValue(max(2, multiplicateur_actuel))
