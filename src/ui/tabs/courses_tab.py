@@ -23,12 +23,22 @@ class CoursesTab(TabBase):
     def __init__(self, db_manager):
         super().__init__(db_manager)
         self.current_semaine_id = None
+        self.checkbox_states = self.db_manager.charger_etats_courses() or {}
         self.setup_ui()
 
         # Se connecter aux signaux du bus d'événements
         EVENT_BUS.semaine_ajoutee.connect(self.on_semaine_ajoutee)
         EVENT_BUS.semaine_supprimee.connect(self.on_semaine_supprimee)
         EVENT_BUS.semaines_modifiees.connect(self.refresh_data)
+
+    def persist_checkbox_states(self):
+        """Persiste les états des cases à cocher dans la base de données"""
+        # Sauvegarder l'état actuel si nécessaire
+        if self.tree.topLevelItemCount() > 0:
+            self.save_checkbox_states()
+
+        # Sauvegarder tous les états dans la base de données
+        self.db_manager.sauvegarder_etats_courses(self.checkbox_states)
 
     def setup_ui(self):
         # Créer un layout principal sans marges pour le widget entier
@@ -128,6 +138,12 @@ class CoursesTab(TabBase):
 
     def refresh_data(self):
         """Implémentation de la méthode de la classe de base pour actualiser les données"""
+        # Sauvegarder l'état des cases à cocher avant l'actualisation
+        if self.tree.topLevelItemCount() > 0:
+            self.save_checkbox_states()
+            self.persist_checkbox_states()  # Persister dans la BDD
+
+        # Recharger les données
         self.charger_semaines()
 
     def charger_semaines(self):
@@ -178,17 +194,35 @@ class CoursesTab(TabBase):
 
     def on_semaine_changed(self):
         """Appelé lorsqu'une semaine différente est sélectionnée"""
+        # Sauvegarder l'état actuel avant de changer
+        if self.tree.topLevelItemCount() > 0:
+            self.save_checkbox_states()
+            self.persist_checkbox_states()  # Persister dans la BDD
+
         self.current_semaine_id = self.semaine_combo.currentData()
         self.load_data()
 
     def load_data(self):
         """Charge les données de la liste de courses"""
+        # Sauvegarder l'état des cases à cocher avant de vider l'arbre
+        if self.current_semaine_id is not None:
+            self.save_checkbox_states()
+
         self.tree.clear()
 
         # Récupérer la liste de courses pour la semaine sélectionnée
         liste_courses = self.db_manager.generer_liste_courses(self.current_semaine_id)
 
+        total_aliments = 0
+        for magasin, categories in liste_courses.items():
+            magasin_count = 0
+            for categorie, aliments in categories.items():
+                magasin_count += len(aliments)
+            total_aliments += magasin_count
+
         # Remplir l'arbre avec les données
+        aliments_ajoutes = 0
+
         for magasin, categories in liste_courses.items():
             # Créer un élément pour le magasin
             magasin_item = QTreeWidgetItem(["", magasin, "", ""])
@@ -209,6 +243,10 @@ class CoursesTab(TabBase):
                     # Afficher le prix au kilo
                     prix_au_kg = aliment["prix_kg"] or 0
 
+                    # Identifier de façon unique cet aliment
+                    aliment_id = f"{aliment['id']}"
+                    aliments_ajoutes += 1
+
                     # Créer un élément pour l'aliment avec case à cocher
                     aliment_item = QTreeWidgetItem(
                         [
@@ -218,11 +256,186 @@ class CoursesTab(TabBase):
                             f"{prix_au_kg:.2f} €/kg",
                         ]
                     )
-                    aliment_item.setCheckState(0, Qt.Checked)  # Coché par défaut
+
+                    # Stocker l'ID de l'aliment dans les données de l'item pour le retrouver plus tard
+                    aliment_item.setData(0, Qt.UserRole, aliment_id)
+
+                    # Restaurer l'état de la case à cocher si disponible, sinon cocher par défaut
+                    check_state = self.get_checkbox_state(aliment_id)
+                    if check_state is not None:
+                        aliment_item.setCheckState(0, check_state)
+                    else:
+                        aliment_item.setCheckState(0, Qt.Checked)
+
                     categorie_item.addChild(aliment_item)
 
         # S'assurer que tous les éléments sont déployés
         self.tree.expandAll()
+
+    def save_checkbox_states(self):
+        """Sauvegarde l'état actuel des cases à cocher"""
+        # Créer un dictionnaire pour cette semaine s'il n'existe pas déjà
+        semaine_key = str(self.current_semaine_id) if self.current_semaine_id else "all"
+        if semaine_key not in self.checkbox_states:
+            self.checkbox_states[semaine_key] = {}
+
+        # Parcourir tous les éléments d'aliments et sauvegarder leur état
+        for i in range(self.tree.topLevelItemCount()):
+            magasin_item = self.tree.topLevelItem(i)
+
+            # Ignorer l'élément TOTAL s'il existe
+            if magasin_item.text(1) == "TOTAL":
+                continue
+
+            for j in range(magasin_item.childCount()):
+                categorie_item = magasin_item.child(j)
+
+                for k in range(categorie_item.childCount()):
+                    aliment_item = categorie_item.child(k)
+                    aliment_id = aliment_item.data(0, Qt.UserRole)
+
+                    # Sauvegarder l'état de la case (convertir en entier)
+                    if aliment_id:
+                        # Convertir CheckState en entier pour que SQLite puisse le stocker
+                        # Utiliser la valeur numérique directement sans conversion avec int()
+                        check_state = aliment_item.checkState(0)
+                        if check_state == Qt.Checked:
+                            state_value = 2  # Valeur correspondante à Qt.Checked
+                        elif check_state == Qt.Unchecked:
+                            state_value = 0  # Valeur correspondante à Qt.Unchecked
+                        else:  # Qt.PartiallyChecked
+                            state_value = (
+                                1  # Valeur correspondante à Qt.PartiallyChecked
+                            )
+
+                        self.checkbox_states[semaine_key][aliment_id] = state_value
+
+    def update_checkbox_states_from_saved(self):
+        """Met à jour les états des cases à cocher à partir des états sauvegardés"""
+        # Vérifier si le tree est vide
+        if self.tree.topLevelItemCount() == 0:
+            return
+
+        # Identifier la clé de semaine actuelle
+        semaine_key = str(self.current_semaine_id) if self.current_semaine_id else "all"
+
+        # Vérifier s'il y a des états sauvegardés pour cette semaine
+        if semaine_key not in self.checkbox_states:
+            return
+
+        saved_states = self.checkbox_states[semaine_key]
+
+        # Parcourir tous les éléments d'aliments et restaurer leur état
+        for i in range(self.tree.topLevelItemCount()):
+            magasin_item = self.tree.topLevelItem(i)
+
+            # Ignorer l'élément TOTAL s'il existe
+            if magasin_item.text(1) == "TOTAL":
+                continue
+
+            for j in range(magasin_item.childCount()):
+                categorie_item = magasin_item.child(j)
+
+                for k in range(categorie_item.childCount()):
+                    aliment_item = categorie_item.child(k)
+                    aliment_id = aliment_item.data(0, Qt.UserRole)
+
+                    # Restaurer l'état de la case si disponible
+                    if aliment_id and aliment_id in saved_states:
+                        # Convertir l'entier stocké en CheckState
+                        state_value = saved_states[aliment_id]
+                        if state_value == 2:
+                            state = Qt.Checked
+                        elif state_value == 0:
+                            state = Qt.Unchecked
+                        else:  # state_value == 1
+                            state = Qt.PartiallyChecked
+
+                        aliment_item.setCheckState(0, state)
+
+        # Mettre à jour l'état des parents (catégories et magasins)
+        for i in range(self.tree.topLevelItemCount()):
+            magasin_item = self.tree.topLevelItem(i)
+            if magasin_item.text(1) != "TOTAL":
+                self._update_parent_check_state(magasin_item)
+
+    def _update_parent_check_state(self, parent_item):
+        """Met à jour l'état de la case à cocher d'un élément parent en fonction de ses enfants"""
+        if parent_item.childCount() == 0:
+            return
+
+        # Compter les états des enfants
+        checked_count = 0
+        unchecked_count = 0
+
+        for i in range(parent_item.childCount()):
+            child = parent_item.child(i)
+
+            # Mettre à jour l'état du parent si c'est un nœud interne
+            if child.childCount() > 0:
+                self._update_parent_check_state(child)
+
+            # Compter l'état de l'enfant
+            if child.checkState(0) == Qt.Checked:
+                checked_count += 1
+            elif child.checkState(0) == Qt.Unchecked:
+                unchecked_count += 1
+
+        # Définir l'état du parent
+        if checked_count == parent_item.childCount():
+            parent_item.setCheckState(0, Qt.Checked)
+        elif unchecked_count == parent_item.childCount():
+            parent_item.setCheckState(0, Qt.Unchecked)
+        else:
+            parent_item.setCheckState(0, Qt.PartiallyChecked)
+
+    def get_checkbox_state(self, aliment_id):
+        """Récupère l'état d'une case à cocher pour un aliment donné"""
+        semaine_key = str(self.current_semaine_id) if self.current_semaine_id else "all"
+
+        # Vérifier si nous avons des états sauvegardés pour cette semaine
+        if (
+            semaine_key in self.checkbox_states
+            and aliment_id in self.checkbox_states[semaine_key]
+        ):
+            # Convertir l'entier sauvegardé en Qt.CheckState
+            state_value = self.checkbox_states[semaine_key][aliment_id]
+
+            # Convertir en Qt.CheckState
+            if state_value == 2:
+                return Qt.Checked
+            elif state_value == 0:
+                return Qt.Unchecked
+            else:  # state_value == 1
+                return Qt.PartiallyChecked
+
+        # Par défaut, retourner None (ce qui signifie "utiliser l'état par défaut")
+        return None
+
+    def on_tab_visible(self):
+        """Méthode appelée quand l'onglet devient visible"""
+        try:
+            # Mettre à jour l'affichage en utilisant les états sauvegardés
+            if hasattr(self, "tree") and self.tree.topLevelItemCount() > 0:
+                self.update_checkbox_states_from_saved()
+        except Exception as e:
+            print(f"Erreur lors de l'actualisation des cases à cocher: {e}")
+
+        # Appeler la méthode de la classe de base
+        super().on_tab_visible()
+
+    def on_tab_invisible(self):
+        """Méthode appelée quand l'onglet devient invisible"""
+        try:
+            # Sauvegarder les états des cases à cocher
+            if hasattr(self, "tree") and self.tree.topLevelItemCount() > 0:
+                self.save_checkbox_states()
+                self.persist_checkbox_states()
+        except Exception as e:
+            print(f"Erreur lors de la sauvegarde des cases à cocher: {e}")
+
+        # Appeler la méthode de la classe de base
+        super().on_tab_invisible()
 
     def select_all_items(self):
         """Sélectionne tous les éléments"""
@@ -249,8 +462,17 @@ class CoursesTab(TabBase):
                     aliment_item = categorie_item.child(k)
                     aliment_item.setCheckState(0, state)
 
+        # Sauvegarder les états après avoir tout coché/décoché
+        self.save_checkbox_states()
+        self.persist_checkbox_states()
+
     def print_liste_courses(self):
         """Imprime la liste de courses formatée avec uniquement les éléments sélectionnés"""
+        # Sauvegarder l'état actuel avant d'imprimer
+        if self.tree.topLevelItemCount() > 0:
+            self.save_checkbox_states()
+            self.persist_checkbox_states()  # Persister dans la BDD
+
         # Créer un document HTML pour l'impression
         content = self.generate_print_content()
 

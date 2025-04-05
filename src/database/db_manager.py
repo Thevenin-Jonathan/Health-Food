@@ -4,6 +4,7 @@ from .db_aliments import AlimentsManager
 from .db_repas import RepasManager
 from .db_repas_types import RepasTypesManager
 from .db_export_import import ExportImportManager
+from .db_courses import CoursesManager
 
 
 class DatabaseManager(DBConnector):
@@ -22,6 +23,7 @@ class DatabaseManager(DBConnector):
         self.repas_manager = RepasManager(self.db_file)
         self.repas_types_manager = RepasTypesManager(self.db_file)
         self.export_import_manager = ExportImportManager(self.db_file, self)
+        self.courses_manager = CoursesManager(self.db_file)
 
     def init_db(self):
         """Initialise la structure de la base de données et crée un utilisateur par défaut si nécessaire"""
@@ -274,3 +276,12 @@ class DatabaseManager(DBConnector):
     def importer_planning(self, planning_data, semaine_id=None):
         """Délègue l'importation du planning au ExportImportManager"""
         return self.export_import_manager.importer_planning(planning_data, semaine_id)
+
+    # =========== MÉTHODES DÉLÉGUÉES À CoursesManager ===========
+    def sauvegarder_etats_courses(self, etats_semaine):
+        """Délègue la sauvegarde des états des cases à cocher au CoursesManager"""
+        return self.courses_manager.sauvegarder_etats_courses(etats_semaine)
+
+    def charger_etats_courses(self):
+        """Délègue le chargement des états des cases à cocher au CoursesManager"""
+        return self.courses_manager.charger_etats_courses()

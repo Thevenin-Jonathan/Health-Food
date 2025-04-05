@@ -19,3 +19,21 @@ class TabBase(QWidget):
         raise NotImplementedError(
             "Cette méthode doit être implémentée dans les classes dérivées"
         )
+
+    def setVisible(self, visible):
+        """Surcharge pour détecter quand l'onglet devient visible ou invisible"""
+        super().setVisible(visible)
+
+        # Émettre un signal approprié
+        if visible:
+            self.on_tab_visible()
+        else:
+            self.on_tab_invisible()
+
+    def on_tab_visible(self):
+        """Méthode appelée quand l'onglet devient visible"""
+        pass
+
+    def on_tab_invisible(self):
+        """Méthode appelée quand l'onglet devient invisible"""
+        pass

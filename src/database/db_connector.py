@@ -179,5 +179,18 @@ class DBConnector:
         """
         )
 
+        # Table pour les états des cases à cocher de la liste de courses
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS courses_etat (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                semaine_id TEXT,
+                aliment_id TEXT,
+                checked INTEGER,
+                UNIQUE(semaine_id, aliment_id)
+            )
+            """
+        )
+
         self.conn.commit()
         self.disconnect()
