@@ -93,6 +93,8 @@ class MainWindow(QMainWindow):
     def refresh_all_tabs(self):
         """Rafraîchit tous les onglets après une importation de données"""
         # Rafraîchir tous les onglets qui ont une méthode refresh_data
+        if hasattr(self, "utilisateur_tab"):
+            self.utilisateur_tab.refresh_data()
         if hasattr(self, "aliments_tab"):
             self.aliments_tab.refresh_data()
         if hasattr(self, "recettes_tab"):
@@ -101,5 +103,3 @@ class MainWindow(QMainWindow):
             self.planning_tab.refresh_data()
         if hasattr(self, "courses_tab"):
             self.courses_tab.refresh_data()
-        if hasattr(self, "utilisateur_tab"):
-            self.utilisateur_tab.refresh_data()
