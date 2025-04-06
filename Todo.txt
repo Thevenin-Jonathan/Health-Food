@@ -1,1 +1,6 @@
 - Portion repas
+- réappliquer changement recette dans la semaine
+- pas des slider à 1g
+- un systeme de mise à jour
+- vérifier les paths des checkmark en svg
+- ajouter un systeme de quantite (lié au poids)
