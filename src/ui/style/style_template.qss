@@ -1109,7 +1109,7 @@ ExportImportDialog QProgressBar::chunk {
     background-color: $PRIMARY_COLOR;
     width: 20px;
 }
-QLabel.export-import-description {
+QLabel.export-import-description, QLabel.reset-db-description {
     margin-bottom: 20px;
 }
 
@@ -1137,4 +1137,111 @@ QTreeWidget::indicator:checked {
 QTreeWidget::indicator:indeterminate {
     background-color: $PRIMARY_LIGHT;
     border: 1px solid $PRIMARY_COLOR;
+}
+
+/* 
+============================================
+   DIALOGUE DE SÉLECTION DE SAUVEGARDE
+============================================
+*/
+
+/* Style général du dialogue pour utiliser le fond clair général */
+BackupSelectDialog {
+    background-color: $BACKGROUND_COLOR;
+}
+
+/* Style de la liste des sauvegardes */
+BackupSelectDialog QListWidget {
+    background-color: $BACKGROUND_COLOR;  /* Utilise le fond clair général */
+    border: 1px solid $PRIMARY_LIGHT;
+    border-radius: 4px;
+    padding: 2px;    
+    outline: none;
+}
+
+BackupSelectDialog QListWidget::item {
+    padding: 8px;
+    border-bottom: 1px solid alpha($PRIMARY_LIGHT, 0.3);
+    min-height: 50px;
+}
+
+/* Style de l'élément sélectionné - vert au lieu de rouge */
+BackupSelectDialog QListWidget::item:selected {
+    background-color: alpha($PRIMARY_COLOR, 0.15);  /* Fond légèrement teinté de la couleur primaire */
+    color: $TEXT_COLOR;
+    border-left: 3px solid $PRIMARY_COLOR;
+    outline: none;
+}
+
+BackupSelectDialog QListWidget::item:hover:!selected {
+    background-color: alpha($PRIMARY_COLOR, 0.05);
+}
+
+BackupSelectDialog QListWidget::item:selected:focus {
+    outline: none;
+}
+
+/* Style du panneau d'aperçu */
+BackupSelectDialog QGroupBox#preview-group {
+    font-weight: bold;
+    font-size: 14px;
+    border: 1px solid $PRIMARY_LIGHT;
+    border-radius: 6px;
+    background-color: $BACKGROUND_COLOR;  /* Même couleur de fond que le reste */
+    margin-top: 20px;
+}
+
+BackupSelectDialog QGroupBox#preview-group::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center;
+    padding: 0 10px;
+    color: $PRIMARY_COLOR;
+}
+
+/* Style des étiquettes de statistiques */
+BackupSelectDialog QLabel.stats-title {
+    color: $TEXT_HINT;
+    font-weight: bold;
+}
+
+BackupSelectDialog QLabel.stats-value {
+    background-color: alpha($PRIMARY_LIGHT, 0.2);
+    padding: 4px 8px;
+    border-radius: 3px;
+    min-width: 150px;
+    font-weight: bold;
+    color: $TEXT_COLOR;
+}
+
+/* Style pour le bouton de suppression */
+BackupSelectDialog QPushButton#dangerButton {
+    background-color: $DANGER_COLOR;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+}
+
+BackupSelectDialog QPushButton#dangerButton:hover {
+    background-color: darken($DANGER_COLOR, 10%);
+}
+
+BackupSelectDialog QPushButton#dangerButton:disabled {
+    background-color: lighten($DANGER_COLOR, 20%);
+    color: white;
+}
+
+/* Style de la barre de progression */
+BackupSelectDialog QProgressBar {
+    border: 1px solid $PRIMARY_LIGHT;
+    border-radius: 3px;
+    background-color: $BACKGROUND_COLOR;
+    text-align: center;
+    height: 8px;
+}
+
+BackupSelectDialog QProgressBar::chunk {
+    background-color: $PRIMARY_COLOR;  /* Couleur primaire (verte) pour la barre */
+    width: 1px;
+    margin: 0px;
 }
