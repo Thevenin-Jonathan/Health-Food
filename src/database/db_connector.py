@@ -2,6 +2,7 @@ import sqlite3
 import os
 import sys
 import shutil
+import gc
 
 
 class DBConnector:
@@ -11,23 +12,33 @@ class DBConnector:
     _instance = None
     _db_path_logged = False  # Pour éviter de répéter le message de chemin DB
 
+    @classmethod
+    def reset_instance(cls):
+        cls._instance = None
+
+    @classmethod
+    def reset_db_path_logged(cls):
+        cls._db_path_logged = False
+
     def __new__(cls, db_file="nutrition_sportive.db"):
         # Si aucune instance n'existe, en créer une
         if cls._instance is None:
             cls._instance = super(DBConnector, cls).__new__(cls)
-            # Initialiser l'instance (ceci n'est appelé qu'une seule fois)
-            cls._instance._initialize(db_file)
         return cls._instance
+
+    def __init__(self, db_file="nutrition_sportive.db"):
+        if not hasattr(self, "db_file"):
+            self.db_file = None
+            self.conn = None
+            self.cursor = None
+            self._initialize(db_file)
 
     def _initialize(self, db_file):
         """Initialisation réelle de l'instance (appelée une seule fois)"""
-        # Nom de l'application pour créer un dossier dédié
         app_name = "Health&Food"
 
-        # Déterminer si on est dans un environnement PyInstaller ou en développement
         if getattr(sys, "frozen", False) or hasattr(sys, "_MEIPASS"):
             # En mode exécutable (PyInstaller)
-            # Dossier d'installation (lecture seule)
             install_dir = os.path.dirname(sys.executable)
             install_data_dir = os.path.join(install_dir, "data")
 
@@ -53,7 +64,7 @@ class DBConnector:
                         )
                         shutil.copy2(install_db_path, user_db_path)
                         print("Base de données copiée avec succès.")
-                    except Exception as e:
+                    except (shutil.Error, OSError) as e:
                         print(f"Erreur lors de la copie de la base de données: {e}")
 
             # Utiliser le chemin dans le dossier utilisateur pour la base de données
@@ -78,10 +89,6 @@ class DBConnector:
 
         self.conn = None
         self.cursor = None
-
-    def __init__(self, db_file="nutrition_sportive.db"):
-        # L'initialisation réelle est faite dans __new__, cette méthode ne fait rien
-        pass
 
     def connect(self):
         """Établit une connexion à la base de données"""
@@ -130,7 +137,7 @@ class DBConnector:
             self.cursor.execute("PRAGMA user_version")
             version = self.cursor.fetchone()[0]
             return version
-        except Exception as e:
+        except sqlite3.Error as e:
             print(f"Erreur lors de la récupération de la version de la DB: {e}")
             return 0
         finally:
@@ -142,7 +149,7 @@ class DBConnector:
         try:
             self.cursor.execute(f"PRAGMA user_version = {version}")
             self.conn.commit()
-        except Exception as e:
+        except sqlite3.Error as e:
             print(f"Erreur lors de la définition de la version de la DB: {e}")
         finally:
             self.disconnect()
