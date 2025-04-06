@@ -30,3 +30,4 @@ ENV/
 src/ui/style/style_generated.qss
 .VSCodeCounter/
 .spec
+.bak
