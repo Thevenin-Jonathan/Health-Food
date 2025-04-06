@@ -16,7 +16,7 @@ def resource_path(relative_path):
     try:
         # PyInstaller crée un dossier temporaire et stocke le chemin dans _MEIPASS
         base_path = getattr(sys, "_MEIPASS", os.path.abspath("."))
-    except Exception:
+    except AttributeError:
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
@@ -55,7 +55,11 @@ if __name__ == "__main__":
             if not INITIAL_THEME:
                 INITIAL_THEME = "Vert Nature"  # Thème par défaut
             apply_theme(INITIAL_THEME)
-        except Exception as e:
+        except (
+            FileNotFoundError,
+            ValueError,
+            RuntimeError,
+        ) as e:
             print(f"Erreur lors de l'application du thème initial: {e}")
             apply_theme("Vert Nature")  # Fallback au thème par défaut
 
@@ -71,7 +75,7 @@ if __name__ == "__main__":
         window.show()
 
         sys.exit(app.exec())
-    except Exception as e:
+    except (FileNotFoundError, ValueError, RuntimeError) as e:
         print(f"Erreur critique au démarrage de l'application: {e}")
         from traceback import print_exc
 
