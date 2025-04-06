@@ -1,46 +1,87 @@
 import sqlite3
 import os
 import sys
-
-
-def get_resource_path(relative_path):
-    """Retourne le chemin absolu de la ressource"""
-    if hasattr(sys, "_MEIPASS"):
-        # PyInstaller crée un dossier temporaire et stocke le chemin dans _MEIPASS
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
+import shutil
 
 
 class DBConnector:
-    """Classe de base pour la gestion des connexions à la base de données"""
+    """Classe de base pour la gestion des connexions à la base de données (Singleton)"""
 
-    def __init__(self, db_file="nutrition_sportive.db"):
+    # Variable de classe pour stocker l'instance unique
+    _instance = None
+    _db_path_logged = False  # Pour éviter de répéter le message de chemin DB
+
+    def __new__(cls, db_file="nutrition_sportive.db"):
+        # Si aucune instance n'existe, en créer une
+        if cls._instance is None:
+            cls._instance = super(DBConnector, cls).__new__(cls)
+            # Initialiser l'instance (ceci n'est appelé qu'une seule fois)
+            cls._instance._initialize(db_file)
+        return cls._instance
+
+    def _initialize(self, db_file):
+        """Initialisation réelle de l'instance (appelée une seule fois)"""
+        # Nom de l'application pour créer un dossier dédié
+        app_name = "Health&Food"
+
         # Déterminer si on est dans un environnement PyInstaller ou en développement
-        if hasattr(sys, "_MEIPASS"):
+        if getattr(sys, "frozen", False) or hasattr(sys, "_MEIPASS"):
             # En mode exécutable (PyInstaller)
-            # Utiliser le dossier data à côté de l'exécutable
-            base_dir = (
-                os.path.dirname(sys.executable)
-                if getattr(sys, "frozen", False)
-                else os.path.abspath(".")
+            # Dossier d'installation (lecture seule)
+            install_dir = os.path.dirname(sys.executable)
+            install_data_dir = os.path.join(install_dir, "data")
+
+            # Dossier de données utilisateur dans AppData (pour l'écriture)
+            user_data_dir = os.path.join(
+                os.environ.get("APPDATA", os.path.expanduser("~")), app_name, "data"
             )
-            data_dir = os.path.join(base_dir, "data")
+
+            # S'assurer que le dossier de données utilisateur existe
+            os.makedirs(user_data_dir, exist_ok=True)
+
+            # Chemin vers le fichier de base de données dans le dossier utilisateur
+            user_db_path = os.path.join(user_data_dir, db_file)
+
+            # Vérifier si la base de données existe déjà dans le dossier utilisateur
+            if not os.path.exists(user_db_path):
+                # Si elle n'existe pas, essayer de la copier depuis le dossier d'installation
+                install_db_path = os.path.join(install_data_dir, db_file)
+                if os.path.exists(install_db_path):
+                    try:
+                        print(
+                            f"Copie de la base de données depuis {install_db_path} vers {user_db_path}"
+                        )
+                        shutil.copy2(install_db_path, user_db_path)
+                        print("Base de données copiée avec succès.")
+                    except Exception as e:
+                        print(f"Erreur lors de la copie de la base de données: {e}")
+
+            # Utiliser le chemin dans le dossier utilisateur pour la base de données
+            self.db_file = user_db_path
         else:
-            # En mode développement
-            # Calculer le chemin absolu vers le répertoire de projet
+            # En mode développement, utiliser le même comportement qu'avant
             project_dir = os.path.abspath(
                 os.path.join(os.path.dirname(__file__), "../..")
             )
             data_dir = os.path.join(project_dir, "data")
 
-        # S'assurer que le dossier data existe
-        os.makedirs(data_dir, exist_ok=True)
+            # S'assurer que le dossier data existe
+            os.makedirs(data_dir, exist_ok=True)
 
-        # Chemin absolu vers le fichier de la base de données
-        self.db_file = os.path.join(data_dir, db_file)
+            # Chemin absolu vers le fichier de la base de données
+            self.db_file = os.path.join(data_dir, db_file)
+
+        # Afficher le chemin une seule fois
+        if not DBConnector._db_path_logged:
+            print(f"Utilisation de la base de données: {self.db_file}")
+            DBConnector._db_path_logged = True
 
         self.conn = None
         self.cursor = None
+
+    def __init__(self, db_file="nutrition_sportive.db"):
+        # L'initialisation réelle est faite dans __new__, cette méthode ne fait rien
+        pass
 
     def connect(self):
         """Établit une connexion à la base de données"""
@@ -62,8 +103,36 @@ class DBConnector:
             self.conn = None
             self.cursor = None
 
+    def get_db_version(self):
+        """Obtient la version actuelle de la base de données"""
+        self.connect()
+        try:
+            self.cursor.execute("PRAGMA user_version")
+            version = self.cursor.fetchone()[0]
+            return version
+        except Exception as e:
+            print(f"Erreur lors de la récupération de la version de la DB: {e}")
+            return 0
+        finally:
+            self.disconnect()
+
+    def set_db_version(self, version):
+        """Définit la version de la base de données"""
+        self.connect()
+        try:
+            self.cursor.execute(f"PRAGMA user_version = {version}")
+            self.conn.commit()
+        except Exception as e:
+            print(f"Erreur lors de la définition de la version de la DB: {e}")
+        finally:
+            self.disconnect()
+
     def init_db(self):
         """Initialise la structure de la base de données"""
+        # Vérifier la version actuelle et appliquer les migrations si nécessaire
+        current_version = self.get_db_version()
+        print(f"Version actuelle de la base de données: {current_version}")
+
         self.connect()
 
         # Activer les contraintes de clés étrangères (important pour les suppressions en cascade)
@@ -203,6 +272,11 @@ class DBConnector:
             )
             """
         )
+
+        # Si c'est une nouvelle base de données, définir la version à 1
+        if current_version == 0:
+            self.cursor.execute("PRAGMA user_version = 1")
+            print("Base de données initialisée à la version 1")
 
         self.conn.commit()
         self.disconnect()

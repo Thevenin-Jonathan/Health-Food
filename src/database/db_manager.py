@@ -22,7 +22,7 @@ class DatabaseManager(DBConnector):
         self.aliment_manager = AlimentsManager(self.db_file)
         self.repas_manager = RepasManager(self.db_file)
         self.repas_types_manager = RepasTypesManager(self.db_file)
-        self.export_import_manager = ExportImportManager(self.db_file, self)
+        self.export_import_manager = ExportImportManager(self.db_file)
         self.courses_manager = CoursesManager(self.db_file)
 
     def init_db(self):
