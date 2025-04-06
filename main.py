@@ -1,4 +1,5 @@
 import sys
+import os
 from PySide6.QtWidgets import QApplication, QMessageBox
 from src.ui.main_window import MainWindow
 from src.database.db_manager import DatabaseManager
@@ -8,6 +9,17 @@ from src.utils.ui_helpers import (
     apply_auto_select_to_widget,
 )
 from src.utils.theme_manager import ThemeManager
+
+
+def resource_path(relative_path):
+    """Obtient le chemin absolu vers une ressource, compatible dev/PyInstaller"""
+    try:
+        # PyInstaller crée un dossier temporaire et stocke le chemin dans _MEIPASS
+        base_path = getattr(sys, "_MEIPASS", os.path.abspath("."))
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 if __name__ == "__main__":
@@ -33,7 +45,8 @@ if __name__ == "__main__":
             # Mettre à jour le thème actuel
             theme_manager.current_theme_name = theme_name
             # Générer et appliquer le style
-            qss = theme_manager.generate_stylesheet("src/ui/style/style_template.qss")
+            qss_path = resource_path("src/ui/style/style_template.qss")
+            qss = theme_manager.generate_stylesheet(qss_path)
             app.setStyleSheet(qss)
 
         # Appliquer le thème initial en utilisant le thème stocké en base de données
