@@ -96,6 +96,26 @@ class DBConnector:
             print(f"Chemin de la base de données: {self.db_file}")
             raise
 
+    def force_close_all_connections(self):
+        """Force la fermeture de toutes les connexions à la base de données"""
+        try:
+            # Fermer la connexion actuelle
+            if self.conn:
+                self.conn.close()
+                self.conn = None
+                self.cursor = None
+
+            # Forcer le garbage collector à libérer les ressources
+            gc.collect()
+
+            # Réinitialiser l'instance du singleton
+            DBConnector.reset_instance()
+            print("Toutes les connexions à la base de données ont été fermées.")
+            return True
+        except sqlite3.Error as e:
+            print(f"Erreur lors de la fermeture des connexions: {e}")
+            return False
+
     def disconnect(self):
         """Ferme la connexion à la base de données"""
         if self.conn:
