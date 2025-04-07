@@ -1,0 +1,7 @@
+{
+  "version": "1.0.1",
+  "download_url": "https://github.com/VotreNom/Health-Food/releases/download/v1.0.1/HealthAndFood_1.0.1_Setup.exe",
+  "release_notes": "Améliorations :\n- Interface de sauvegarde améliorée\n- Correction des problèmes d'accès aux fichiers\n- Nouvelles fonctionnalités de mise à jour",
+  "min_version": "1.0.0",
+  "force_update": false
+}
