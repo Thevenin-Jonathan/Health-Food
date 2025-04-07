@@ -455,7 +455,8 @@ class RemplacerRepasDialog(QDialog):
 
     def on_quantity_changed(self, aliment_id, nouvelle_quantite):
         """Appelé quand la quantité d'un aliment est modifiée via un slider"""
-        # Trouver l'aliment et mettre à jour sa quantité directement
+        # Arrondir la nouvelle quantité à l'entier le plus proche
+        nouvelle_quantite = round(nouvelle_quantite)
 
         # Vérifier dans la recette courante
         if self.recette_courante:
@@ -464,6 +465,9 @@ class RemplacerRepasDialog(QDialog):
                     # Pour les aliments de la recette, calculer le facteur
                     facteur = nouvelle_quantite / aliment["quantite"]
                     self.facteurs_quantite[aliment_id] = facteur
+                    if aliment_id in self.sliders:
+                        slider = self.sliders[aliment_id]
+                        slider.update_quantity_display(nouvelle_quantite)
                     self._calculer_recette_modifiee()
                     return
 
@@ -475,6 +479,9 @@ class RemplacerRepasDialog(QDialog):
                 # Calculer également le facteur (pour la cohérence)
                 facteur = nouvelle_quantite / aliment["quantite_base"]
                 self.facteurs_quantite[aliment_id] = facteur
+                if aliment_id in self.sliders:
+                    slider = self.sliders[aliment_id]
+                    slider.update_quantity_display(nouvelle_quantite)
                 self._calculer_recette_modifiee()
                 return
 

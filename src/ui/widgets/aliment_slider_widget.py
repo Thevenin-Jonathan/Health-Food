@@ -115,3 +115,11 @@ class AlimentSliderWidget(QWidget):
     def get_quantity(self):
         """Retourne la quantité actuelle"""
         return float(self.spinbox.value())
+
+    def update_quantity_display(self, quantite):
+        """Met à jour l'affichage de la quantité avec une valeur arrondie"""
+        # Bloquer les signaux pour éviter les boucles
+        self.spinbox.blockSignals(True)
+        # Arrondir et mettre à jour la valeur
+        self.spinbox.setValue(int(round(quantite)))
+        self.spinbox.blockSignals(False)
