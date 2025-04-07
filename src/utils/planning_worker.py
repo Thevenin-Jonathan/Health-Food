@@ -1,5 +1,5 @@
-from PySide6.QtCore import QObject, Signal
 import traceback
+from PySide6.QtCore import QObject, Signal
 
 
 class PlanningOperationWorker(QObject):
@@ -72,7 +72,7 @@ class PlanningOperationWorker(QObject):
                     False, f"Opération inconnue: {self.operation_type}", None
                 )
 
-        except Exception as e:
+        except (KeyError, AttributeError, ValueError) as e:
             error_details = traceback.format_exc()
             print(f"Erreur dans PlanningOperationWorker: {error_details}")
             self.operation_completed.emit(
