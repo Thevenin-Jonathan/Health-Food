@@ -19,8 +19,8 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
-.env
-.venv
+*.env
+*.venv
 venv/
 ENV/
 .idea/
@@ -29,6 +29,6 @@ ENV/
 *.log
 src/ui/style/style_generated.qss
 .VSCodeCounter/
-.spec
-.bak
+*.spec
+*.bak
 Health&Food.spec
