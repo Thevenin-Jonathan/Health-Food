@@ -365,9 +365,7 @@ def main():
     # Récupérer les arguments
     args = parse_arguments()
 
-    # Nettoyer les dossiers si demandé
-    if args.clean:
-        clean_build_directories()
+    clean_build_directories()
 
     # Créer l'exécutable
     if build_executable(args):
