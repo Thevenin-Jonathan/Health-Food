@@ -5,12 +5,8 @@ import subprocess
 import argparse
 import datetime
 import traceback
+from src.utils.app_info import APP_VERSION, APP_NAME
 
-# Configuration de base du projet
-APP_NAME = "Health&Food"
-APP_VERSION = (
-    "1.0.0"  # À mettre à jour manuellement ou à extraire d'un fichier de configuration
-)
 MAIN_SCRIPT = "main.py"
 ICON_PATH = "src/ui/icons/app_icon.ico"  # Ajustez selon l'emplacement de votre icône
 OUTPUT_DIR = "dist"
@@ -307,6 +303,14 @@ SetupIconFile={args.icon}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+; Options pour la gestion des mises à jour
+AppMutex=HealthAndFoodAppMutex
+CloseApplications=yes
+CloseApplicationsFilter=*.exe,*.dll
+RestartApplications=no
+UninstallDisplayIcon={{app}}\\{{#MyAppExeName}}
+VersionInfoVersion={{#AppVersion}}
+VersionInfoProductVersion={{#AppVersion}}
 
 [Languages]
 Name: "french"; MessagesFile: "compiler:Languages\\French.isl"
@@ -322,7 +326,7 @@ Name: "{{autoprograms}}\\{{#MyAppName}}"; Filename: "{{app}}\\{{#MyAppExeName}}"
 Name: "{{autodesktop}}\\{{#MyAppName}}"; Filename: "{{app}}\\{{#MyAppExeName}}"; Tasks: desktopicon
 
 [Dirs]
-Name: "{{userappdata}}\{{#MyAppName}}\data"; Permissions: users-full
+Name: "{{userappdata}}\\{{#MyAppName}}\\data"; Permissions: users-full
 
 [Run]
 Filename: "{{app}}\\{{#MyAppExeName}}"; Description: "{{cm:LaunchProgram,{{#StringChange(MyAppName, '&', '&&')}}}}"; Flags: nowait postinstall skipifsilent
@@ -364,8 +368,6 @@ def main():
     """Fonction principale"""
     # Récupérer les arguments
     args = parse_arguments()
-
-    clean_build_directories()
 
     # Créer l'exécutable
     if build_executable(args):

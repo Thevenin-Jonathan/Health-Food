@@ -20,7 +20,8 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QApplication,
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
+from src.utils.app_info import APP_VERSION
 from src.utils.app_restart import restart_application
 from src.utils.theme_manager import ThemeManager
 from src.database.db_connector import DBConnector
@@ -91,7 +92,12 @@ class OptionsTab(TabBase):
     def __init__(self, db_manager):
         super().__init__(db_manager)
         self.theme_manager = ThemeManager(db_manager)
+        self.update_manager = None
         self.setup_ui()
+
+    def set_update_manager(self, update_manager):
+        """Définit le gestionnaire de mise à jour pour cet onglet"""
+        self.update_manager = update_manager
 
     def setup_ui(self):
         # Créer un layout principal sans marges pour le widget entier
@@ -220,6 +226,32 @@ class OptionsTab(TabBase):
         reset_db_layout.addLayout(db_buttons_layout)
 
         main_layout.addWidget(reset_db_group)
+
+        # Groupe pour les mises à jour
+        updates_group = QGroupBox("Mises à jour de l'application :")
+        updates_group.setProperty("class", "options-group")
+        updates_layout = QVBoxLayout(updates_group)
+
+        # Description
+        updates_description = QLabel(
+            "Vérifiez si une nouvelle version de l'application est disponible. "
+            "Les mises à jour peuvent inclure de nouvelles fonctionnalités et corrections de bugs."
+        )
+        updates_description.setWordWrap(True)
+        updates_description.setProperty("class", "update-description")
+        updates_layout.addWidget(updates_description)
+
+        version_label = QLabel(f"Version actuelle: <b>v{APP_VERSION}</b>")
+        updates_layout.addWidget(version_label)
+
+        # Bouton de vérification des mises à jour
+        self.check_updates_button = QPushButton("Vérifier les mises à jour")
+        self.check_updates_button.setObjectName("primaryButton")
+        self.check_updates_button.clicked.connect(self.check_for_updates)
+        updates_layout.addWidget(self.check_updates_button, 0, Qt.AlignCenter)
+
+        # Ajouter le groupe au layout principal
+        main_layout.addWidget(updates_group)
 
         # Ajouter un espace extensible en bas
         main_layout.addStretch()
@@ -504,3 +536,26 @@ class OptionsTab(TabBase):
 
     def refresh_data(self):
         """Rafraîchit les données affichées (pas nécessaire pour cet onglet)"""
+
+    def check_for_updates(self):
+        """Vérifie si des mises à jour sont disponibles"""
+        if self.update_manager:
+            self.update_manager.check_for_updates(silent=False)
+
+            # Désactiver temporairement le bouton
+            self.check_updates_button.setEnabled(False)
+            self.check_updates_button.setText("Vérification en cours...")
+
+            # Réactiver le bouton après un délai
+            QTimer.singleShot(3000, self._reset_update_button)
+        else:
+            QMessageBox.information(
+                self,
+                "Fonctionnalité non disponible",
+                "La vérification des mises à jour n'est pas disponible pour le moment.",
+            )
+
+    def _reset_update_button(self):
+        """Réinitialise l'état du bouton de mise à jour"""
+        self.check_updates_button.setEnabled(True)
+        self.check_updates_button.setText("Vérifier les mises à jour")
