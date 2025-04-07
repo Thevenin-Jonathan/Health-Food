@@ -5,16 +5,12 @@
 
 - un systeme de mise à jour
 Signatures numériques : Signez vos installateurs pour une sécurité accrue
-Mises à jour différentielles : Pour réduire la taille des téléchargements
-GitHub Actions : Automatisez tout le processus de publication
-Notifications : Ajoutez un système de notifications pour les utilisateurs qui ignorent les mises à jour
 
 Voici un processus complet pour publier une mise à jour :
 
 Mettez à jour le numéro de version dans app_info.py
 Compilez votre application avec PyInstaller
 Créez l'installateur avec Inno Setup
-Mettez à jour update_info.json avec les nouvelles informations
 Créez une nouvelle GitHub Release et téléversez l'installateur
-Actualisez le lien de téléchargement dans update_info.json pour pointer vers la nouvelle release
+Mettez à jour update_info.json avec les nouvelles informations
 Publiez les changements sur GitHub
