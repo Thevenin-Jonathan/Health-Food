@@ -2,6 +2,7 @@
 - réappliquer changement recette dans la semaine
 - vérifier les paths des checkmark en svg
 - ajouter un systeme de quantite (lié au poids)
+- ajouter un systeme de log
 
 - un systeme de mise à jour
 Signatures numériques : Signez vos installateurs pour une sécurité accrue
