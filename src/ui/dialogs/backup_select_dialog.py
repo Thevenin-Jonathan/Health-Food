@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from PySide6.QtCore import Qt, QTimer, QSize
-from PySide6.QtGui import QFont, QColor, QFontMetrics
+from PySide6.QtGui import QFont, QFontMetrics
 
 
 class BackupPreviewWidget(QGroupBox):
@@ -143,7 +143,8 @@ class BackupPreviewWidget(QGroupBox):
                 self.labels["date_de_sauvegarde"].setText(
                     date_obj.strftime("%d/%m/%Y %H:%M:%S")
                 )
-        except:
+        except (ValueError, IndexError) as e:
+            print(f"Erreur lors de l'extraction de la date: {e}")
             self.labels["date_de_sauvegarde"].setText("Date inconnue")
 
         # Montrer la barre de progression pendant l'analyse
@@ -184,12 +185,12 @@ class BackupPreviewWidget(QGroupBox):
                 )  # Afficher les tables pour le débogage
 
                 # Noms exacts des tables (basés sur le code de db_connector.py)
-                TABLE_UTILISATEUR = "utilisateur"
-                TABLE_ALIMENTS = "aliments"
-                TABLE_SEMAINES = "semaines"
-                TABLE_REPAS = "repas"
-                TABLE_REPAS_ALIMENTS = "repas_aliments"
-                TABLE_REPAS_TYPES = "repas_types"
+                TABLE_UTILISATEUR = "utilisateur"  # pylint: disable=invalid-name
+                TABLE_ALIMENTS = "aliments"  # pylint: disable=invalid-name
+                TABLE_SEMAINES = "semaines"  # pylint: disable=invalid-name
+                TABLE_REPAS = "repas"  # pylint: disable=invalid-name
+                TABLE_REPAS_ALIMENTS = "repas_aliments"  # pylint: disable=invalid-name
+                TABLE_REPAS_TYPES = "repas_types"  # pylint: disable=invalid-name
 
                 # Vérifier les statistiques utilisateur
                 if TABLE_UTILISATEUR in tables:
@@ -325,7 +326,7 @@ class BackupPreviewWidget(QGroupBox):
             self.progress_bar.setValue(100)
             self.progress_bar.setVisible(False)
 
-        except Exception as e:
+        except (OSError, shutil.Error) as e:
             print(f"Erreur lors de l'analyse: {e}")
             self.set_analyzing(False)
             self.status_label.setText(f"Erreur d'analyse: {str(e)}")
@@ -335,13 +336,13 @@ class BackupPreviewWidget(QGroupBox):
             if conn:
                 try:
                     conn.close()
-                except:
+                except OSError:
                     pass
 
             # Attendre un peu pour que les descripteurs de fichier soient libérés
             try:
-                QTimer.singleShot(100, lambda: self._cleanup_temp_files())
-            except:
+                QTimer.singleShot(100, self._cleanup_temp_files)
+            except (OSError, shutil.Error):
                 pass
 
     def _cleanup_temp_files(self):
@@ -351,14 +352,14 @@ class BackupPreviewWidget(QGroupBox):
                 for f in os.listdir(self.temp_dir):
                     try:
                         os.remove(os.path.join(self.temp_dir, f))
-                    except:
+                    except OSError:
                         pass
                 try:
                     os.rmdir(self.temp_dir)
-                except:
-                    pass
+                except OSError as e:
+                    print(f"Error while removing temporary directory: {e}")
                 self.temp_dir = None
-            except Exception as e:
+            except (OSError, shutil.Error) as e:
                 print(f"Erreur lors du nettoyage des fichiers temporaires: {e}")
 
 
@@ -591,7 +592,7 @@ class BackupSelectDialog(QDialog):
                 "La sauvegarde a été supprimée avec succès.",
             )
 
-        except Exception as e:
+        except (OSError, PermissionError) as e:
             QMessageBox.critical(
                 self,
                 "Erreur de suppression",

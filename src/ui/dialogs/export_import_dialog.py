@@ -174,7 +174,7 @@ class ExportImportDialog(QDialog):
                 "Exportation réussie",
                 f"Les données ont été exportées avec succès vers {filepath}",
             )
-        except Exception as e:
+        except (IOError, OSError) as e:
             QMessageBox.critical(
                 self,
                 "Erreur lors de l'exportation",
@@ -206,7 +206,7 @@ class ExportImportDialog(QDialog):
         try:
             with open(filepath, "r", encoding="utf-8") as f:
                 import_data = json.load(f)
-        except Exception as e:
+        except json.JSONDecodeError as e:
             QMessageBox.critical(
                 self,
                 "Erreur lors de l'importation",

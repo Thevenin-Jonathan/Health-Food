@@ -153,7 +153,7 @@ class AjouterAlimentDialog(QDialog):
                 self.ajouter_boutons_rapides(
                     magasins[:5], self.magasins_recents_layout, self.magasin_input
                 )
-        except Exception as e:
+        except (ValueError, AttributeError) as e:  # Replace with specific exceptions
             print(f"Erreur lors du chargement des suggestions: {e}")
             traceback.print_exc()
 
