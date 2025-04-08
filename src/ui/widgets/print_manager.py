@@ -1,7 +1,7 @@
 from PySide6.QtGui import QTextDocument, QPageLayout
 from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 from src.ui.dialogs.print_preview_dialog import PrintPreviewDialog
-from src.utils.config import JOURS_SEMAINE
+from src.utils import JOURS_SEMAINE
 
 
 class PrintManager:

@@ -1,3 +1,4 @@
+import traceback
 from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
@@ -39,7 +40,7 @@ class EditableAlimentLabel(QLabel):
         )  # Curseur main pour indiquer qu'on peut cliquer
         self.setToolTip("Double-cliquez pour modifier la quantité")
 
-    def mouseDoubleClickEvent(self, event):
+    def mouseDoubleClickEvent(self, _):  # pylint: disable=invalid-name
         """Gérer le double-clic pour éditer la quantité"""
         # Demander la nouvelle quantité avec QInputDialog
         new_quantity, ok = QInputDialog.getInt(
@@ -68,7 +69,7 @@ class EditableTitleLabel(QLabel):
             Qt.PointingHandCursor
         )  # Curseur main pour indiquer qu'on peut cliquer
 
-    def mouseDoubleClickEvent(self, event):
+    def mouseDoubleClickEvent(self, _):  # pylint: disable=invalid-name
         """Gérer le double-clic pour éditer le titre"""
         # Extraire le texte actuel (enlever les balises HTML)
         current_text = self.text().replace("<b>", "").replace("</b>", "")
@@ -101,9 +102,10 @@ class RepasWidget(QFrame):
         self.semaine_id = semaine_id
         self.jour = jour if jour else repas_data.get("jour", "")
         self.compact_mode = compact_mode
+        self.multi_spin = QSpinBox()
         self.is_expanded = False
         self.drag_start_position = None
-        self.drag_threshold = 10  # pixels - distance minimale pour démarrer un drag
+        self.drag_threshold = 10
         self.is_dragging = False
 
         # Configuration pour drag and drop
@@ -424,7 +426,7 @@ class RepasWidget(QFrame):
 
         # Ajouter une note sur l'incohérence dans le tooltip de l'aliment si nécessaire
         if ecart_pct > 5:
-            tooltip_text += f"<br><br><span style='color:orange;'>⚠️ Incohérence calorique détectée</span>"
+            tooltip_text += "<br><br><span style='color:orange;'>⚠️ Incohérence calorique détectée</span>"
 
         alim_label.setToolTip(tooltip_text)
 
@@ -556,12 +558,11 @@ class RepasWidget(QFrame):
         group.addButton(option_multi)
         option_multi_container.addWidget(option_multi)
 
-        # Spinbox pour le facteur
-        self.multi_spin = QSpinBox()
         self.multi_spin.setProperty("class", "spin-box-vertical")
         self.multi_spin.setMinimum(2)
         self.multi_spin.setMaximum(10)
         self.multi_spin.setValue(max(2, multiplicateur_actuel))
+        option_multi_container.addWidget(self.multi_spin)
         option_multi_container.addWidget(self.multi_spin)
 
         layout.addLayout(option_multi_container)
@@ -852,19 +853,19 @@ class RepasWidget(QFrame):
             # Notifier que les repas ont été modifiés
             EVENT_BUS.repas_modifies.emit(self.semaine_id)
 
-    def enterEvent(self, event):
+    def enterEvent(self, event):  # pylint: disable=invalid-name
         """Se déclenche quand la souris entre dans le widget"""
         # Changer le curseur en main ouverte pour indiquer qu'on peut faire un drag
         self.setCursor(Qt.OpenHandCursor)
         super().enterEvent(event)
 
-    def leaveEvent(self, event):
+    def leaveEvent(self, event):  # pylint: disable=invalid-name
         """Se déclenche quand la souris quitte le widget"""
         # Restaurer le curseur par défaut
         self.setCursor(Qt.ArrowCursor)
         super().leaveEvent(event)
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event):  # pylint: disable=invalid-name
         """Capture la position de départ pour potentiellement démarrer un drag"""
         if event.button() == Qt.LeftButton:
             # Enregistrer la position de départ pour la comparer plus tard
@@ -874,9 +875,9 @@ class RepasWidget(QFrame):
 
         super().mousePressEvent(event)
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event):  # pylint: disable=invalid-name
         """Démarre le drag seulement si la souris a suffisamment bougé"""
-        if not (event.buttons() & Qt.LeftButton):
+        if not event.buttons() & Qt.LeftButton:
             return
 
         # Si on n'a pas enregistré de position de départ ou si on est déjà en train de faire un drag, on ne fait rien
@@ -917,7 +918,7 @@ class RepasWidget(QFrame):
         # Exécuter le drag
         drag.exec(Qt.MoveAction)
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event):  # pylint: disable=invalid-name
         """Réinitialise les variables de suivi du drag"""
         if event.button() == Qt.LeftButton:
             self.drag_start_position = None
@@ -1008,8 +1009,10 @@ class RepasWidget(QFrame):
                     # Mettre à jour les totaux du jour parent
                     self.notify_parent_day_widget()
 
-        except Exception as e:
+        except (
+            KeyError,
+            ValueError,
+            AttributeError,
+        ) as e:  # Replace with specific exceptions
             print(f"Erreur lors de la correction des valeurs nutritionnelles: {e}")
-            import traceback
-
             traceback.print_exc()  # Affiche la stack trace complète

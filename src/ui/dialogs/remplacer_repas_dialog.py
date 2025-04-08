@@ -21,8 +21,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
-from src.ui.widgets.aliment_slider_widget import AlimentSliderWidget
-from src.ui.widgets.nutrition_comparison import NutritionComparison
+from src.ui.widgets import AlimentSliderWidget
+from src.ui.widgets import NutritionComparison
 
 
 class AjouterIngredientDialog(QDialog):

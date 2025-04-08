@@ -5,8 +5,8 @@ from PySide6.QtWidgets import (
     QGridLayout,
 )
 
-from src.utils.events import EVENT_BUS
-from src.utils.config import JOURS_SEMAINE
+from src.utils import EVENT_BUS
+from src.utils import JOURS_SEMAINE
 from .jour_widget import JourWidget
 from .print_manager import PrintManager
 
@@ -169,7 +169,7 @@ class SemaineWidget(QWidget):
                 "lipides": max(1, user_data.get("objectif_lipides", 70)),
                 "cout": 70,
             }
-        except Exception as e:
+        except (KeyError, AttributeError, TypeError) as e:
             print(f"Erreur lors du chargement des objectifs utilisateur: {e}")
             # Retourner des valeurs par défaut en cas d'erreur
             return {

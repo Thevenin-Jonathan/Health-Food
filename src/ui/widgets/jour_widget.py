@@ -8,14 +8,16 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QApplication,
+    QMessageBox,
 )
-from PySide6.QtCore import Qt, QPoint, QThread
 from PySide6.QtGui import QPainter, QColor, QPen
-from src.ui.widgets.repas_widget import RepasWidget
-from src.ui.widgets.totaux_macros_widget import TotauxMacrosWidget
-from src.ui.dialogs.repas_dialog import RepasDialog
-from src.utils.events import EVENT_BUS
+from PySide6.QtCore import Qt, QPoint, QThread
+
+from src.utils import EVENT_BUS
 from src.utils.planning_worker import PlanningOperationWorker
+from src.ui.widgets import RepasWidget
+from src.ui.widgets import TotauxMacrosWidget
+from src.ui.dialogs.repas_dialog import RepasDialog
 
 
 class JourWidget(QWidget):
@@ -28,6 +30,10 @@ class JourWidget(QWidget):
         self.repas_list = repas_list
         self.objectifs_utilisateur = objectifs_utilisateur
         self.semaine_id = semaine_id
+        self.thread = None
+        self.worker = None
+        self.loading_overlay = None
+        self.loading_label = None
 
         # Variables pour le drag & drop
         self.drop_indicator_position = None
@@ -280,12 +286,12 @@ class JourWidget(QWidget):
             self.objectifs_utilisateur,
         )
 
-    def dragEnterEvent(self, event):
+    def dragEnterEvent(self, event):  # pylint: disable=invalid-name
         """Gère l'entrée d'un drag dans la zone du jour"""
         if event.mimeData().hasFormat("application/x-repas"):
             event.acceptProposedAction()
 
-    def dragMoveEvent(self, event):
+    def dragMoveEvent(self, event):  # pylint: disable=invalid-name
         """Gère le déplacement d'un drag sur la zone du jour"""
         if event.mimeData().hasFormat("application/x-repas"):
             # Déterminer l'emplacement où le repas sera déposé
@@ -360,7 +366,7 @@ class JourWidget(QWidget):
             self.repas_container.set_drop_indicator(None)
             event.ignore()
 
-    def dragLeaveEvent(self, event):
+    def dragLeaveEvent(self, event):  # pylint: disable=invalid-name
         """Gère la sortie d'un drag de la zone du jour"""
         self.drop_indicator_position = None
         self.drop_index = -1
@@ -369,7 +375,7 @@ class JourWidget(QWidget):
         self.update()
         super().dragLeaveEvent(event)
 
-    def dragEndEvent(self, event):
+    def dragEndEvent(self, event):  # pylint: disable=invalid-name
         """Gère la fin d'une opération de drag (qu'elle réussisse ou non)"""
         # Réinitialiser l'indicateur de drop
         self.drop_indicator_position = None
@@ -380,7 +386,7 @@ class JourWidget(QWidget):
 
         super().dragEndEvent(event)
 
-    def dropEvent(self, event):
+    def dropEvent(self, event):  # pylint: disable=invalid-name
         """Gère le drop d'un repas dans le jour avec détection d'annulation"""
         if event.mimeData().hasFormat("application/x-repas"):
             # Récupérer les données du repas
@@ -435,7 +441,7 @@ class JourWidget(QWidget):
 
                             event.acceptProposedAction()
                             return
-                except Exception as e:
+                except ValueError as e:  # Replace with the specific exception type
                     print(
                         f"Erreur lors de la vérification de la position d'origine: {e}"
                     )
@@ -490,7 +496,7 @@ class JourWidget(QWidget):
             self.show_loading_overlay("Déplacement du repas en cours...")
 
             # Réinitialiser l'indicateur de drop
-            self.drop_index = -1
+            self.thread = QThread()  # Create a new thread instance
             self.repas_container.set_drop_indicator(None)
 
             # Créer et configurer le thread et le worker
@@ -531,8 +537,8 @@ class JourWidget(QWidget):
             """
             )
             overlay_layout = QVBoxLayout(self.loading_overlay)
-
             self.loading_label = QLabel(message)
+            self.loading_label.setText(message)
             self.loading_label.setStyleSheet(
                 """
                 color: white;
@@ -578,12 +584,9 @@ class JourWidget(QWidget):
             if parent and hasattr(parent, "load_data"):
                 parent.load_data()
         else:
-            # En cas d'erreur, afficher un message
-            from PySide6.QtWidgets import QMessageBox
-
             QMessageBox.warning(self, "Erreur", message)
 
-    def paintEvent(self, event):
+    def paintEvent(self, event):  # pylint: disable=invalid-name
         """Surcharge pour dessiner l'indicateur de drop"""
         super().paintEvent(event)
 
@@ -607,7 +610,7 @@ class RepasContainer(QWidget):
         self.drop_indicator_position = position
         self.update()
 
-    def paintEvent(self, event):
+    def paintEvent(self, event):  # pylint: disable=invalid-name
         """Dessine l'indicateur de drop si nécessaire"""
         super().paintEvent(event)
 
@@ -625,7 +628,7 @@ class RepasContainer(QWidget):
             y = self.drop_indicator_position.y()
             painter.drawLine(x1, y, x2, y)
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event):  # pylint: disable=invalid-name
         """Gère le redimensionnement pour s'assurer que le contenu s'adapte"""
         super().resizeEvent(event)
         # S'assurer que les enfants sont bien informés du changement de taille
@@ -635,7 +638,7 @@ class RepasContainer(QWidget):
                     self.width() - 10
                 )  # Marge pour éviter le défilement
 
-    def updateGeometry(self):
+    def updateGeometry(self):  # pylint: disable=invalid-name
         """Force la mise à jour de la géométrie et de la taille"""
         super().updateGeometry()
 
