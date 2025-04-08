@@ -443,16 +443,16 @@ QScrollBar:vertical, QScrollBar:horizontal {
 }
 
 QScrollBar:vertical {
-    width: 8px;
+    width: 5px;
 }
 
 QScrollBar:horizontal {
-    height: 8px;
+    height: 5px;
 }
 
 QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
     background: alpha($PRIMARY_COLOR, 0.7);  /* Semi-transparent */
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
 QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover {

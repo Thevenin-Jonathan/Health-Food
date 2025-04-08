@@ -17,7 +17,14 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QButtonGroup,
 )
-from PySide6.QtCore import Qt, QMimeData, QByteArray, Signal
+from PySide6.QtCore import (
+    Qt,
+    QMimeData,
+    QByteArray,
+    Signal,
+    QPropertyAnimation,
+    QEasingCurve,
+)
 from PySide6.QtGui import QDrag, QPainter, QPixmap
 from src.ui.dialogs.aliment_repas_dialog import AlimentRepasDialog
 from src.ui.dialogs.remplacer_repas_dialog import RemplacerRepasDialog
@@ -107,8 +114,7 @@ class RepasWidget(QFrame):
         self.drag_start_position = None
         self.drag_threshold = 10
         self.is_dragging = False
-
-        # Configuration pour drag and drop
+        self.animation = None
         self.setMouseTracking(True)
 
         # Style visuel
@@ -310,26 +316,81 @@ class RepasWidget(QFrame):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
     def toggle_details(self):
-        """Affiche ou masque les détails du repas"""
-        self.is_expanded = not self.is_expanded
-        self.details_widget.setVisible(self.is_expanded)
+        """Affiche ou masque les détails du repas avec une animation"""
+        is_visible = self.details_widget.isVisible()
 
-        # Ajuster la position du bouton pour qu'il ressemble à un onglet
-        if self.is_expanded:
+        # Créer l'animation pour une transition fluide
+        # Vérifier si l'animation existe et est en cours d'exécution
+        if (
+            self.animation is not None
+            and self.animation.state() == QPropertyAnimation.Running
+        ):
+            self.animation.stop()
+
+        # L'animation doit utiliser maximumHeight pour éviter les problèmes de layout
+        self.animation = QPropertyAnimation(self.details_widget, b"maximumHeight")
+        self.animation.setDuration(150)  # 150ms - rapide mais visible
+        self.animation.setEasingCurve(QEasingCurve.OutQuad)
+
+        # Obtenir la hauteur cible avant de commencer l'animation
+        target_height = self.details_widget.sizeHint().height()
+
+        if is_visible:
+            # Animation de fermeture - IMPORTANT: maintenir la visibilité pendant l'animation
+            self.animation.setStartValue(self.details_widget.height())
+            self.animation.setEndValue(0)
+
+            # Uniquement masquer après la fin de l'animation
+            self.animation.finished.connect(self._finish_closing_animation)
+
+            # Ajuster le style du bouton pour qu'il ressemble à un onglet
+            self.expand_btn.setStyleSheet("")  # Revenir au style par défaut
+        else:
+            # Animation d'ouverture - définir la hauteur maximale à 0 avant de rendre visible
+            self.details_widget.setMaximumHeight(0)
+            self.details_widget.setVisible(True)
+
+            # S'assurer que le widget a une hauteur préférée correcte
+            self.details_widget.adjustSize()
+
+            # Commencer l'animation
+            self.animation.setStartValue(0)
+            self.animation.setEndValue(target_height)
+
+            # Ajuster le style du bouton
             self.expand_btn.setStyleSheet(
                 """
                 border-top-left-radius: 0px;
                 border-top-right-radius: 0px;
                 border-bottom-left-radius: 12px;
                 border-bottom-right-radius: 12px;
-            """
+                """
             )
-        else:
-            self.expand_btn.setStyleSheet("")  # Revenir au style par défaut
 
-        # Informer le container parent qu'il doit se réajuster
+            # Mettre à jour l'état d'expansion
+            self.is_expanded = True
+
+        # Connecter une fonction pour ajuster le layout pendant l'animation
+        self.animation.valueChanged.connect(self._on_animation_update)
+        self.animation.start()
+
+    def _finish_closing_animation(self):
+        """Finalise l'animation de fermeture des détails"""
+        self.details_widget.setVisible(False)
+        self.is_expanded = False
+
+        # Informer le parent qu'il doit mettre à jour sa géométrie
         if self.parent():
             self.parent().updateGeometry()
+
+    def _on_animation_update(self, _):
+        """Appelé pendant l'animation pour s'assurer que le layout reste stable"""
+        # Forcer la mise à jour du layout pour éviter les sauts
+        self.repas_layout.activate()
+
+        # Mettre à jour le conteneur parent
+        if self.parent():
+            self.parent().update()
 
     def update_repas_title(self, new_title):
         """Met à jour le titre du repas dans la base de données"""
