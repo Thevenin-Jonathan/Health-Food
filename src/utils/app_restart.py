@@ -16,6 +16,6 @@ def restart_application():
             subprocess.Popen(args)
             # Quitter l'application actuelle
             sys.exit()
-    except Exception as e:
+    except (OSError, subprocess.SubprocessError) as e:
         print(f"Erreur lors du redémarrage de l'application: {e}")
         sys.exit(1)
