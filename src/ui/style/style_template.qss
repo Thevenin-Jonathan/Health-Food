@@ -1245,3 +1245,121 @@ BackupSelectDialog QProgressBar::chunk {
     width: 1px;
     margin: 0px;
 }
+
+/* Styles pour le résumé des macros dans JourWidget */
+QLabel.calories-summary {
+    font-size: 13px;
+    font-weight: bold;
+    color: #333;
+    margin-right: 10px;
+}
+
+QLabel.macros-summary {
+    font-size: 12px;
+    color: #666;
+}
+
+QPushButton#toggleMacrosButton {
+    background-color: $PRIMARY_COLOR;
+    border: 1px solid #d0d0d0;
+    border-radius: $BORDER_RADIUS;
+    color: $LIGHT_BG_COLOR;
+    font-size: 9px;
+    font-weight: bold;
+    padding: 0px;
+    min-width: 24px;
+    max-width: 24px;
+    min-height: 24px;
+    max-height: 24px;
+}
+
+QPushButton#toggleMacrosButton:hover {
+    background-color: $PRIMARY_LIGHT;
+}
+
+/* Styles des badges de macros dans JourWidget */
+QLabel.macro-badge {
+    padding: 2px;
+    border-radius: $BORDER_RADIUS;
+    font-weight: bold;
+    font-size: 11px;
+    text-align: center;
+    margin-right: 2px;
+}
+
+/* Styles spécifiques à chaque type de macro */
+QLabel.macro-badge[type="calories"] {
+    background-color: #f9f9f9;
+    color: #e74c3c;
+    border: 1px solid #f0f0f0;
+}
+
+QLabel.macro-badge[type="proteines"] {
+    background-color: #f9f9f9;
+    color: #3498db;
+    border: 1px solid #f0f0f0;
+}
+
+QLabel.macro-badge[type="glucides"] {
+    background-color: #f9f9f9;
+    color: #e67e22;
+    border: 1px solid #f0f0f0;
+}
+
+QLabel.macro-badge[type="lipides"] {
+    background-color: #f9f9f9;
+    color: #8e44ad;
+    border: 1px solid #f0f0f0;
+}
+
+/* Status des badges basé sur le pourcentage des objectifs */
+QLabel.macro-badge[status="over"] {
+    background-color: #ffebee;
+    border: 1px solid #ffcdd2;
+    color: #c62828;
+}
+
+QLabel.macro-badge[status="good"] {
+    background-color: #e8f5e9;
+    border: 1px solid #c8e6c9;
+    color: #2e7d32;
+}
+
+QLabel.macro-badge[status="medium"] {
+    background-color: #fff8e1;
+    border: 1px solid #ffecb3;
+    color: #f57f17;
+}
+
+QLabel.macro-badge[status="low"] {
+    background-color: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    color: #757575;
+}
+
+/* Barres de progression avec statuts cohérents avec les badges */
+QProgressBar {
+    border: 1px solid #E0E0E0;
+    border-radius: 4px;
+    text-align: center;
+}
+
+/* Rouge - quand la valeur est trop élevée */
+QProgressBar[status="over"]::chunk {
+    background-color: #c62828;  /* Rouge foncé - même que les badges */
+}
+
+/* Vert - quand la valeur est idéale */
+QProgressBar[status="good"]::chunk {
+    background-color: #2e7d32;  /* Vert foncé - même que les badges */
+}
+
+/* Orange - quand la valeur est moyenne */
+QProgressBar[status="medium"]::chunk {
+    background-color: #f57f17;  /* Orange foncé - même que les badges */
+}
+
+/* Gris - quand la valeur est trop basse */
+QProgressBar[status="low"]::chunk {
+    background-color: #757575;  /* Gris foncé - même que les badges */
+}

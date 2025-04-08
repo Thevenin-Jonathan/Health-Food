@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 from PySide6.QtGui import QPainter, QColor, QPen
-from PySide6.QtCore import Qt, QPoint, QThread
+from PySide6.QtCore import Qt, QPoint, QThread, QPropertyAnimation, QEasingCurve
 
 from src.utils import EVENT_BUS
 from src.utils.planning_worker import PlanningOperationWorker
@@ -86,7 +86,93 @@ class JourWidget(QWidget):
                 if aliment.get("prix_kg"):
                     total_cout += (aliment["prix_kg"] / 1000) * aliment["quantite"]
 
-        # Ajouter le widget des totaux AU DÉBUT (avant les repas)
+        # Créer un conteneur pour les totaux du jour avec un en-tête dépliable
+        macros_container = QWidget()
+        macros_layout = QVBoxLayout(macros_container)
+        macros_layout.setContentsMargins(0, 5, 0, 0)
+        macros_layout.setSpacing(2)
+
+        # En-tête des macros avec résumé compact et bouton pour déplier
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(5)
+
+        # Calculer les pourcentages pour déterminer les couleurs des badges
+        percent_cal = (
+            total_cal / self.objectifs_utilisateur["calories"]
+            if self.objectifs_utilisateur["calories"] > 0
+            else 0
+        )
+        percent_prot = (
+            total_prot / self.objectifs_utilisateur["proteines"]
+            if self.objectifs_utilisateur["proteines"] > 0
+            else 0
+        )
+        percent_gluc = (
+            total_gluc / self.objectifs_utilisateur["glucides"]
+            if self.objectifs_utilisateur["glucides"] > 0
+            else 0
+        )
+        percent_lip = (
+            total_lip / self.objectifs_utilisateur["lipides"]
+            if self.objectifs_utilisateur["lipides"] > 0
+            else 0
+        )
+
+        # Widget conteneur pour tous les badges
+        badges_container = QWidget()
+        badges_layout = QHBoxLayout(badges_container)
+        badges_layout.setContentsMargins(0, 0, 0, 0)
+        badges_layout.setSpacing(4)
+
+        # Badge des calories
+        cal_badge = QLabel(f"{total_cal:.0f} kcal")
+        cal_badge.setProperty("class", "macro-badge")
+        cal_badge.setProperty("type", "calories")
+        cal_badge.setProperty("status", self._get_status_class(percent_cal))
+        badges_layout.addWidget(cal_badge)
+
+        # Badge des protéines
+        prot_badge = QLabel(f"P: {total_prot:.0f}g")
+        prot_badge.setProperty("class", "macro-badge")
+        prot_badge.setProperty("type", "proteines")
+        prot_badge.setProperty("status", self._get_status_class(percent_prot))
+        badges_layout.addWidget(prot_badge)
+
+        # Badge des glucides
+        gluc_badge = QLabel(f"G: {total_gluc:.0f}g")
+        gluc_badge.setProperty("class", "macro-badge")
+        gluc_badge.setProperty("type", "glucides")
+        gluc_badge.setProperty("status", self._get_status_class(percent_gluc))
+        badges_layout.addWidget(gluc_badge)
+
+        # Badge des lipides
+        lip_badge = QLabel(f"L: {total_lip:.0f}g")
+        lip_badge.setProperty("class", "macro-badge")
+        lip_badge.setProperty("type", "lipides")
+        lip_badge.setProperty("status", self._get_status_class(percent_lip))
+        badges_layout.addWidget(lip_badge)
+
+        # Ajouter le conteneur de badges au layout principal
+        header_layout.addWidget(badges_container, 1)  # 1 = stretch factor
+
+        # Bouton pour déplier/replier (à droite, sans stretch)
+        self.toggle_macros_btn = QPushButton("▼")
+        self.toggle_macros_btn.setObjectName("toggleMacrosButton")
+        self.toggle_macros_btn.setFixedSize(24, 24)
+        self.toggle_macros_btn.setToolTip("Afficher/masquer les détails nutritionnels")
+        self.toggle_macros_btn.clicked.connect(self.toggle_macros_details)
+        header_layout.addWidget(self.toggle_macros_btn, 0)  # 0 = pas de stretch
+
+        macros_layout.addLayout(header_layout)
+
+        # Garder une référence pour les mises à jour ultérieures
+        self.cal_badge = cal_badge
+        self.prot_badge = prot_badge
+        self.gluc_badge = gluc_badge
+        self.lip_badge = lip_badge
+
+        # Créer le widget des totaux (maintenant caché par défaut)
         self.totaux_widget = TotauxMacrosWidget(
             total_cal,
             total_prot,
@@ -96,7 +182,16 @@ class JourWidget(QWidget):
             self.objectifs_utilisateur,
             compact=True,
         )
-        self.layout.addWidget(self.totaux_widget)
+        self.totaux_widget.setVisible(False)  # Caché par défaut
+        macros_layout.addWidget(self.totaux_widget)
+
+        # Ajouter le conteneur au layout principal
+        self.layout.addWidget(macros_container)
+
+        # Garder une référence pour les mises à jour ultérieures
+        self.calories_label = cal_badge
+        self.macros_resume = prot_badge
+        self.macros_container = macros_container
 
         # Séparateur visuel entre les totaux et les repas
         self.separator = QFrame()
@@ -145,6 +240,73 @@ class JourWidget(QWidget):
         self.layout.addWidget(
             self.scroll_area, 1
         )  # Le 1 donne un stretch pour que le scroll area prenne l'espace disponible
+
+    def _get_status_class(self, percentage):
+        """Détermine la classe CSS à utiliser en fonction du pourcentage de l'objectif atteint"""
+        if percentage > 1.1:  # Plus de 110%
+            return "over"
+        elif 0.9 <= percentage <= 1.1:  # Entre 90% et 110%
+            return "good"
+        elif 0.5 <= percentage < 0.9:  # Entre 50% et 90%
+            return "medium"
+        else:  # Moins de 50%
+            return "low"
+
+    def toggle_macros_details(self):
+        """Affiche ou masque les détails des macros avec une animation"""
+        is_visible = self.totaux_widget.isVisible()
+
+        # Créer l'animation pour une transition fluide
+        if (
+            hasattr(self, "animation")
+            and self.animation.state() == QPropertyAnimation.Running
+        ):
+            self.animation.stop()
+
+        # L'animation doit utiliser maximumHeight pour éviter les problèmes de layout
+        self.animation = QPropertyAnimation(self.totaux_widget, b"maximumHeight")
+        self.animation.setDuration(150)  # 150ms - rapide mais visible
+        self.animation.setEasingCurve(QEasingCurve.OutQuad)
+
+        # Obtenir la hauteur cible avant de commencer l'animation
+        target_height = self.totaux_widget.sizeHint().height()
+
+        if is_visible:
+            # Animation de fermeture - IMPORTANT: maintenir la visibilité pendant l'animation
+            self.animation.setStartValue(self.totaux_widget.height())
+            self.animation.setEndValue(0)
+
+            # Uniquement masquer après la fin de l'animation
+            self.animation.finished.connect(
+                lambda: self.totaux_widget.setVisible(False)
+            )
+            self.toggle_macros_btn.setText("▼")
+        else:
+            # Animation d'ouverture - définir la hauteur maximale à 0 avant de rendre visible
+            self.totaux_widget.setMaximumHeight(0)
+            self.totaux_widget.setVisible(True)
+
+            # S'assurer que le widget a une hauteur préférée correcte
+            self.totaux_widget.adjustSize()
+
+            # Commencer l'animation
+            self.animation.setStartValue(0)
+            self.animation.setEndValue(target_height)
+            self.toggle_macros_btn.setText("▲")
+
+        # Connecter une fonction pour ajuster le layout pendant l'animation
+        self.animation.valueChanged.connect(self._on_animation_update)
+        self.animation.start()
+
+    def _on_animation_update(self, _):
+        """Appelé pendant l'animation pour s'assurer que le layout reste stable"""
+        # Forcer la mise à jour du layout pour éviter les sauts
+        self.macros_container.layout().activate()
+        self.layout.activate()
+
+        # Mettre à jour le conteneur parent
+        if self.parent():
+            self.parent().update()
 
     def add_meal(self):
         """Ajoute un repas pour ce jour"""
@@ -224,6 +386,47 @@ class JourWidget(QWidget):
                 if aliment.get("prix_kg"):
                     total_cout += (aliment["prix_kg"] / 1000) * aliment["quantite"]
 
+        # Calculer les pourcentages
+        percent_cal = (
+            total_cal / self.objectifs_utilisateur["calories"]
+            if self.objectifs_utilisateur["calories"] > 0
+            else 0
+        )
+        percent_prot = (
+            total_prot / self.objectifs_utilisateur["proteines"]
+            if self.objectifs_utilisateur["proteines"] > 0
+            else 0
+        )
+        percent_gluc = (
+            total_gluc / self.objectifs_utilisateur["glucides"]
+            if self.objectifs_utilisateur["glucides"] > 0
+            else 0
+        )
+        percent_lip = (
+            total_lip / self.objectifs_utilisateur["lipides"]
+            if self.objectifs_utilisateur["lipides"] > 0
+            else 0
+        )
+
+        # Mettre à jour les badges
+        self.cal_badge.setText(f"{total_cal:.0f} kcal")
+        self.cal_badge.setProperty("status", self._get_status_class(percent_cal))
+
+        self.prot_badge.setText(f"P: {total_prot:.0f}g")
+        self.prot_badge.setProperty("status", self._get_status_class(percent_prot))
+
+        self.gluc_badge.setText(f"G: {total_gluc:.0f}g")
+        self.gluc_badge.setProperty("status", self._get_status_class(percent_gluc))
+
+        self.lip_badge.setText(f"L: {total_lip:.0f}g")
+        self.lip_badge.setProperty("status", self._get_status_class(percent_lip))
+
+        # Forcer la mise à jour du style
+        self.cal_badge.style().polish(self.cal_badge)
+        self.prot_badge.style().polish(self.prot_badge)
+        self.gluc_badge.style().polish(self.gluc_badge)
+        self.lip_badge.style().polish(self.lip_badge)
+
         # Mettre à jour le widget des totaux
         self.totaux_widget.update_values(
             total_cal,
@@ -276,7 +479,48 @@ class JourWidget(QWidget):
                                 "quantite"
                             ]
 
-        # Mettre à jour le widget des totaux
+        # Calculer les pourcentages pour déterminer les couleurs
+        percent_cal = (
+            total_calories / self.objectifs_utilisateur["calories"]
+            if self.objectifs_utilisateur["calories"] > 0
+            else 0
+        )
+        percent_prot = (
+            total_proteines / self.objectifs_utilisateur["proteines"]
+            if self.objectifs_utilisateur["proteines"] > 0
+            else 0
+        )
+        percent_gluc = (
+            total_glucides / self.objectifs_utilisateur["glucides"]
+            if self.objectifs_utilisateur["glucides"] > 0
+            else 0
+        )
+        percent_lip = (
+            total_lipides / self.objectifs_utilisateur["lipides"]
+            if self.objectifs_utilisateur["lipides"] > 0
+            else 0
+        )
+
+        # Mettre à jour les badges
+        self.cal_badge.setText(f"{total_calories:.0f} kcal")
+        self.cal_badge.setProperty("status", self._get_status_class(percent_cal))
+
+        self.prot_badge.setText(f"P: {total_proteines:.0f}g")
+        self.prot_badge.setProperty("status", self._get_status_class(percent_prot))
+
+        self.gluc_badge.setText(f"G: {total_glucides:.0f}g")
+        self.gluc_badge.setProperty("status", self._get_status_class(percent_gluc))
+
+        self.lip_badge.setText(f"L: {total_lipides:.0f}g")
+        self.lip_badge.setProperty("status", self._get_status_class(percent_lip))
+
+        # Forcer la mise à jour du style
+        self.cal_badge.style().polish(self.cal_badge)
+        self.prot_badge.style().polish(self.prot_badge)
+        self.gluc_badge.style().polish(self.gluc_badge)
+        self.lip_badge.style().polish(self.lip_badge)
+
+        # Mettre à jour le widget des totaux détaillés
         self.totaux_widget.update_values(
             total_calories,
             total_proteines,

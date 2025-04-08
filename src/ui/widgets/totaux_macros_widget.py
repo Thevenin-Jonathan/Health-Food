@@ -192,48 +192,22 @@ class TotauxMacrosWidget(QFrame):
         if percentage == float("inf") or percentage != percentage:  # inf ou NaN
             percentage = 0  # Valeur par défaut sécuritaire
 
-        # Cadre rouge - plus de 110%
+        # Définir le statut basé sur le pourcentage
         if percentage > 1.1:
-            progress_bar.setStyleSheet(
-                """
-                QProgressBar {
-                    border: 1px solid #E0E0E0;
-                    border-radius: 4px;
-                    text-align: center;
-                }
-                QProgressBar::chunk {
-                    background-color: #FF5252;  /* Rouge */
-                }
-                """
-            )
-        # Cadre jaune - entre 90% et 110%
+            status = "over"  # Rouge - trop élevé
         elif 0.9 <= percentage <= 1.1:
-            progress_bar.setStyleSheet(
-                """
-                QProgressBar {
-                    border: 1px solid #E0E0E0;
-                    border-radius: 4px;
-                    text-align: center;
-                }
-                QProgressBar::chunk {
-                    background-color: #4CAF50;  /* Vert */
-                }
-                """
-            )
-        # Cadre orange - en dessous de 90%
+            status = "good"  # Vert - idéal
+        elif 0.5 <= percentage < 0.9:
+            status = "medium"  # Orange - moyen
         else:
-            progress_bar.setStyleSheet(
-                """
-                QProgressBar {
-                    border: 1px solid #E0E0E0;
-                    border-radius: 4px;
-                    text-align: center;
-                }
-                QProgressBar::chunk {
-                    background-color: #FFC107;  /* Orange */
-                }
-                """
-            )
+            status = "low"  # Gris - trop bas
+
+        # Appliquer le statut comme propriété QSS
+        progress_bar.setProperty("status", status)
+
+        # Forcer la mise à jour du style
+        progress_bar.style().unpolish(progress_bar)
+        progress_bar.style().polish(progress_bar)
 
     def update_values(
         self, total_cal, total_prot, total_gluc, total_lip, total_cout, objectifs
