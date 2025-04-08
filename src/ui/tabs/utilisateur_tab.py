@@ -15,10 +15,9 @@ from PySide6.QtWidgets import (
     QWidget,
     QStackedWidget,
     QAbstractSpinBox,
-    QFrame,
 )
 from PySide6.QtCore import Qt, QTimer
-from src.utils.events import EVENT_BUS
+from src.utils import EVENT_BUS
 from .tab_base import TabBase
 
 

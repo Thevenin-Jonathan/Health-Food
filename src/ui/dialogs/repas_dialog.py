@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QLabel,
 )
 
-from src.utils.config import JOURS_SEMAINE
+from src.utils import JOURS_SEMAINE
 
 
 class RepasDialog(QDialog):

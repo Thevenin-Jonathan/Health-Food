@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
 
 from src.utils import EVENT_BUS
 from src.utils import JOURS_SEMAINE
-from .jour_widget import JourWidget
+from src.ui.widgets.jour_widget import JourWidget
 from .print_manager import PrintManager
 
 

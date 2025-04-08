@@ -15,9 +15,9 @@ from PySide6.QtCore import Qt, QPoint, QThread
 
 from src.utils import EVENT_BUS
 from src.utils.planning_worker import PlanningOperationWorker
-from src.ui.widgets import RepasWidget
-from src.ui.widgets import TotauxMacrosWidget
 from src.ui.dialogs.repas_dialog import RepasDialog
+from src.ui.widgets.repas_widget import RepasWidget
+from src.ui.widgets.totaux_macros_widget import TotauxMacrosWidget
 
 
 class JourWidget(QWidget):

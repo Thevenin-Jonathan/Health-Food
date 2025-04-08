@@ -20,7 +20,7 @@ class TabBase(QWidget):
             "Cette méthode doit être implémentée dans les classes dérivées"
         )
 
-    def setVisible(self, visible):
+    def setVisible(self, visible):  # pylint: disable=invalid-name
         """Surcharge pour détecter quand l'onglet devient visible ou invisible"""
         super().setVisible(visible)
 
@@ -32,8 +32,6 @@ class TabBase(QWidget):
 
     def on_tab_visible(self):
         """Méthode appelée quand l'onglet devient visible"""
-        pass
 
     def on_tab_invisible(self):
         """Méthode appelée quand l'onglet devient invisible"""
-        pass
