@@ -401,7 +401,7 @@ class RecettesTab(QWidget):
         self.calories_label.setStyleSheet(
             f"color: {'#e74c3c' if recette['total_calories'] > 500 else '#2ecc71'};"
         )
-        self.proteines_label.setStyleSheet(f"color: #3498db;")
+        self.proteines_label.setStyleSheet("color: #3498db;")
         self.glucides_label.setStyleSheet(
             f"color: {'#e67e22' if recette['total_glucides'] > 50 else '#2ecc71'};"
         )
@@ -503,29 +503,6 @@ class RecettesTab(QWidget):
         layout.addWidget(value_label)
 
         return container
-
-    def appliquer_au_planning(self):
-        """Applique la recette sélectionnée au planning"""
-        current_row = self.recettes_list.currentRow()
-        if current_row < 0:
-            QMessageBox.warning(
-                self, "Sélection requise", "Veuillez sélectionner une recette."
-            )
-            return
-
-        recette_id = self.recettes_list.item(current_row).data(Qt.UserRole)
-
-        dialog = AppliquerRecetteDialog(self)
-        if dialog.exec():
-            jour, ordre, semaine_id = dialog.get_data()
-            self.db_manager.appliquer_repas_type_au_jour(
-                recette_id, jour, ordre, semaine_id
-            )
-            QMessageBox.information(
-                self,
-                "Recette appliquée",
-                "La recette a été ajoutée au planning avec succès.",
-            )
 
     def supprimer_ingredient(self, aliment_id):
         """Supprime un ingrédient de la recette"""
