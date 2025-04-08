@@ -290,7 +290,7 @@ class RepasWidget(QFrame):
         expand_container = QHBoxLayout()
         expand_container.setAlignment(Qt.AlignCenter)
 
-        self.expand_btn = QPushButton("▼")
+        self.expand_btn = QPushButton("▼/▲")
         self.expand_btn.setObjectName("expandButton")
         self.expand_btn.clicked.connect(self.toggle_details)
         expand_container.addWidget(self.expand_btn)
@@ -313,9 +313,6 @@ class RepasWidget(QFrame):
         """Affiche ou masque les détails du repas"""
         self.is_expanded = not self.is_expanded
         self.details_widget.setVisible(self.is_expanded)
-
-        # Changer l'icône du bouton selon l'état
-        self.expand_btn.setText("▲" if self.is_expanded else "▼")
 
         # Ajuster la position du bouton pour qu'il ressemble à un onglet
         if self.is_expanded:
@@ -998,7 +995,6 @@ class RepasWidget(QFrame):
                     else:
                         # Si ce n'était pas expanded, assurez-vous que c'est bien fermé
                         self.details_widget.setVisible(False)
-                        self.expand_btn.setText("▼")
                         self.expand_btn.setStyleSheet("")
                         self.is_expanded = False
 
