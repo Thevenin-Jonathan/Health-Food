@@ -877,12 +877,38 @@ class RepasContainer(QWidget):
     def resizeEvent(self, event):  # pylint: disable=invalid-name
         """Gère le redimensionnement pour s'assurer que le contenu s'adapte"""
         super().resizeEvent(event)
-        # S'assurer que les enfants sont bien informés du changement de taille
-        for child in self.children():
-            if isinstance(child, QWidget):
-                child.setMaximumWidth(
-                    self.width() - 10
-                )  # Marge pour éviter le défilement
+        self.adjustForScrollBar()
+
+    def showEvent(self, event):  # pylint: disable=invalid-name
+        """Gère l'affichage initial du widget"""
+        super().showEvent(event)
+        self.adjustForScrollBar()
+
+    def adjustForScrollBar(self):  # pylint: disable=invalid-name
+        """Ajuste les marges en fonction de la présence de la barre de défilement"""
+        if isinstance(self.parent(), QScrollArea):
+            # Vérifier si la barre de défilement verticale est visible
+            scrollbar_visible = self.parent().verticalScrollBar().isVisible()
+            scrollbar_width = (
+                self.parent().verticalScrollBar().width() if scrollbar_visible else 0
+            )
+
+            # Calculer la marge droite optimale
+            right_margin = 3 + scrollbar_width if scrollbar_visible else 3
+
+            # Appliquer les nouvelles marges au layout
+            self.layout().setContentsMargins(3, 3, right_margin, 3)
+
+            # Mettre à jour tous les widgets enfants
+            for i in range(self.layout().count()):
+                item = self.layout().itemAt(i)
+                if item and item.widget():
+                    widget = item.widget()
+                    if isinstance(widget, RepasWidget):
+                        # Ajuster la largeur maximum
+                        widget.setMaximumWidth(
+                            self.width() - right_margin - 3
+                        )  # -3 pour la marge gauche
 
     def updateGeometry(self):  # pylint: disable=invalid-name
         """Force la mise à jour de la géométrie et de la taille"""
@@ -899,6 +925,9 @@ class RepasContainer(QWidget):
 
         # Ajuster la taille du conteneur
         self.setMinimumHeight(preferred_height)
+
+        # Ajuster pour la barre de défilement
+        self.adjustForScrollBar()
 
         # Informer le parent pour ajuster le scroll area
         if self.parent() and isinstance(self.parent(), QScrollArea):
