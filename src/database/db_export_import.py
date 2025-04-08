@@ -1,3 +1,4 @@
+import sqlite3
 from .db_connector import DBConnector
 
 
@@ -151,7 +152,7 @@ class ExportImportManager(DBConnector):
                     # Ajout d'un nouvel aliment
                     self.db_manager.ajouter_aliment(aliment)
                 count += 1
-            except Exception as e:
+            except sqlite3.Error as e:  # Catch database-related errors specifically
                 print(
                     f"Erreur lors de l'importation de l'aliment {aliment.get('nom', 'inconnu')}: {e}"
                 )
@@ -213,7 +214,7 @@ class ExportImportManager(DBConnector):
                             repas_type_id, aliment_id, aliment["quantite"]
                         )
                 count += 1
-            except Exception as e:
+            except sqlite3.Error as e:
                 print(
                     f"Erreur lors de l'importation du repas type {repas_type.get('nom', 'inconnu')}: {e}"
                 )
@@ -272,6 +273,6 @@ class ExportImportManager(DBConnector):
                     count += 1
 
             return count
-        except Exception as e:
+        except sqlite3.Error as e:
             print(f"Erreur lors de l'importation du planning: {e}")
             return 0

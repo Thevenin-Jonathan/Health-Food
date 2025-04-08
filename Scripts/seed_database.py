@@ -1089,7 +1089,7 @@ def seed_database():
             aliment_id = db.ajouter_aliment(aliment)
             aliment_ids[aliment["nom"]] = aliment_id
             added_count += 1
-        except Exception as e:
+        except ValueError as e:
             print(
                 f"⚠️ Erreur lors de l'ajout de l'aliment '{aliment.get('nom', 'inconnu')}': {e}"
             )
@@ -1178,7 +1178,7 @@ def seed_database():
                     )
 
             added_recipes += 1
-        except Exception as e:
+        except ValueError as e:
             print(f"⚠️ Erreur lors de l'ajout de la recette '{recipe['nom']}': {e}")
 
     print(f"✓ {added_recipes} repas types (recettes) ajoutés")

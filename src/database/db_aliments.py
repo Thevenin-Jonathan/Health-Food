@@ -1,4 +1,5 @@
 import unicodedata
+import sqlite3
 from .db_connector import DBConnector
 
 
@@ -138,7 +139,7 @@ class AlimentsManager(DBConnector):
             print(f"✓ Suppression réussie de l'aliment {aliment_id}")
             return True
 
-        except Exception as e:
+        except (sqlite3.DatabaseError, sqlite3.OperationalError) as e:
             # En cas d'erreur, afficher le message et annuler la transaction
             print(f"❌ Erreur lors de la suppression de l'aliment {aliment_id}: {e}")
             self.conn.rollback()
@@ -330,7 +331,7 @@ class AlimentsManager(DBConnector):
             results = self.cursor.fetchall()
             self.disconnect()
             return [result[0] for result in results if result[0]]
-        except Exception as e:
+        except (sqlite3.DatabaseError, sqlite3.OperationalError) as e:
             print(f"Erreur lors de la récupération des marques: {e}")
             # Version simple sans tri par fréquence
             self.connect()
@@ -355,7 +356,7 @@ class AlimentsManager(DBConnector):
             results = self.cursor.fetchall()
             self.disconnect()
             return [result[0] for result in results if result[0]]
-        except Exception as e:
+        except (sqlite3.DatabaseError, sqlite3.OperationalError) as e:
             print(f"Erreur lors de la récupération des magasins: {e}")
             # Version simple sans tri par fréquence
             self.connect()
@@ -380,7 +381,7 @@ class AlimentsManager(DBConnector):
             results = self.cursor.fetchall()
             self.disconnect()
             return [result[0] for result in results if result[0]]
-        except Exception as e:
+        except (sqlite3.DatabaseError, sqlite3.OperationalError) as e:
             print(f"Erreur lors de la récupération des catégories: {e}")
             # Version simple sans tri par fréquence
             self.connect()

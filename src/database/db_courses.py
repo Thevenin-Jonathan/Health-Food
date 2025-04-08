@@ -1,3 +1,5 @@
+import traceback
+import sqlite3
 from .db_connector import DBConnector
 
 
@@ -37,7 +39,7 @@ class CoursesManager(DBConnector):
                     if not isinstance(state, int):
                         try:
                             state = int(state)
-                        except:
+                        except ValueError:
                             # Fallback à Qt.Checked (2) par défaut
                             state = 2
 
@@ -54,12 +56,10 @@ class CoursesManager(DBConnector):
                 )
 
             self.conn.commit()
-            items_count = sum(len(aliments) for aliments in etats_semaine.values())
             return True
-        except Exception as e:
+        except (sqlite3.DatabaseError, sqlite3.IntegrityError) as e:
             self.conn.rollback()
             print(f"Erreur lors de la sauvegarde des états des courses: {e}")
-            import traceback
 
             traceback.print_exc()
             return False
@@ -88,10 +88,8 @@ class CoursesManager(DBConnector):
 
                 etats[semaine_key][aliment_id] = checked
             return etats
-        except Exception as e:
+        except sqlite3.DatabaseError as e:
             print(f"Erreur lors du chargement des états des courses: {e}")
-            import traceback
-
             traceback.print_exc()
             return {}
         finally:

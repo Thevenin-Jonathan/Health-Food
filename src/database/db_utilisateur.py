@@ -1,3 +1,4 @@
+import sqlite3
 from .db_connector import DBConnector
 
 
@@ -38,7 +39,7 @@ class UserManager(DBConnector):
                     "theme_actif": "Vert Nature",
                 }
                 self.sauvegarder_utilisateur(default_user_data)
-        except Exception as e:
+        except sqlite3.Error as e:
             print(
                 f"Erreur lors de la vérification/création de l'utilisateur par défaut: {e}"
             )

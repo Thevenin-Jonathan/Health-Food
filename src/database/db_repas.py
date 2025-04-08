@@ -1,3 +1,5 @@
+import traceback
+import sqlite3
 from .db_connector import DBConnector
 from .db_repas_types import RepasTypesManager
 
@@ -59,7 +61,7 @@ class RepasManager(DBConnector):
             self.conn.commit()
             self.disconnect()
             return last_id
-        except Exception as e:
+        except sqlite3.Error as e:
             print(
                 f"Erreur lors de l'ajout de l'aliment {aliment_id} au repas {repas_id}: {e}"
             )
@@ -83,7 +85,7 @@ class RepasManager(DBConnector):
             rows_affected = self.cursor.rowcount > 0
             self.disconnect()
             return rows_affected
-        except Exception as e:
+        except sqlite3.Error as e:
             print(f"Erreur lors de la modification de la quantité: {e}")
             self.conn.rollback()
             self.disconnect()
@@ -364,10 +366,8 @@ class RepasManager(DBConnector):
                         )
 
             return liste_courses
-        except Exception as e:
+        except sqlite3.Error as e:
             print(f"Erreur lors de la génération de la liste de courses: {e}")
-            import traceback
-
             traceback.print_exc()
             return {}
         finally:
@@ -485,7 +485,7 @@ class RepasManager(DBConnector):
             self.conn.commit()
             return True
 
-        except Exception as e:
+        except sqlite3.Error as e:
             print(f"Erreur lors du changement de jour du repas {repas_id}: {e}")
             self.conn.rollback()
             return False
@@ -638,7 +638,7 @@ class RepasManager(DBConnector):
 
             self.conn.commit()
             return True
-        except Exception as e:
+        except sqlite3.Error as e:
             print(f"Erreur lors de la définition du multiplicateur de repas: {e}")
             self.conn.rollback()
             return False
@@ -673,7 +673,7 @@ class RepasManager(DBConnector):
             else:
                 # Valeurs par défaut si aucun enregistrement
                 return {"multiplicateur": 1, "ignore_course": False}
-        except Exception as e:
+        except sqlite3.Error as e:
             print(f"Erreur lors de la récupération du multiplicateur de repas: {e}")
             return {"multiplicateur": 1, "ignore_course": False}
         finally:
