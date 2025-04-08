@@ -41,7 +41,7 @@ class CustomTabWidget(QTabWidget):
         """
         )
 
-    def eventFilter(self, obj, event):
+    def eventFilter(self, obj, event):  # pylint: disable=invalid-name
         """Filtre les événements pour intercepter le double-clic sur la barre d'onglets"""
         if obj == self.tabBar() and event.type() == event.Type.MouseButtonDblClick:
             # Obtenir l'index de l'onglet cliqué directement à partir du tabBar
@@ -55,11 +55,6 @@ class CustomTabWidget(QTabWidget):
 
         # Dans tous les autres cas, laisser l'événement se propager
         return super().eventFilter(obj, event)
-
-    # Supprimer ou garder inactive cette méthode qui ne semble pas fonctionner correctement
-    def mouseDoubleClickEvent(self, event):
-        # Nous utilisons désormais le filtre d'événements au lieu de cette méthode
-        super().mouseDoubleClickEvent(event)
 
 
 class PlanningTab(QWidget):
@@ -291,9 +286,7 @@ class PlanningTab(QWidget):
         position = self.tabs_semaines.count()
 
         # Nom temporaire qui sera mis à jour par reorganiser_noms_onglets
-        index = self.tabs_semaines.insertTab(
-            position, semaine_widget, f"Semaine {semaine_id}"
-        )
+        self.tabs_semaines.insertTab(position, semaine_widget, f"Semaine {semaine_id}")
 
         # Stocker les références
         self.semaines[semaine_id] = semaine_widget
