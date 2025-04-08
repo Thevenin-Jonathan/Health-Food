@@ -1,3 +1,4 @@
+import sqlite3
 from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
@@ -94,6 +95,23 @@ class ButtonContainer(QWidget):
 class AlimentsTab(TabBase):
     def __init__(self, db_manager):
         super().__init__(db_manager)
+
+        # Attributs pour les filtres
+        self.search_label = None
+        self.search_input = QLineEdit()
+        self.category_label = None
+        self.category_combo = None
+        self.marque_label = None
+        self.marque_combo = None
+        self.magasin_label = None
+        self.magasin_combo = None
+        self.reset_filter_btn = None
+        self.btn_add = None
+
+        # Tableau principal
+        self.table = None
+
+        # Configuration de l'interface
         self.setup_ui()
         self.load_data()
 
@@ -532,7 +550,7 @@ class AlimentsTab(TabBase):
                 result = self.db_manager.supprimer_aliment(aliment_id)
 
                 if result:
-                    print(f"Suppression réussie, émission des signaux de notification")
+                    print("Suppression réussie, émission des signaux de notification")
                     # Émettre le signal pour notifier les autres composants
                     EVENT_BUS.aliment_supprime.emit(aliment_id)
                     EVENT_BUS.aliments_modifies.emit()
@@ -544,7 +562,8 @@ class AlimentsTab(TabBase):
                         f"Impossible de supprimer l'aliment '{aliment_nom}'.\n"
                         "Veuillez vérifier les logs pour plus d'informations.",
                     )
-        except Exception as e:
+        except (ValueError, KeyError, sqlite3.Error) as e:
+            # Ajouter l'import sqlite3 en haut du fichier si nécessaire
             QMessageBox.warning(
                 self,
                 "Erreur",
