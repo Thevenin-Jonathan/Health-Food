@@ -34,6 +34,7 @@ class JourWidget(QWidget):
         self.worker = None
         self.loading_overlay = None
         self.loading_label = None
+        self.animation = None
 
         # Variables pour le drag & drop
         self.drop_indicator_position = None
@@ -257,8 +258,9 @@ class JourWidget(QWidget):
         is_visible = self.totaux_widget.isVisible()
 
         # Créer l'animation pour une transition fluide
+        # Vérifier si l'animation existe et est en cours d'exécution
         if (
-            hasattr(self, "animation")
+            self.animation is not None
             and self.animation.state() == QPropertyAnimation.Running
         ):
             self.animation.stop()
