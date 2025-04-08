@@ -197,7 +197,7 @@ class RepasWidget(QFrame):
                 "Déjà préparé - n'apparaît pas dans la liste de courses"
             )
         else:
-            self.btn_multi.setText(f"× {multiplicateur}")
+            self.btn_multi.setText(f"×{multiplicateur}")
             if multiplicateur > 1:
                 self.btn_multi.setProperty("status", "multiplied")
                 self.btn_multi.setToolTip(

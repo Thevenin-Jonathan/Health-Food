@@ -572,12 +572,12 @@ QLabel.nutrition-info {
 
 /* Style de base pour le bouton multiplicateur */
 QPushButton#multiButton {
-    border-radius: $BORDER_RADIUS;
+    background-color: $BACKGROUND_COLOR;
+    color: $PRIMARY_COLOR;
     font-weight: bold;
-    max-width: 60px;
-    min-height: 24px;
-    max-height: 24px;
-    padding: 0px 4px;
+    border-radius: $BORDER_RADIUS;
+    border: 1px solid darken($BACKGROUND_COLOR, 10%);
+    padding: 1px 4px;
     margin: 0px;
 }
 
@@ -593,7 +593,7 @@ QPushButton#multiButton[status="prepared"]:hover {
 
 /* Style pour le bouton quand le repas a un multiplicateur > 1 */
 QPushButton#multiButton[status="multiplied"] {
-    background-color: $INFO_COLOR;
+    background-color: $BACKGROUND_COLOR;
     color: white;
 }
 
