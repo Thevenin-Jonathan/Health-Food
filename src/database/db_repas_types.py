@@ -1,4 +1,3 @@
-from .db_repas import RepasManager
 from .db_connector import DBConnector
 
 
@@ -172,6 +171,7 @@ class RepasTypesManager(DBConnector):
         Returns:
             ID du repas créé
         """
+        from .db_repas import RepasManager  # pylint: disable=import-outside-toplevel
 
         repas_manager = RepasManager(self.db_file)
         repas_type = self.get_repas_type(repas_type_id)
@@ -201,6 +201,7 @@ class RepasTypesManager(DBConnector):
         self, repas_type_id, jour, ordre, semaine_id=None, facteurs_quantite=None
     ):
         """Applique un repas type à un jour spécifique en ajustant les quantités"""
+        from .db_repas import RepasManager  # pylint: disable=import-outside-toplevel
 
         repas_manager = RepasManager(self.db_file)
 
@@ -230,6 +231,7 @@ class RepasTypesManager(DBConnector):
         self, recette_base_id, liste_ingredients, jour, ordre, semaine_id=None
     ):
         """Applique une recette modifiée à un jour spécifique"""
+        from .db_repas import RepasManager  # pylint: disable=import-outside-toplevel
 
         repas_manager = RepasManager(self.db_file)
 
