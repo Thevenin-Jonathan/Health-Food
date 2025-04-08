@@ -7,7 +7,7 @@ Ce module centralise les fonctions et classes utilitaires utilisées dans l'appl
 from .text_utils import normalize_str
 
 # Importation des configurations
-from .config import (
+from .app_info import (
     APP_NAME,
     APP_VERSION,
     DEFAULT_WINDOW_WIDTH,
