@@ -25,7 +25,7 @@ from PySide6.QtCore import (
     QPropertyAnimation,
     QEasingCurve,
 )
-from PySide6.QtGui import QDrag, QPainter, QPixmap
+from PySide6.QtGui import QDrag
 from src.ui.dialogs.aliment_repas_dialog import AlimentRepasDialog
 from src.ui.dialogs.remplacer_repas_dialog import RemplacerRepasDialog
 from src.ui.dialogs.repas_edition_dialog import RepasEditionDialog
@@ -938,43 +938,29 @@ class RepasWidget(QFrame):
         if not event.buttons() & Qt.LeftButton:
             return
 
-        # Si on n'a pas enregistré de position de départ ou si on est déjà en train de faire un drag, on ne fait rien
         if self.drag_start_position is None or self.is_dragging:
             return
 
-        # Calculer la distance parcourue
         distance = (event.pos() - self.drag_start_position).manhattanLength()
 
-        # Si la distance est inférieure au seuil, ne pas démarrer le drag
         if distance < self.drag_threshold:
             return
 
-        # Marquer qu'on est en train de faire un drag pour éviter les appels multiples
         self.is_dragging = True
-
-        # Créer et démarrer le drag comme avant
         drag = QDrag(self)
         mime_data = QMimeData()
 
-        # Format des données: repas_id|jour
+        # Données essentielles pour le drop: ID du repas et jour d'origine
         data = QByteArray(f"{self.repas_data['id']}|{self.jour}".encode())
         mime_data.setData("application/x-repas", data)
-
         drag.setMimeData(mime_data)
-
-        # Définir un feedback visuel
         pixmap = self.grab()
-        transparent_pixmap = QPixmap(pixmap.size())
-        transparent_pixmap.fill(Qt.transparent)
-        painter = QPainter(transparent_pixmap)
-        painter.setOpacity(0.7)
-        painter.drawPixmap(0, 0, pixmap)
-        painter.end()
-        drag.setPixmap(transparent_pixmap)
-        drag.setHotSpot(self.drag_start_position)
-
-        # Exécuter le drag
+        drag.setPixmap(pixmap)
+        drag.setHotSpot(event.pos() - self.rect().topLeft())
+        self.setCursor(Qt.ClosedHandCursor)
         drag.exec(Qt.MoveAction)
+        self.is_dragging = False
+        self.setCursor(Qt.OpenHandCursor)
 
     def mouseReleaseEvent(self, event):  # pylint: disable=invalid-name
         """Réinitialise les variables de suivi du drag"""

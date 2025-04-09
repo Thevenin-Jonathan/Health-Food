@@ -23,6 +23,11 @@ from src.ui.widgets.totaux_macros_widget import TotauxMacrosWidget
 class JourWidget(QWidget):
     """Widget représentant un jour de la semaine"""
 
+    THRESHOLD_OVER = 1.1  # Plus de 110%
+    THRESHOLD_GOOD_UPPER = 1.1  # Limite supérieure pour "bon"
+    THRESHOLD_GOOD_LOWER = 0.9  # Limite inférieure pour "bon"
+    THRESHOLD_LOW = 0.5  # Seuil pour "bas"
+
     def __init__(self, db_manager, jour, repas_list, objectifs_utilisateur, semaine_id):
         super().__init__()
         self.db_manager = db_manager
@@ -30,33 +35,64 @@ class JourWidget(QWidget):
         self.repas_list = repas_list
         self.objectifs_utilisateur = objectifs_utilisateur
         self.semaine_id = semaine_id
+
+        # Initialisation d'attributs pour éviter les avertissements W0201
         self.thread = None
         self.worker = None
         self.loading_overlay = None
         self.loading_label = None
         self.animation = None
-
-        # Variables pour le drag & drop
-        self.drop_indicator_position = None
         self.drop_index = -1
 
-        # Accepter les drops
+        # Initialisation des attributs UI qui seront définis dans setup_ui
+        self.layout = None
+        self.titre_jour = None
+        self.totaux_widget = None
+        self.macros_container = None
+        self.separator = None
+        self.toggle_macros_btn = None
+        self.cal_badge = None
+        self.prot_badge = None
+        self.gluc_badge = None
+        self.lip_badge = None
+        self.scroll_area = None
+        self.repas_container = None
+        self.repas_layout = None
+        self.repas_widgets = []
+
+        # Configuration pour le drag & drop
         self.setAcceptDrops(True)
 
+        # Configuration de l'UI
         self.setup_ui()
 
     def setup_ui(self):
-        # Configuration du layout
+        """Configure l'interface utilisateur du widget jour"""
+        # Configuration du layout principal
+        self._setup_main_layout()
+
+        # Configuration du header (titre et bouton d'ajout)
+        self._setup_header()
+
+        # Configuration des totaux et des badges de macros
+        self._setup_macros_display()
+
+        # Configuration de la zone de repas
+        self._setup_meals_area()
+
+    def _setup_main_layout(self):
+        """Configure le layout principal du widget"""
         self.setMaximumWidth(350)
         self.setMinimumWidth(275)
         self.layout = QVBoxLayout(self)
         self.layout.setSpacing(5)
         self.layout.setContentsMargins(5, 5, 5, 5)
 
-        # Titre du jour avec bouton d'ajout
+    def _setup_header(self):
+        """Configure l'en-tête du jour avec le titre et le bouton d'ajout"""
         jour_header = QHBoxLayout()
-        titre_jour = QLabel(f"<h2>{self.jour}</h2>")
-        jour_header.addWidget(titre_jour)
+        self.titre_jour = QLabel(f"<h2>{self.jour}</h2>")
+        jour_header.addWidget(self.titre_jour)
 
         # Bouton pour ajouter un repas à ce jour
         btn_add_day = QPushButton("✚ Ajouter un repas")
@@ -67,25 +103,12 @@ class JourWidget(QWidget):
 
         self.layout.addLayout(jour_header)
 
-        # Initialiser les totaux du jour
-        total_cal = 0
-        total_prot = 0
-        total_gluc = 0
-        total_lip = 0
-        total_cout = 0
-
-        # Calculer les totaux avant d'ajouter les repas
-        for repas in self.repas_list:
-            total_cal += repas["total_calories"]
-            total_prot += repas["total_proteines"]
-            total_gluc += repas["total_glucides"]
-            total_lip += repas["total_lipides"]
-
-            for aliment in repas["aliments"]:
-                # prix_kg est en € par kg, donc on divise par 1000 pour avoir € par g
-                # puis on multiplie par la quantité en grammes
-                if aliment.get("prix_kg"):
-                    total_cout += (aliment["prix_kg"] / 1000) * aliment["quantite"]
+    def _setup_macros_display(self):
+        """Configure l'affichage des macros nutritionnelles et des totaux"""
+        # Calculer les totaux nutritionnels pour ce jour
+        total_cal, total_prot, total_gluc, total_lip, total_cout = (
+            self._calculate_totals()
+        )
 
         # Créer un conteneur pour les totaux du jour avec un en-tête dépliable
         macros_container = QWidget()
@@ -94,6 +117,38 @@ class JourWidget(QWidget):
         macros_layout.setSpacing(2)
 
         # En-tête des macros avec résumé compact et bouton pour déplier
+        header_layout = self._create_macros_header(
+            total_cal, total_prot, total_gluc, total_lip
+        )
+        macros_layout.addLayout(header_layout)
+
+        # Créer le widget des totaux (caché par défaut)
+        self.totaux_widget = TotauxMacrosWidget(
+            total_cal,
+            total_prot,
+            total_gluc,
+            total_lip,
+            total_cout,
+            self.objectifs_utilisateur,
+            compact=True,
+        )
+        self.totaux_widget.setVisible(False)  # Caché par défaut
+        macros_layout.addWidget(self.totaux_widget)
+
+        # Ajouter le conteneur au layout principal
+        self.layout.addWidget(macros_container)
+
+        # Garder une référence pour les mises à jour ultérieures
+        self.macros_container = macros_container
+
+        # Séparateur visuel entre les totaux et les repas
+        self.separator = QFrame()
+        self.separator.setFrameShape(QFrame.HLine)
+        self.separator.setFrameShadow(QFrame.Sunken)
+        self.layout.addWidget(self.separator)
+
+    def _create_macros_header(self, total_cal, total_prot, total_gluc, total_lip):
+        """Crée l'en-tête des macros avec les badges et le bouton de déplier/replier"""
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(5)
@@ -165,41 +220,39 @@ class JourWidget(QWidget):
         self.toggle_macros_btn.clicked.connect(self.toggle_macros_details)
         header_layout.addWidget(self.toggle_macros_btn, 0)  # 0 = pas de stretch
 
-        macros_layout.addLayout(header_layout)
-
         # Garder une référence pour les mises à jour ultérieures
         self.cal_badge = cal_badge
         self.prot_badge = prot_badge
         self.gluc_badge = gluc_badge
         self.lip_badge = lip_badge
 
-        # Créer le widget des totaux (maintenant caché par défaut)
-        self.totaux_widget = TotauxMacrosWidget(
-            total_cal,
-            total_prot,
-            total_gluc,
-            total_lip,
-            total_cout,
-            self.objectifs_utilisateur,
-            compact=True,
-        )
-        self.totaux_widget.setVisible(False)  # Caché par défaut
-        macros_layout.addWidget(self.totaux_widget)
+        return header_layout
 
-        # Ajouter le conteneur au layout principal
-        self.layout.addWidget(macros_container)
+    def _calculate_totals(self):
+        """Calcule tous les totaux nutritionnels pour ce jour"""
+        total_cal = 0
+        total_prot = 0
+        total_gluc = 0
+        total_lip = 0
+        total_cout = 0
 
-        # Garder une référence pour les mises à jour ultérieures
-        self.calories_label = cal_badge
-        self.macros_resume = prot_badge
-        self.macros_container = macros_container
+        # Calculer les totaux pour les repas
+        for repas in self.repas_list:
+            total_cal += repas["total_calories"]
+            total_prot += repas["total_proteines"]
+            total_gluc += repas["total_glucides"]
+            total_lip += repas["total_lipides"]
 
-        # Séparateur visuel entre les totaux et les repas
-        self.separator = QFrame()
-        self.separator.setFrameShape(QFrame.HLine)
-        self.separator.setFrameShadow(QFrame.Sunken)
-        self.layout.addWidget(self.separator)
+            for aliment in repas["aliments"]:
+                # prix_kg est en € par kg, donc on divise par 1000 pour avoir € par g
+                # puis on multiplie par la quantité en grammes
+                if aliment.get("prix_kg"):
+                    total_cout += (aliment["prix_kg"] / 1000) * aliment["quantite"]
 
+        return total_cal, total_prot, total_gluc, total_lip, total_cout
+
+    def _setup_meals_area(self):
+        """Configure la zone d'affichage des repas avec défilement"""
         # Créer un QScrollArea pour contenir uniquement les repas
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -218,6 +271,18 @@ class JourWidget(QWidget):
         self.repas_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         # Ajouter les repas du jour au conteneur défilable
+        self._add_meal_widgets()
+
+        # Configurer le scroll area avec le container de repas
+        self.scroll_area.setWidget(self.repas_container)
+
+        # Ajouter le scroll area au layout principal
+        self.layout.addWidget(
+            self.scroll_area, 1
+        )  # Le 1 donne un stretch pour que le scroll area prenne l'espace disponible
+
+    def _add_meal_widgets(self):
+        """Ajoute les widgets de repas au conteneur"""
         self.repas_widgets = []
         for repas in self.repas_list:
             repas_widget = RepasWidget(
@@ -234,23 +299,15 @@ class JourWidget(QWidget):
         # Ajouter un espacement extensible en bas
         self.repas_layout.addStretch()
 
-        # Configurer le scroll area avec le container de repas
-        self.scroll_area.setWidget(self.repas_container)
-
-        # Ajouter le scroll area au layout principal
-        self.layout.addWidget(
-            self.scroll_area, 1
-        )  # Le 1 donne un stretch pour que le scroll area prenne l'espace disponible
-
     def _get_status_class(self, percentage):
         """Détermine la classe CSS à utiliser en fonction du pourcentage de l'objectif atteint"""
-        if percentage > 1.1:  # Plus de 110%
+        if percentage > self.THRESHOLD_OVER:
             return "over"
-        elif 0.9 <= percentage <= 1.1:  # Entre 90% et 110%
+        elif self.THRESHOLD_GOOD_LOWER <= percentage <= self.THRESHOLD_GOOD_UPPER:
             return "good"
-        elif 0.5 <= percentage < 0.9:  # Entre 50% et 90%
+        elif self.THRESHOLD_LOW <= percentage <= self.THRESHOLD_GOOD_LOWER:
             return "medium"
-        else:  # Moins de 50%
+        elif percentage <= self.THRESHOLD_LOW:
             return "low"
 
     def toggle_macros_details(self):
@@ -544,15 +601,18 @@ class JourWidget(QWidget):
             pos = event.position()
 
             # Ignorer le drag si c'est au-dessus du header ou des totaux
-            if pos.y() < self.totaux_widget.height() + self.separator.height():
-                self.drop_indicator_position = None
+            header_height = (
+                self.titre_jour.height()
+                + self.macros_container.height()
+                + self.separator.height()
+            )
+            if pos.y() < header_height:
                 self.drop_index = -1
                 self.repas_container.set_drop_indicator(None)
                 event.ignore()
                 return
 
             # Ajuster la position pour le conteneur de repas
-            # Convertir les coordonnées globales en coordonnées du conteneur de repas
             container_pos = self.scroll_area.mapFrom(
                 self, QPoint(int(pos.x()), int(pos.y()))
             )
@@ -565,46 +625,51 @@ class JourWidget(QWidget):
             # Si la liste des repas est vide, placer l'indicateur en haut du conteneur
             if not self.repas_widgets:
                 index = 0
-                drop_position = QPoint(0, 5)  # 5 pixels du haut du conteneur
+                drop_position = QPoint(0, 10)  # Plus visible en haut du conteneur vide
             else:
+                # Traitement spécial pour la position au-dessus du premier repas
+                first_widget = self.repas_widgets[0]
+                if scroll_pos.y() < first_widget.y() + 15:  # Zone de tolérance en haut
+                    index = 0
+                    drop_position = QPoint(0, max(5, first_widget.y() - 5))
+                    self.drop_index = index
+                    self.repas_container.set_drop_indicator(drop_position)
+                    self.repas_container.update()
+                    event.acceptProposedAction()
+                    return
+
                 # Parcourir les widgets de repas pour trouver l'emplacement
                 for i, repas_widget in enumerate(self.repas_widgets):
                     widget_top = repas_widget.y()
-                    widget_bottom = widget_top + repas_widget.height()
+                    widget_height = repas_widget.height()
+                    widget_bottom = widget_top + widget_height
 
-                    # Si on est entre deux repas
-                    if widget_top <= scroll_pos.y() <= widget_bottom:
-                        # Si on est dans la moitié supérieure, insérer avant
-                        if scroll_pos.y() < (widget_top + widget_bottom) / 2:
-                            index = i
-                            drop_position = QPoint(0, widget_top - 5)
-                            break
-                        # Si on est dans la moitié inférieure, insérer après
-                        else:
-                            index = i + 1
-                            drop_position = QPoint(0, widget_bottom + 5)
-                            break
-                    # Si on est au-dessus du premier repas
-                    elif scroll_pos.y() < widget_top and i == 0:
-                        index = 0
-                        drop_position = QPoint(0, widget_top - 5)
+                    # Position relative dans le widget (0 = haut, 1 = bas)
+                    relative_pos = (scroll_pos.y() - widget_top) / widget_height
+
+                    # Si on est dans la zone supérieure (30% du haut)
+                    if 0 <= relative_pos < 0.3:
+                        index = i
+                        drop_position = QPoint(0, widget_top - 3)
+                        break
+                    # Si on est dans la zone inférieure (30% du bas)
+                    elif 0.7 < relative_pos <= 1:
+                        index = i + 1
+                        drop_position = QPoint(0, widget_bottom + 3)
                         break
 
-                # Si on n'a pas trouvé d'emplacement, c'est qu'on est après le dernier repas
+                # Si aucune position n'est trouvée (dans la zone centrale d'un repas)
+                # on ne montre pas d'indicateur de drop
                 if index == -1:
-                    index = len(self.repas_widgets)
-                    if self.repas_widgets:  # Vérifier si la liste n'est pas vide
-                        last_widget = self.repas_widgets[-1]
-                        drop_position = QPoint(
-                            0, last_widget.y() + last_widget.height() + 5
-                        )
-                    else:
-                        drop_position = QPoint(0, 5)
+                    self.drop_index = -1
+                    self.repas_container.set_drop_indicator(None)
+                    event.acceptProposedAction()  # On accepte quand même l'action pour ne pas perturber le drag
+                    return
 
-            # Mettre à jour l'indicateur de drop
+            # Mettre à jour l'indicateur de drop et l'index
             self.drop_index = index
-            # Mettre à jour directement l'indicateur dans le conteneur
             self.repas_container.set_drop_indicator(drop_position)
+            self.repas_container.update()
 
             event.acceptProposedAction()
         else:
@@ -614,84 +679,56 @@ class JourWidget(QWidget):
 
     def dragLeaveEvent(self, event):  # pylint: disable=invalid-name
         """Gère la sortie d'un drag de la zone du jour"""
-        self.drop_indicator_position = None
-        self.drop_index = -1
-        if hasattr(self.repas_container, "set_drop_indicator"):
-            self.repas_container.set_drop_indicator(None)
-        self.update()
+        self._cleanup_after_drag()
         super().dragLeaveEvent(event)
 
-    def dragEndEvent(self, event):  # pylint: disable=invalid-name
-        """Gère la fin d'une opération de drag (qu'elle réussisse ou non)"""
-        # Réinitialiser l'indicateur de drop
-        self.drop_indicator_position = None
+    def _cleanup_after_drag(self):
+        """Nettoie l'interface après une opération de drag & drop"""
         self.drop_index = -1
-        if hasattr(self.repas_container, "set_drop_indicator"):
-            self.repas_container.set_drop_indicator(None)
-        self.update()
-
-        super().dragEndEvent(event)
+        self.repas_container.set_drop_indicator(None)
+        self.repas_container.update()
+        return True
 
     def dropEvent(self, event):  # pylint: disable=invalid-name
         """Gère le drop d'un repas dans le jour avec détection d'annulation"""
         if event.mimeData().hasFormat("application/x-repas"):
-            # Récupérer les données du repas
-            data = event.mimeData().data("application/x-repas").data().decode()
-            repas_id, jour_origine = data.split("|")
-            repas_id = int(repas_id)
+            try:
+                data = event.mimeData().data("application/x-repas").data().decode()
+                parts = data.split("|")
+                if len(parts) != 2:
+                    raise ValueError("Format de données invalide")
+                repas_id, jour_origine = parts
+                repas_id = int(repas_id)
+            except (ValueError, IndexError) as e:
+                print(f"Erreur lors du parsing des données de drag & drop: {e}")
+                event.ignore()
+                return
 
             # Vérifier si on déplace le repas au même jour
             meme_jour = jour_origine == self.jour
 
-            # Si nous sommes dans le même jour, vérifier si le repas est déposé au même endroit
-            if meme_jour:
-                try:
-                    # Trouver le repas dans la liste et son ordre actuel
-                    repas_actuel = None
-                    for repas in self.repas_list:
-                        if repas["id"] == repas_id:
-                            repas_actuel = repas
-                            break
+            # Trouver le repas qui est déplacé
+            repas_deplace = None
+            repas_index = -1
 
-                    if repas_actuel:
-                        ordre_actuel = repas_actuel["ordre"]
+            for i, repas in enumerate(self.repas_list):
+                if repas["id"] == repas_id:
+                    repas_deplace = repas
+                    repas_index = i
+                    break
 
-                        # Déterminer si le repas est déposé à sa position actuelle ou à proximité
-                        position_similaire = False
+            # Vérifier si on essaie de déplacer à la même position
+            meme_position = False
 
-                        # Cas 1: Drop à la même position ou position adjacente
-                        if self.drop_index >= 0 and len(self.repas_list) > 0:
-                            # Si on dépose à la position actuelle ou juste après
-                            if (
-                                ordre_actuel == self.drop_index
-                                or ordre_actuel == self.drop_index - 1
-                            ):
-                                position_similaire = True
-                            # Si on dépose juste avant
-                            elif ordre_actuel == self.drop_index + 1:
-                                position_similaire = True
+            if meme_jour and repas_deplace is not None and repas_index != -1:
+                if self.drop_index == repas_index or self.drop_index == repas_index + 1:
+                    meme_position = True
 
-                        # Cas 2: Drop en fin de liste et le repas est déjà le dernier
-                        elif self.drop_index == -1 and ordre_actuel == len(
-                            self.repas_list
-                        ):
-                            position_similaire = True
-
-                        if position_similaire:
-                            # Réinitialiser l'indicateur de drop sans faire de modifications
-                            self.drop_index = -1
-                            self.repas_container.set_drop_indicator(None)
-
-                            # Simple rafraîchissement visuel pour réinitialiser l'interface
-                            self.update()
-
-                            event.acceptProposedAction()
-                            return
-                except ValueError as e:  # Replace with the specific exception type
-                    print(
-                        f"Erreur lors de la vérification de la position d'origine: {e}"
-                    )
-                    # On continue avec le comportement normal en cas d'erreur
+            # Si c'est la même position, ne rien faire
+            if meme_position:
+                self._cleanup_after_drag()
+                event.acceptProposedAction()
+                return
 
             # Trier les repas existants par ordre
             sorted_repas = sorted(self.repas_list, key=lambda r: r.get("ordre", 1))
@@ -738,12 +775,14 @@ class JourWidget(QWidget):
                 # Fallback: mettre à la fin
                 nouvel_ordre = len(sorted_repas) + 1
 
-            # Afficher un overlay de chargement
+            # Ajoutez un raffraîchissement explicite après le calcul du nouvel ordre
+            self.repas_container.update()
+
+            # Afficher un overlay de chargement et continuer avec le processus existant
             self.show_loading_overlay("Déplacement du repas en cours...")
 
-            # Réinitialiser l'indicateur de drop
-            self.thread = QThread()  # Create a new thread instance
-            self.repas_container.set_drop_indicator(None)
+            # Réinitialiser l'indicateur de drop immédiatement
+            self._cleanup_after_drag()
 
             # Créer et configurer le thread et le worker
             self.thread = QThread()
@@ -773,41 +812,35 @@ class JourWidget(QWidget):
 
     def show_loading_overlay(self, message="Opération en cours..."):
         """Affiche un overlay de chargement sur le widget"""
+        if hasattr(self, "loading_overlay") and self.loading_overlay:
+            self.loading_overlay.deleteLater()
 
-        if not hasattr(self, "loading_overlay"):
-            self.loading_overlay = QWidget(self)
-            self.loading_overlay.setStyleSheet(
-                """
-                background-color: rgba(0, 0, 0, 50%);
-                border-radius: 5px;
+        self.loading_overlay = QWidget(self)
+        self.loading_overlay.setStyleSheet(
             """
-            )
-            overlay_layout = QVBoxLayout(self.loading_overlay)
-            self.loading_label = QLabel(message)
-            self.loading_label.setText(message)
-            self.loading_label.setStyleSheet(
-                """
-                color: white;
-                font-weight: bold;
-                background-color: rgba(40, 40, 40, 80%);
-                border-radius: 5px;
-                padding: 10px;
+            background-color: rgba(0, 0, 0, 50%);
+            border-radius: 5px;
+        """
+        )
+
+        overlay_layout = QVBoxLayout(self.loading_overlay)
+        self.loading_label = QLabel(message)
+        self.loading_label.setStyleSheet(
             """
-            )
-            self.loading_label.setAlignment(Qt.AlignCenter)
-
-            overlay_layout.addStretch()
-            overlay_layout.addWidget(self.loading_label, 0, Qt.AlignCenter)
-            overlay_layout.addStretch()
-        else:
-            self.loading_label.setText(message)
-
-        # Redimensionner l'overlay pour couvrir tout le widget
+            color: white;
+            font-weight: bold;
+            background-color: rgba(40, 40, 40, 80%);
+            border-radius: 5px;
+            padding: 10px;
+        """
+        )
+        self.loading_label.setAlignment(Qt.AlignCenter)
+        overlay_layout.addStretch()
+        overlay_layout.addWidget(self.loading_label, 0, Qt.AlignCenter)
+        overlay_layout.addStretch()
         self.loading_overlay.resize(self.size())
         self.loading_overlay.show()
         self.loading_overlay.raise_()
-
-        # Forcer le rafraîchissement de l'interface
         QApplication.processEvents()
 
     def hide_loading_overlay(self):
@@ -832,16 +865,6 @@ class JourWidget(QWidget):
         else:
             QMessageBox.warning(self, "Erreur", message)
 
-    def paintEvent(self, event):  # pylint: disable=invalid-name
-        """Surcharge pour dessiner l'indicateur de drop"""
-        super().paintEvent(event)
-
-        # Ne rien dessiner si pas en mode drag
-        if not self.drop_indicator_position:
-            return
-
-        # Note: l'indicateur est maintenant dessiné dans le container de repas
-
 
 class RepasContainer(QWidget):
     """Widget conteneur pour les repas avec capacité à dessiner un indicateur de drop"""
@@ -854,6 +877,10 @@ class RepasContainer(QWidget):
     def set_drop_indicator(self, position):
         """Définit la position de l'indicateur de drop"""
         self.drop_indicator_position = position
+
+        if position:
+            self.ensureDropIndicatorVisible()
+
         self.update()
 
     def paintEvent(self, event):  # pylint: disable=invalid-name
@@ -863,16 +890,47 @@ class RepasContainer(QWidget):
         # Dessiner l'indicateur de drop si nécessaire
         if self.drop_indicator_position:
             painter = QPainter(self)
-            pen = QPen(QColor("#4CAF50"))  # Couleur de l'indicateur
+
+            # Utiliser l'antialiasing pour des lignes plus nettes
+            painter.setRenderHint(QPainter.Antialiasing)
+
+            # Définir le style de la ligne
+            pen = QPen(QColor("#2196F3"))  # Bleu plus visible
             pen.setWidth(3)
-            pen.setStyle(Qt.DashLine)
+            pen.setStyle(Qt.SolidLine)  # Ligne pleine au lieu de pointillé
+            pen.setCapStyle(Qt.RoundCap)  # Extrémités arrondies
             painter.setPen(pen)
 
             # Dessiner une ligne horizontale à la position de l'indicateur
-            x1 = 5  # Marge gauche
-            x2 = self.width() - 10  # Marge droite
+            x1 = 10  # Marge gauche
+            x2 = self.width() - 20  # Marge droite
             y = self.drop_indicator_position.y()
+
+            # S'assurer que la ligne est visible même si y est très petit (en haut)
+            y = max(5, y)
+
+            # Dessiner la ligne principale
             painter.drawLine(x1, y, x2, y)
+
+            # Dessiner des triangles aux extrémités pour indiquer l'insertion
+            triangle_size = 5
+
+            # Triangle gauche
+            points_left = [
+                QPoint(x1, y),
+                QPoint(x1 - triangle_size, y - triangle_size),
+                QPoint(x1 - triangle_size, y + triangle_size),
+            ]
+            painter.setBrush(QColor("#2196F3"))
+            painter.drawPolygon(points_left)
+
+            # Triangle droit
+            points_right = [
+                QPoint(x2, y),
+                QPoint(x2 + triangle_size, y - triangle_size),
+                QPoint(x2 + triangle_size, y + triangle_size),
+            ]
+            painter.drawPolygon(points_right)
 
     def resizeEvent(self, event):  # pylint: disable=invalid-name
         """Gère le redimensionnement pour s'assurer que le contenu s'adapte"""
@@ -914,21 +972,81 @@ class RepasContainer(QWidget):
         """Force la mise à jour de la géométrie et de la taille"""
         super().updateGeometry()
 
-        # Recalculer la taille préférée
-        preferred_height = 0
-        for i in range(self.layout().count()):
-            item = self.layout().itemAt(i)
-            if item.widget() and item.widget().isVisible():
-                preferred_height += (
-                    item.widget().sizeHint().height() + self.layout().spacing()
-                )
+        # Pour les conteneurs avec beaucoup d'éléments, on peut optimiser
+        if self.layout().count() > 20:  # Seuil arbitraire
+            # Utiliser directement la hauteur du dernier widget visible
+            last_visible_widget = None
+            last_visible_y = 0
 
-        # Ajuster la taille du conteneur
-        self.setMinimumHeight(preferred_height)
+            for i in range(self.layout().count()):
+                item = self.layout().itemAt(i)
+                if item.widget() and item.widget().isVisible():
+                    last_visible_widget = item.widget()
+                    last_visible_y = (
+                        last_visible_widget.y() + last_visible_widget.height()
+                    )
 
-        # Ajuster pour la barre de défilement
+            if last_visible_widget:
+                self.setMinimumHeight(last_visible_y + 10)  # Ajouter un peu d'espace
+        else:
+            # Recalculer la taille préférée
+            preferred_height = 0
+            for i in range(self.layout().count()):
+                item = self.layout().itemAt(i)
+                if item.widget() and item.widget().isVisible():
+                    preferred_height += (
+                        item.widget().sizeHint().height() + self.layout().spacing()
+                    )
+
+            # Ajuster la taille du conteneur
+            self.setMinimumHeight(preferred_height)
+
+            # Ajuster pour la barre de défilement
+            self.adjustForScrollBar()
+
+            # Informer le parent pour ajuster le scroll area
+            if self.parent() and isinstance(self.parent(), QScrollArea):
+                self.parent().updateGeometry()
+
+    def updateAfterDrag(self):  # pylint: disable=invalid-name
+        """Met à jour le widget après un drag pour assurer la cohérence visuelle"""
+        # Réinitialiser l'indicateur
+        self.set_drop_indicator(None)
+
+        # Recalculer la géométrie
+        self.updateGeometry()
+
+        # Forcer une mise à jour visuelle
+        self.update()
+
+        # Vérifier l'adaptation à la barre de défilement
         self.adjustForScrollBar()
 
-        # Informer le parent pour ajuster le scroll area
-        if self.parent() and isinstance(self.parent(), QScrollArea):
-            self.parent().updateGeometry()
+    def ensureDropIndicatorVisible(self):  # pylint: disable=invalid-name
+        """S'assure que l'indicateur de drop est visible"""
+        if self.drop_indicator_position:
+            # Si l'indicateur est trop haut, l'ajuster légèrement
+            if self.drop_indicator_position.y() < 2:
+                self.drop_indicator_position = QPoint(
+                    self.drop_indicator_position.x(), 2
+                )
+
+            # Si le conteneur a un scroll_area parent, s'assurer que la position est visible
+            parent = self.parent()
+            if isinstance(parent, QScrollArea):
+                # Calculer la position de l'indicateur relative au viewport
+                viewport_pos = self.mapTo(
+                    parent.viewport(), self.drop_indicator_position
+                )
+
+                # Si la position est en dehors du viewport visible, faire défiler
+                if (
+                    viewport_pos.y() < 0
+                    or viewport_pos.y() > parent.viewport().height()
+                ):
+                    parent.ensureVisible(
+                        self.drop_indicator_position.x(),
+                        self.drop_indicator_position.y(),
+                        0,
+                        20,
+                    )
