@@ -1,10 +1,11 @@
+from .db_repas import RepasManager
+from .db_courses import CoursesManager
+from .db_aliments import AlimentsManager
 from .db_connector import DBConnector
 from .db_utilisateur import UserManager
-from .db_aliments import AlimentsManager
-from .db_repas import RepasManager
 from .db_repas_types import RepasTypesManager
 from .db_export_import import ExportImportManager
-from .db_courses import CoursesManager
+from .db_categories_repas import CategoriesRepasManager
 
 
 class DatabaseManager(DBConnector):
@@ -24,6 +25,7 @@ class DatabaseManager(DBConnector):
         self.repas_types_manager = RepasTypesManager(self.db_file)
         self.export_import_manager = ExportImportManager(self.db_file)
         self.courses_manager = CoursesManager(self.db_file)
+        self.categories_repas_manager = CategoriesRepasManager(self.db_file)
 
     def init_db(self):
         """Initialise la structure de la base de données et crée un utilisateur par défaut si nécessaire"""
@@ -295,3 +297,44 @@ class DatabaseManager(DBConnector):
     def charger_etats_courses(self):
         """Délègue le chargement des états des cases à cocher au CoursesManager"""
         return self.courses_manager.charger_etats_courses()
+
+    # =========== MÉTHODES DÉLÉGUÉES À CategoriesRepasManager ===========
+    def ajouter_categorie(self, nom, couleur="#3498db"):
+        """Délègue l'ajout d'une catégorie de repas"""
+        return self.categories_repas_manager.ajouter_categorie(nom, couleur)
+
+    def modifier_categorie(self, categorie_id, nom, couleur):
+        """Délègue la modification d'une catégorie"""
+        return self.categories_repas_manager.modifier_categorie(
+            categorie_id, nom, couleur
+        )
+
+    def supprimer_categorie(self, categorie_id):
+        """Délègue la suppression d'une catégorie"""
+        return self.categories_repas_manager.supprimer_categorie(categorie_id)
+
+    def get_categories(self):
+        """Délègue la récupération de toutes les catégories"""
+        return self.categories_repas_manager.get_categories()
+
+    def get_categorie(self, categorie_id):
+        """Délègue la récupération d'une catégorie par son ID"""
+        return self.categories_repas_manager.get_categorie(categorie_id)
+
+    def set_categorie_repas_type(self, repas_type_id, categorie_id):
+        """Délègue la définition de la catégorie d'un repas type"""
+        return self.repas_types_manager.set_categorie_repas_type(
+            repas_type_id, categorie_id
+        )
+
+    def set_portions_repas_type(
+        self, repas_type_id, nb_portions, temps_preparation=0, temps_cuisson=0
+    ):
+        """Délègue la définition des portions d'un repas type"""
+        return self.repas_types_manager.set_portions_repas_type(
+            repas_type_id, nb_portions, temps_preparation, temps_cuisson
+        )
+
+    def get_repas_types_filtres(self, categorie_id=None, recherche=None):
+        """Délègue la récupération des repas types filtrés"""
+        return self.repas_types_manager.get_repas_types_filtres(categorie_id, recherche)

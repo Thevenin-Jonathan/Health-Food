@@ -250,13 +250,28 @@ class DBConnector:
         """
         )
 
+        # Table des catégories de repas
+        self.cursor.execute(
+            """
+        CREATE TABLE IF NOT EXISTS categories_repas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nom TEXT NOT NULL,
+            couleur TEXT DEFAULT '#3498db'
+        )
+        """
+        )
+
         # Table des repas types
         self.cursor.execute(
             """
         CREATE TABLE IF NOT EXISTS repas_types (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nom TEXT NOT NULL,
-            description TEXT
+            description TEXT,
+            categorie_id INTEGER REFERENCES categories_repas(id),
+            nb_portions INTEGER DEFAULT 1,
+            temps_preparation INTEGER DEFAULT 0,
+            temps_cuisson INTEGER DEFAULT 0
         )
         """
         )
@@ -299,6 +314,21 @@ class DBConnector:
             )
             """
         )
+
+        # Ajouter quelques catégories par défaut
+        self.cursor.execute("SELECT COUNT(*) FROM categories_repas")
+        if self.cursor.fetchone()[0] == 0:
+            categories_default = [
+                ("Petit déjeuner", "#e74c3c"),
+                ("Repas", "#3498db"),
+                ("Collation", "#f39c12"),
+                ("Dessert", "#9b59b6"),
+            ]
+
+            self.cursor.executemany(
+                "INSERT INTO categories_repas (nom, couleur) VALUES (?, ?)",
+                categories_default,
+            )
 
         # Si c'est une nouvelle base de données, définir la version à 1
         if current_version == 0:

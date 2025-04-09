@@ -24,8 +24,9 @@ from PySide6.QtWidgets import (
     QFrame,
 )
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QCursor
+from PySide6.QtGui import QCursor, QColor
 from src.utils.events import EVENT_BUS
+from src.ui.dialogs.categories_manager_dialog import CategoriesManagerDialog
 
 
 # Délégué personnalisé pour permettre l'édition uniquement de la colonne quantité
@@ -121,6 +122,46 @@ class RecettesTab(QWidget):
         left_title = QLabel("<h3>Liste des repas</h3>")
         left_title.setProperty("class", "section-title")
         left_layout.addWidget(left_title)
+
+        # Ajouter un panneau de filtrage au-dessus de la liste des recettes
+        filter_widget = QWidget()
+        filter_layout = QVBoxLayout(filter_widget)
+        filter_layout.setContentsMargins(0, 0, 0, 10)
+        filter_layout.setSpacing(5)
+
+        # Filtre de recherche (ligne 1)
+        search_container = QHBoxLayout()
+        search_container.setContentsMargins(0, 0, 0, 0)
+        search_label = QLabel("Recherche:")
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Rechercher une recette...")
+        self.search_input.textChanged.connect(self.apply_filters)
+        search_container.addWidget(search_label)
+        search_container.addWidget(self.search_input)
+        filter_layout.addLayout(search_container)
+
+        # Filtre par catégorie (ligne 2)
+        category_container = QHBoxLayout()
+        category_container.setContentsMargins(0, 0, 0, 0)
+        category_label = QLabel("Catégorie:")
+        self.category_filter = QComboBox()
+        self.category_filter.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.category_filter.addItem("Toutes les catégories", None)
+        self.category_filter.currentIndexChanged.connect(self.apply_filters)
+
+        # Bouton pour gérer les catégories
+        self.btn_manage_categories = QPushButton("Gérer")
+        self.btn_manage_categories.setToolTip("Gérer les catégories")
+        self.btn_manage_categories.clicked.connect(self.manage_categories)
+        self.btn_manage_categories.setMaximumWidth(60)  # Limiter la largeur du bouton
+
+        category_container.addWidget(category_label)
+        category_container.addWidget(self.category_filter)
+        category_container.addWidget(self.btn_manage_categories)
+        filter_layout.addLayout(category_container)
+
+        # Ajouter à votre layout existant
+        left_layout.insertWidget(1, filter_widget)  # Insérer juste après left_title
 
         self.recettes_list = QListWidget()
         self.recettes_list.currentRowChanged.connect(self.afficher_details_recette)
@@ -294,13 +335,69 @@ class RecettesTab(QWidget):
 
     def load_data(self):
         """Charge la liste des repas types"""
+        # Charger les catégories d'abord
+        self.load_categories()
+
+        # Appliquer les filtres (qui chargera aussi les recettes)
+        self.apply_filters()
+
+    def load_categories(self):
+        """Charge les catégories dans le filtre"""
+        self.category_filter.clear()
+        self.category_filter.addItem("Toutes les catégories", None)
+
+        categories = self.db_manager.get_categories()
+        for categorie in categories:
+            self.category_filter.addItem(categorie["nom"], categorie["id"])
+
+    def apply_filters(self):
+        """Applique les filtres et charge les données"""
         self.recettes_list.clear()
-        repas_types = self.db_manager.get_repas_types()
+
+        # Obtenir les valeurs des filtres
+        categorie_id = self.category_filter.currentData()
+        recherche = self.search_input.text().strip()
+
+        # Récupérer les recettes filtrées
+        repas_types = self.db_manager.get_repas_types_filtres(categorie_id, recherche)
 
         for repas_type in repas_types:
+            # Créer l'item avec formatage conditionnel pour les catégories
             item = QListWidgetItem(repas_type["nom"])
             item.setData(Qt.UserRole, repas_type["id"])
+
+            # Si le repas a une catégorie, lui appliquer une couleur
+            if repas_type.get("categorie_id"):
+                categorie = self.db_manager.get_categorie(repas_type["categorie_id"])
+                if categorie:
+                    item.setBackground(QColor(categorie["couleur"]))
+                    # Assurez-vous que le texte reste lisible
+                    item.setForeground(
+                        QColor(
+                            "white"
+                            if self.is_dark_color(categorie["couleur"])
+                            else "black"
+                        )
+                    )
+
             self.recettes_list.addItem(item)
+
+    def is_dark_color(self, color):
+        """Détermine si une couleur est sombre pour choisir le texte contrastant"""
+        # Convertit la couleur hexadécimale en RGB
+        color = color.lstrip("#")
+        r, g, b = int(color[0:2], 16), int(color[2:4], 16), int(color[4:6], 16)
+        # Formule de luminosité approximative
+        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        return luminance < 0.5  # Si < 0.5, considéré comme sombre
+
+    def manage_categories(self):
+        """Ouvre un dialogue pour gérer les catégories"""
+        dialog = CategoriesManagerDialog(self, self.db_manager)
+        if dialog.exec():
+            # Recharger les catégories et appliquer les filtres
+            self.load_categories()
+            self.apply_filters()
 
     def afficher_details_recette(self, row):
         """Affiche les détails du repas sélectionné"""
@@ -324,6 +421,37 @@ class RecettesTab(QWidget):
 
         # Mettre à jour les détails
         self.detail_titre.setText(f"<h3>{recette['nom']}</h3>")
+
+        # Créer une ligne d'info avec portions et temps
+        info_text = ""
+        if "nb_portions" in recette and recette["nb_portions"] > 0:
+            info_text += f"<b>Portions:</b> {recette['nb_portions']} "
+
+        if "temps_preparation" in recette and recette["temps_preparation"] > 0:
+            if info_text:
+                info_text += " | "
+            info_text += f"<b>Préparation:</b> {recette['temps_preparation']} min"
+
+        if "temps_cuisson" in recette and recette["temps_cuisson"] > 0:
+            if info_text:
+                info_text += " | "
+            info_text += f"<b>Cuisson:</b> {recette['temps_cuisson']} min"
+
+        if info_text:
+            info_label = QLabel(info_text)
+            info_label.setAlignment(Qt.AlignCenter)
+            info_label.setProperty("class", "recipe-info")
+
+            # Si un ancien label d'info existe, le remplacer
+            old_info = self.findChild(QLabel, "recipe-info-label")
+            if old_info:
+                self.right_layout.removeWidget(old_info)
+                old_info.deleteLater()
+
+            info_label.setObjectName("recipe-info-label")
+            self.right_layout.insertWidget(
+                2, info_label
+            )  # Après le titre et avant la description
 
         # Afficher la description complète dans le QTextEdit
         description = recette["description"] or ""
@@ -413,9 +541,28 @@ class RecettesTab(QWidget):
         """Ajoute une nouvelle recette"""
         dialog = RecetteDialog(self)
         if dialog.exec():
-            nom, description = dialog.get_data()
-            self.db_manager.ajouter_repas_type(nom, description)
-            self.load_data()
+            data = dialog.get_data()
+
+            # Ajouter la recette
+            recette_id = self.db_manager.ajouter_repas_type(
+                data["nom"], data["description"]
+            )
+
+            # Définir la catégorie et les portions
+            if data["categorie_id"]:
+                self.db_manager.set_categorie_repas_type(
+                    recette_id, data["categorie_id"]
+                )
+
+            self.db_manager.set_portions_repas_type(
+                recette_id,
+                data["nb_portions"],
+                data["temps_preparation"],
+                data["temps_cuisson"],
+            )
+
+            # Rafraîchir l'affichage
+            self.apply_filters()
 
     def supprimer_recette(self):
         """Supprime la recette sélectionnée"""
@@ -562,34 +709,31 @@ class RecettesTab(QWidget):
         """Modifie la recette sélectionnée"""
         current_row = self.recettes_list.currentRow()
         if current_row < 0:
-            QMessageBox.warning(
-                self,
-                "Sélection requise",
-                "Veuillez sélectionner une recette à modifier.",
-            )
             return
 
         recette_id = self.recettes_list.item(current_row).data(Qt.UserRole)
-
-        # Récupérer les informations de la recette
         recette = self.db_manager.get_repas_type(recette_id)
 
-        # Créer un dialogue de modification avec les données pré-remplies
         dialog = RecetteDialog(self, recette)
         if dialog.exec():
-            nom, description = dialog.get_data()
+            data = dialog.get_data()
 
-            # Mettre à jour la base de données
-            self.db_manager.modifier_repas_type(recette_id, nom, description)
+            # Mettre à jour la recette
+            self.db_manager.modifier_repas_type(
+                recette_id, data["nom"], data["description"]
+            )
 
-            # Recharger les données
-            self.load_data()
+            # Mettre à jour la catégorie et les portions
+            self.db_manager.set_categorie_repas_type(recette_id, data["categorie_id"])
+            self.db_manager.set_portions_repas_type(
+                recette_id,
+                data["nb_portions"],
+                data["temps_preparation"],
+                data["temps_cuisson"],
+            )
 
-            # Réafficher les détails du repas modifié
-            for i in range(self.recettes_list.count()):
-                if self.recettes_list.item(i).data(Qt.UserRole) == recette_id:
-                    self.recettes_list.setCurrentRow(i)
-                    break
+            # Rafraîchir l'affichage
+            self.apply_filters()
 
             EVENT_BUS.recette_modifiee.emit(recette_id)
 
@@ -633,6 +777,47 @@ class RecetteDialog(QDialog):
             self.nom_input.setText(self.recette["nom"])
         layout.addRow("Nom de la recette *:", self.nom_input)
 
+        # Catégorie
+        self.categorie_combo = QComboBox()
+        self.categorie_combo.addItem("Sans catégorie", None)
+        self.load_categories()
+        layout.addRow("Catégorie:", self.categorie_combo)
+
+        # Nombre de portions
+        self.portions_spin = QSpinBox()
+        self.portions_spin.setMinimum(1)
+        self.portions_spin.setMaximum(20)
+        self.portions_spin.setValue(
+            self.recette["nb_portions"]
+            if self.recette and "nb_portions" in self.recette
+            else 1
+        )
+        layout.addRow("Nombre de portions:", self.portions_spin)
+
+        # Temps de préparation
+        self.prep_time_spin = QSpinBox()
+        self.prep_time_spin.setMinimum(0)
+        self.prep_time_spin.setMaximum(240)
+        self.prep_time_spin.setSuffix(" min")
+        self.prep_time_spin.setValue(
+            self.recette["temps_preparation"]
+            if self.recette and "temps_preparation" in self.recette
+            else 0
+        )
+        layout.addRow("Temps de préparation:", self.prep_time_spin)
+
+        # Temps de cuisson
+        self.cooking_time_spin = QSpinBox()
+        self.cooking_time_spin.setMinimum(0)
+        self.cooking_time_spin.setMaximum(240)
+        self.cooking_time_spin.setSuffix(" min")
+        self.cooking_time_spin.setValue(
+            self.recette["temps_cuisson"]
+            if self.recette and "temps_cuisson" in self.recette
+            else 0
+        )
+        layout.addRow("Temps de cuisson:", self.cooking_time_spin)
+
         # Description
         self.description_input = QTextEdit()
         if self.recette:
@@ -665,11 +850,39 @@ class RecetteDialog(QDialog):
 
         self.accept()
 
+    def load_categories(self):
+        """Charge les catégories dans le combobox"""
+        parent = self.parent()
+        db_manager = getattr(parent, "db_manager", None)
+
+        if not db_manager:
+            return
+
+        categories = db_manager.get_categories()
+
+        for categorie in categories:
+            self.categorie_combo.addItem(categorie["nom"], categorie["id"])
+
+        # Sélectionner la catégorie actuelle si modification
+        if (
+            self.recette
+            and "categorie_id" in self.recette
+            and self.recette["categorie_id"]
+        ):
+            index = self.categorie_combo.findData(self.recette["categorie_id"])
+            if index >= 0:
+                self.categorie_combo.setCurrentIndex(index)
+
     def get_data(self):
-        return (
-            self.nom_input.text().strip(),
-            self.description_input.toPlainText().strip(),
-        )
+        """Récupère les données saisies"""
+        return {
+            "nom": self.nom_input.text().strip(),
+            "description": self.description_input.toPlainText().strip(),
+            "categorie_id": self.categorie_combo.currentData(),
+            "nb_portions": self.portions_spin.value(),
+            "temps_preparation": self.prep_time_spin.value(),
+            "temps_cuisson": self.cooking_time_spin.value(),
+        }
 
 
 class IngredientRecetteDialog(QDialog):

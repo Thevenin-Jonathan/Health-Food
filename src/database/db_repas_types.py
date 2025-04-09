@@ -250,3 +250,86 @@ class RepasTypesManager(DBConnector):
             )
 
         return repas_id
+
+    def set_categorie_repas_type(self, repas_type_id, categorie_id):
+        """Définit la catégorie d'un repas type"""
+        self.connect()
+        self.cursor.execute(
+            "UPDATE repas_types SET categorie_id = ? WHERE id = ?",
+            (categorie_id, repas_type_id),
+        )
+        rows_affected = self.cursor.rowcount > 0
+        self.conn.commit()
+        self.disconnect()
+        return rows_affected
+
+    def set_portions_repas_type(
+        self, repas_type_id, nb_portions, temps_preparation=0, temps_cuisson=0
+    ):
+        """Définit les informations de portions pour un repas type"""
+        self.connect()
+        self.cursor.execute(
+            """
+            UPDATE repas_types 
+            SET nb_portions = ?, temps_preparation = ?, temps_cuisson = ? 
+            WHERE id = ?
+            """,
+            (nb_portions, temps_preparation, temps_cuisson, repas_type_id),
+        )
+        rows_affected = self.cursor.rowcount > 0
+        self.conn.commit()
+        self.disconnect()
+        return rows_affected
+
+    def get_repas_types_filtres(self, categorie_id=None, recherche=None):
+        """Récupère les repas types filtrés par catégorie et/ou terme de recherche"""
+        self.connect()
+
+        query = "SELECT * FROM repas_types WHERE 1=1"
+        params = []
+
+        if categorie_id is not None:
+            query += " AND (categorie_id = ? OR categorie_id IS NULL)"
+            params.append(categorie_id)
+
+        if recherche:
+            query += " AND (nom LIKE ? OR description LIKE ?)"
+            recherche_param = f"%{recherche}%"
+            params.extend([recherche_param, recherche_param])
+
+        query += " ORDER BY nom"
+
+        self.cursor.execute(query, params)
+        result = [dict(row) for row in self.cursor.fetchall()]
+
+        # Récupérer les aliments et calculer les totaux pour chaque repas type
+        for repas_type in result:
+            self.cursor.execute(
+                """
+                SELECT rta.quantite, a.* 
+                FROM repas_types_aliments rta
+                JOIN aliments a ON rta.aliment_id = a.id
+                WHERE rta.repas_type_id = ?
+                """,
+                (repas_type["id"],),
+            )
+
+            aliments = [dict(row) for row in self.cursor.fetchall()]
+            repas_type["aliments"] = aliments
+
+            # Calculer les totaux du repas
+            repas_type["total_calories"] = sum(
+                a["calories"] * a["quantite"] / 100 for a in aliments
+            )
+            repas_type["total_proteines"] = sum(
+                a["proteines"] * a["quantite"] / 100 for a in aliments
+            )
+            repas_type["total_glucides"] = sum(
+                a["glucides"] * a["quantite"] / 100 for a in aliments
+            )
+            repas_type["total_lipides"] = sum(
+                a["lipides"] * a["quantite"] / 100 for a in aliments
+            )
+
+        self.disconnect()
+        return result
