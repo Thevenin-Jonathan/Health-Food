@@ -834,7 +834,7 @@ QFrame.nutrition-summary {
     background-color: white;
     border: 1px solid $PRIMARY_LIGHT;
     border-radius: $BORDER_RADIUS;
-    padding: 5px;
+    padding: 1px;
     margin-top: 5px;
     margin-bottom: 10px;
 }
@@ -843,22 +843,22 @@ QFrame.nutrition-summary {
 QFrame.nutrition-item {
     background-color: $LIGHT_BG_COLOR;
     border-radius: $BORDER_RADIUS;
-    padding: 5px;
-    margin: 2px;
+    padding: 0px;
+    margin: 0px;
 }
 
 /* Titre des valeurs nutritionnelles */
 QLabel.nutrition-title {
     font-weight: bold;
     color: $PRIMARY_DARK;
-    font-size: 9pt;
+    font-size: 12pt;
 }
 
 /* Valeurs nutritionnelles */
 QLabel.nutrition-value {
     font-weight: bold;
-    font-size: 12pt;
-    padding: 2px;
+    font-size: 10pt;
+    padding: 1px;
 }
 
 /* Couleurs spécifiques pour les macros */

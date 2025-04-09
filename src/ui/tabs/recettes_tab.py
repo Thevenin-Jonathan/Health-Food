@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
     QFrame,
 )
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QCursor, QColor
+from PySide6.QtGui import QCursor
 from src.utils.events import EVENT_BUS
 from src.ui.dialogs.categories_manager_dialog import CategoriesManagerDialog
 
@@ -91,11 +91,9 @@ class RecettesTab(QWidget):
 
         # Créer un widget contenant le contenu réel avec sa largeur limitée
         content_widget = QWidget()
-        content_widget.setMaximumWidth(
-            1200
-        )  # Largeur maximale plus grande pour les tableaux
+        content_widget.setMaximumWidth(1800)  # Largeur maximale plus grande
         content_widget.setMinimumWidth(
-            900
+            1400
         )  # Largeur minimale pour garantir la lisibilité
 
         # Layout principal du contenu
@@ -104,35 +102,36 @@ class RecettesTab(QWidget):
         main_layout.setContentsMargins(20, 20, 20, 20)
 
         # Titre
-        title = QLabel("<h1>Mes repas</h1>")
+        title = QLabel("<h1>Mes recettes</h1>")
         title.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(title)
 
-        # Splitter pour diviser la vue en deux parties
+        # Splitter pour diviser la vue en trois parties
         splitter = QSplitter(Qt.Horizontal)
         main_layout.addWidget(
             splitter, 1
-        )  # Stretch factor pour que le splitter prenne tout l'espace disponible
+        )  # Stretch factor pour que le splitter prenne tout l'espace
 
-        # Partie gauche : Liste des repas
+        # ======== PARTIE GAUCHE : LISTE DES REPAS ========
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
-        left_layout.setContentsMargins(0, 0, 0, 0)  # Réduire les marges
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_widget.setMaximumWidth(265)
 
-        left_title = QLabel("<h3>Liste des repas</h3>")
+        left_title = QLabel("<h3>Liste des recettes</h3>")
         left_title.setProperty("class", "section-title")
         left_layout.addWidget(left_title)
 
-        # Ajouter un panneau de filtrage au-dessus de la liste des recettes
+        # Panneau de filtrage
         filter_widget = QWidget()
         filter_layout = QVBoxLayout(filter_widget)
         filter_layout.setContentsMargins(0, 0, 0, 10)
         filter_layout.setSpacing(5)
 
-        # Filtre de recherche (ligne 1)
+        # Filtre de recherche
         search_container = QHBoxLayout()
         search_container.setContentsMargins(0, 0, 0, 0)
-        search_label = QLabel("Recherche:")
+        search_label = QLabel("Rechercher:")
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Rechercher une recette...")
         self.search_input.textChanged.connect(self.apply_filters)
@@ -140,7 +139,7 @@ class RecettesTab(QWidget):
         search_container.addWidget(self.search_input)
         filter_layout.addLayout(search_container)
 
-        # Filtre par catégorie (ligne 2)
+        # Filtre par catégorie
         category_container = QHBoxLayout()
         category_container.setContentsMargins(0, 0, 0, 0)
         category_label = QLabel("Catégorie:")
@@ -153,7 +152,7 @@ class RecettesTab(QWidget):
         self.btn_manage_categories = QPushButton("Gérer")
         self.btn_manage_categories.setToolTip("Gérer les catégories")
         self.btn_manage_categories.clicked.connect(self.manage_categories)
-        self.btn_manage_categories.setMaximumWidth(60)  # Limiter la largeur du bouton
+        self.btn_manage_categories.setMaximumWidth(60)
 
         category_container.addWidget(category_label)
         category_container.addWidget(self.category_filter)
@@ -165,13 +164,11 @@ class RecettesTab(QWidget):
 
         self.recettes_list = QListWidget()
         self.recettes_list.currentRowChanged.connect(self.afficher_details_recette)
-        left_layout.addWidget(
-            self.recettes_list, 1
-        )  # Ajouté stretch factor pour que la liste prenne l'espace vertical
+        left_layout.addWidget(self.recettes_list, 1)  # Stretch factor
 
         # Boutons d'action pour les recettes
         btn_layout = QHBoxLayout()
-        self.btn_add = QPushButton("Nouvelle recette")
+        self.btn_add = QPushButton("Ajouter")
         self.btn_add.clicked.connect(self.ajouter_recette)
         self.btn_edit = QPushButton("Modifier")
         self.btn_edit.clicked.connect(self.modifier_recette)
@@ -185,29 +182,39 @@ class RecettesTab(QWidget):
 
         left_layout.addLayout(btn_layout)
 
-        # Partie droite : Détails du repas
-        right_widget = QWidget()
-        right_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.right_layout = QVBoxLayout(right_widget)
-        self.right_layout.setContentsMargins(0, 0, 0, 0)  # Réduire les marges
-        self.right_layout.setSpacing(10)  # Meilleur espacement entre les éléments
+        # ======== PARTIE CENTRALE : DÉTAILS, INGRÉDIENTS ET VALEURS NUTRITIONNELLES ========
+        center_widget = QWidget()
+        center_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.center_layout = QVBoxLayout(center_widget)
+        self.center_layout.setContentsMargins(10, 0, 10, 0)
+        self.center_layout.setSpacing(10)
 
-        self.detail_titre = QLabel("<h3>Détails du repas</h3>")
+        self.detail_titre = QLabel("<h3>Détails de la recette</h3>")
         self.detail_titre.setProperty("class", "section-title")
-        self.right_layout.addWidget(self.detail_titre)
+        self.center_layout.addWidget(self.detail_titre)
 
-        # Remplacer le QLabel par un QTextEdit pour la description, pour permettre le défilement
+        # Informations de base (portions, temps)
+        self.info_label = QLabel()
+        self.info_label.setAlignment(Qt.AlignCenter)
+        self.info_label.setProperty("class", "recipe-info")
+        self.info_label.setObjectName("recipe-info-label")
+        self.center_layout.addWidget(self.info_label)
+        self.info_label.hide()  # Masquer initialement
+
+        # Description de la recette
         self.detail_description = QTextEdit()
         self.detail_description.setReadOnly(True)
         self.detail_description.setPlaceholderText(
             "Sélectionnez une recette pour voir ses détails."
         )
-        self.detail_description.setMaximumHeight(
-            100
-        )  # Limiter la hauteur pour ne pas prendre trop de place
-        self.right_layout.addWidget(self.detail_description)
+        self.detail_description.setMaximumHeight(100)
+        self.center_layout.addWidget(self.detail_description)
 
-        # Configuration du tableau des ingrédients
+        # Tableau des ingrédients
+        ingredients_title = QLabel("<h4>Ingrédients</h4>")
+        ingredients_title.setProperty("class", "subsection-title")
+        self.center_layout.addWidget(ingredients_title)
+
         self.detail_ingredients = QTableWidget()
         self.detail_ingredients.setObjectName("ingredientsTable")
         self.detail_ingredients.setColumnCount(5)
@@ -215,10 +222,7 @@ class RecettesTab(QWidget):
             ["Aliment", "Quantité (g)", "Calories", "Macros", "Actions"]
         )
 
-        # Optimisation de l'espace dans le tableau
-        self.detail_ingredients.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        # Configuration des colonnes pour l'espace limité
+        # Configuration des colonnes
         header = self.detail_ingredients.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)  # Aliment
         header.setSectionResizeMode(1, QHeaderView.Fixed)  # Quantité
@@ -226,22 +230,18 @@ class RecettesTab(QWidget):
         header.setSectionResizeMode(3, QHeaderView.Fixed)  # Macros
         header.setSectionResizeMode(4, QHeaderView.Fixed)  # Actions
 
-        self.detail_ingredients.verticalHeader().setVisible(
-            False
-        )  # Masquer les en-têtes de ligne verticaux
+        self.detail_ingredients.verticalHeader().setVisible(False)
 
-        # Définir des largeurs fixes pour les colonnes non élastiques
         self.detail_ingredients.setColumnWidth(1, 90)  # Quantité
         self.detail_ingredients.setColumnWidth(2, 80)  # Calories
         self.detail_ingredients.setColumnWidth(3, 180)  # Macros
         self.detail_ingredients.setColumnWidth(4, 70)  # Actions
 
-        # Définir une hauteur minimale pour le tableau
         self.detail_ingredients.setSizePolicy(
             QSizePolicy.Expanding, QSizePolicy.Expanding
         )
         self.detail_ingredients.setMinimumHeight(200)
-        self.right_layout.addWidget(self.detail_ingredients)
+        self.center_layout.addWidget(self.detail_ingredients, 1)  # Stretch factor
 
         # Configurer l'édition limitée à la colonne quantité
         self.quantite_delegate = QuantiteDelegate(self)
@@ -249,32 +249,35 @@ class RecettesTab(QWidget):
         self.detail_ingredients.setEditTriggers(
             QTableWidget.DoubleClicked | QTableWidget.EditKeyPressed
         )
-
-        # Connecter le signal de modification de quantité
         self.quantite_modifiee.connect(self.update_ingredient_quantite)
-
-        # Permettre le menu contextuel
         self.detail_ingredients.setContextMenuPolicy(Qt.CustomContextMenu)
         self.detail_ingredients.customContextMenuRequested.connect(
             self.show_ingredient_context_menu
         )
-
-        # Désactiver la sélection de cellules individuelles
         self.detail_ingredients.setSelectionMode(QTableWidget.NoSelection)
-        self.detail_ingredients.setFocusPolicy(Qt.NoFocus)  # Évite le focus du tableau
+        self.detail_ingredients.setFocusPolicy(Qt.NoFocus)
 
-        # Ajouter un titre pour la section des valeurs nutritionnelles
+        # Bouton pour ajouter un ingrédient
+        button_container = QWidget()
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 10, 0, 0)
+
+        self.btn_add_ingredient = QPushButton("Ajouter un ingrédient")
+        self.btn_add_ingredient.clicked.connect(self.ajouter_ingredient)
+        button_layout.addWidget(self.btn_add_ingredient)
+        self.center_layout.addWidget(button_container)
+
         nutrition_title = QLabel("<h4>Valeurs nutritionnelles</h4>")
         nutrition_title.setProperty("class", "subsection-title")
-        self.right_layout.addWidget(nutrition_title)
+        self.center_layout.addWidget(nutrition_title)
 
-        # Créer un conteneur stylisé pour les valeurs nutritionnelles
+        # Conteneur pour les valeurs nutritives
         nutrition_container = QFrame()
         nutrition_container.setObjectName("nutritionFrame")
         nutrition_container.setProperty("class", "nutrition-summary")
         nutrition_layout = QHBoxLayout(nutrition_container)
 
-        # Créer quatre sections pour les macronutriments principaux
+        # Créer les widgets pour les valeurs nutritives
         self.calories_label = QLabel("0 kcal")
         self.calories_label.setAlignment(Qt.AlignCenter)
         self.calories_label.setProperty("class", "nutrition-value")
@@ -291,7 +294,6 @@ class RecettesTab(QWidget):
         self.lipides_label.setAlignment(Qt.AlignCenter)
         self.lipides_label.setProperty("class", "nutrition-value")
 
-        # Créer des conteneurs individuels pour chaque macro avec icône/titre
         calories_widget = self.create_nutrition_widget("Calories", self.calories_label)
         proteines_widget = self.create_nutrition_widget(
             "Protéines", self.proteines_label
@@ -299,29 +301,45 @@ class RecettesTab(QWidget):
         glucides_widget = self.create_nutrition_widget("Glucides", self.glucides_label)
         lipides_widget = self.create_nutrition_widget("Lipides", self.lipides_label)
 
-        # Ajouter les widgets au layout
         nutrition_layout.addWidget(calories_widget)
         nutrition_layout.addWidget(proteines_widget)
         nutrition_layout.addWidget(glucides_widget)
         nutrition_layout.addWidget(lipides_widget)
 
-        # Ajouter le conteneur au layout principal
-        self.right_layout.addWidget(nutrition_container)
+        self.center_layout.addWidget(nutrition_container)
 
-        # Bouton pour ajouter un ingrédient à la recette sélectionnée
-        button_container = QWidget()
-        button_layout = QHBoxLayout(button_container)
-        button_layout.setContentsMargins(0, 10, 0, 0)  # Marge en haut pour l'espacement
+        # ======== PARTIE DROITE : ÉTAPES DE PRÉPARATION ========
+        right_widget = QWidget()
+        right_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        right_widget.setMaximumWidth(320)
+        right_widget.setMinimumWidth(320)
+        right_layout = QVBoxLayout(right_widget)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(10)
 
-        self.btn_add_ingredient = QPushButton("Ajouter un ingrédient")
-        self.btn_add_ingredient.clicked.connect(self.ajouter_ingredient)
-        button_layout.addWidget(self.btn_add_ingredient)
-        self.right_layout.addWidget(button_container)
+        # Section des étapes de préparation
+        etapes_title = QLabel("<h3>Étapes de préparation</h3>")
+        etapes_title.setProperty("class", "section-title")
+        right_layout.addWidget(etapes_title)
 
-        # Ajouter les widgets au splitter
+        # Champ d'édition pour les étapes
+        self.etapes_edit = QTextEdit()
+        self.etapes_edit.setReadOnly(True)
+        self.etapes_edit.setPlaceholderText(
+            "Les étapes de préparation seront affichées ici."
+        )
+        right_layout.addWidget(self.etapes_edit, 1)  # Stretch factor
+
+        # Bouton pour sauvegarder les étapes
+        self.btn_edit_etapes = QPushButton("Modifier les étapes")
+        self.btn_edit_etapes.clicked.connect(self.modifier_etapes)
+        right_layout.addWidget(self.btn_edit_etapes)
+
+        # Ajouter les trois widgets au splitter
         splitter.addWidget(left_widget)
+        splitter.addWidget(center_widget)
         splitter.addWidget(right_widget)
-        splitter.setSizes([300, 700])  # Proportions initiales
+        splitter.setSizes([250, 500, 400])  # Proportions initiales
 
         # Ajouter le widget de contenu au layout central avec des marges extensibles
         center_layout.addStretch(1)
@@ -362,23 +380,15 @@ class RecettesTab(QWidget):
         repas_types = self.db_manager.get_repas_types_filtres(categorie_id, recherche)
 
         for repas_type in repas_types:
-            # Créer l'item avec formatage conditionnel pour les catégories
+            # Créer l'item sans appliquer de couleur
             item = QListWidgetItem(repas_type["nom"])
             item.setData(Qt.UserRole, repas_type["id"])
 
-            # Si le repas a une catégorie, lui appliquer une couleur
+            # Optionnel : Ajouter une indication de catégorie dans le texte si nécessaire
             if repas_type.get("categorie_id"):
                 categorie = self.db_manager.get_categorie(repas_type["categorie_id"])
                 if categorie:
-                    item.setBackground(QColor(categorie["couleur"]))
-                    # Assurez-vous que le texte reste lisible
-                    item.setForeground(
-                        QColor(
-                            "white"
-                            if self.is_dark_color(categorie["couleur"])
-                            else "black"
-                        )
-                    )
+                    item.setText(f"{repas_type['nom']} ({categorie['nom']})")
 
             self.recettes_list.addItem(item)
 
@@ -399,27 +409,62 @@ class RecettesTab(QWidget):
             self.load_categories()
             self.apply_filters()
 
+    def modifier_etapes(self):
+        """Permet de modifier les étapes de préparation"""
+        if not self.current_recette_id:
+            QMessageBox.warning(
+                self, "Erreur", "Veuillez d'abord sélectionner une recette."
+            )
+            return
+
+        # Rendre le champ d'édition modifiable
+        readonly = self.etapes_edit.isReadOnly()
+        if readonly:
+            # Passer en mode édition
+            self.etapes_edit.setReadOnly(False)
+            self.btn_edit_etapes.setText("Sauvegarder les étapes")
+        else:
+            # Sauvegarder et revenir en mode lecture
+            recette = self.db_manager.get_repas_type(self.current_recette_id)
+            description = self.detail_description.toPlainText()
+            etapes = self.etapes_edit.toPlainText()
+
+            # Mettre à jour la description avec les étapes
+            nouvelle_description = (
+                f"{description}\n\n--- ÉTAPES DE PRÉPARATION ---\n{etapes}"
+            )
+            self.db_manager.modifier_repas_type(
+                self.current_recette_id, recette["nom"], nouvelle_description
+            )
+
+            # Revenir en mode lecture seule
+            self.etapes_edit.setReadOnly(True)
+            self.btn_edit_etapes.setText("Modifier les étapes")
+
+            # Rafraîchir l'affichage
+            self.afficher_details_recette(self.recettes_list.currentRow())
+
     def afficher_details_recette(self, row):
         """Affiche les détails du repas sélectionné"""
+        # Réinitialisation des valeurs
         self.calories_label.setText("0 kcal")
         self.proteines_label.setText("0g")
         self.glucides_label.setText("0g")
         self.lipides_label.setText("0g")
         self.detail_ingredients.setRowCount(0)
+        self.detail_description.setPlainText("")
+        self.etapes_edit.setPlainText("")
+        self.info_label.hide()
 
         if row < 0:
-            # Réinitialiser les widgets quand rien n'est sélectionné
-            self.detail_titre.setText("<h3>Détails du repas</h3>")
-            self.detail_description.setPlainText(
-                ""
-            )  # Utiliser setPlainText au lieu de setText
+            self.detail_titre.setText("<h3>Détails de la recette</h3>")
             return
 
         recette_id = self.recettes_list.item(row).data(Qt.UserRole)
-        self.current_recette_id = recette_id  # Stocker l'ID de la recette sélectionnée
+        self.current_recette_id = recette_id
         recette = self.db_manager.get_repas_type(recette_id)
 
-        # Mettre à jour les détails
+        # Mettre à jour le titre
         self.detail_titre.setText(f"<h3>{recette['nom']}</h3>")
 
         # Créer une ligne d'info avec portions et temps
@@ -438,26 +483,22 @@ class RecettesTab(QWidget):
             info_text += f"<b>Cuisson:</b> {recette['temps_cuisson']} min"
 
         if info_text:
-            info_label = QLabel(info_text)
-            info_label.setAlignment(Qt.AlignCenter)
-            info_label.setProperty("class", "recipe-info")
+            self.info_label.setText(info_text)
+            self.info_label.show()
 
-            # Si un ancien label d'info existe, le remplacer
-            old_info = self.findChild(QLabel, "recipe-info-label")
-            if old_info:
-                self.right_layout.removeWidget(old_info)
-                old_info.deleteLater()
+        # Séparer la description et les étapes
+        description = recette.get("description") or ""
 
-            info_label.setObjectName("recipe-info-label")
-            self.right_layout.insertWidget(
-                2, info_label
-            )  # Après le titre et avant la description
+        # Essayer de trouver les étapes si elles sont séparées par un marqueur
+        if "--- ÉTAPES DE PRÉPARATION ---" in description:
+            parts = description.split("--- ÉTAPES DE PRÉPARATION ---")
+            self.detail_description.setPlainText(parts[0].strip())
+            self.etapes_edit.setPlainText(parts[1].strip())
+        else:
+            # Si pas de séparation claire, mettre tout dans la description
+            self.detail_description.setPlainText(description)
 
-        # Afficher la description complète dans le QTextEdit
-        description = recette["description"] or ""
-        self.detail_description.setPlainText(description)
-
-        # Effacer et remplir le tableau d'ingrédients
+        # Remplir le tableau des ingrédients
         self.detail_ingredients.setRowCount(0)
 
         for i, aliment in enumerate(recette["aliments"]):
@@ -619,8 +660,11 @@ class RecettesTab(QWidget):
         layout.setContentsMargins(8, 12, 8, 12)
 
         # Titre avec icône (emoji) et texte
-        title_layout = QHBoxLayout()
+        title_container = QWidget()
+        title_layout = QHBoxLayout(title_container)
         title_layout.setSpacing(4)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setAlignment(Qt.AlignCenter)
 
         # Choisir l'icône (emoji) selon le type de macro
         icon = ""
@@ -633,20 +677,34 @@ class RecettesTab(QWidget):
         elif title == "Lipides":
             icon = "💧"  # Goutte pour lipides
 
+        # Créer un conteneur horizontal qui sera centré
+        inner_container = QWidget()
+        inner_layout = QHBoxLayout(inner_container)
+        inner_layout.setContentsMargins(0, 0, 0, 0)
+        inner_layout.setSpacing(4)
+
+        # Icône
         icon_label = QLabel(icon)
         icon_label.setProperty("class", "nutrition-icon")
+        icon_label.setAlignment(Qt.AlignCenter)
+        inner_layout.addWidget(icon_label)
+
+        # Texte du titre
         title_label = QLabel(title)
         title_label.setProperty("class", "nutrition-title")
+        title_label.setAlignment(Qt.AlignCenter)
+        inner_layout.addWidget(title_label)
 
-        title_layout.addWidget(icon_label)
-        title_layout.addWidget(title_label)
+        # Ajouter le conteneur horizontal au layout principal, centré
+        title_layout.addStretch(1)
+        title_layout.addWidget(inner_container)
         title_layout.addStretch(1)
 
         # Valeur nutritionnelle (grande et en gras)
         value_label.setAlignment(Qt.AlignCenter)
 
         # Ajouter au layout
-        layout.addLayout(title_layout)
+        layout.addWidget(title_container)
         layout.addWidget(value_label)
 
         return container
