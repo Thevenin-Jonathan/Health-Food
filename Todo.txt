@@ -1,11 +1,23 @@
-- Portion repas
-- Ajouter le gras saturé, le sucre et le sel
-- réappliquer changement recette dans la semaine
-- ajouter un systeme de quantite (lié au poids)
-- ajouter un systeme de log
-- catégories recette
-- retravailler le visuel
-- drag and drop transparent et améliorer les barre d'aperçu
+Fonctionnalités nutritionnelles
+- Système de portions : Implémenter un système de portions pour les repas
+- Nutriments supplémentaires : Ajouter le suivi des graisses saturées, du sucre et du sel
+- Gestion des quantités : Développer un système pour ajuster les quantités en fonction du poids
+- Réutilisation des recettes : Permettre de réappliquer les modifications de recettes dans toute la semaine
+
+Interface utilisateur
+- Refonte visuelle : Améliorer l'aspect général de l'application
+- Drag and drop amélioré : Rendre les éléments transparents lors du glisser-déposer
+- Aperçus optimisés : Améliorer les barres d'aperçu pour plus de clarté
+- Catégorisation : Ajouter un système de catégories pour les recettes
+
+Gestion des utilisateurs
+- Multi-utilisateurs : Implémenter la gestion de plusieurs profils utilisateurs
+- Profils enrichis : Créer une page utilisateur plus complète avec onglets et statistiques
+
+Journal et planification
+- Système de journalisation : Ajouter un système pour enregistrer l'historique des activités
+- Détails des repas : Permettre l'ajout de noms de repas et d'horaires
+
 
 
 Voici un processus complet pour publier une mise à jour :
