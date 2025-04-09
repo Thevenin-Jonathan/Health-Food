@@ -1,11 +1,12 @@
 - Portion repas
+- Ajouter le gras saturé, le sucre et le sel
 - réappliquer changement recette dans la semaine
-- vérifier les paths des checkmark en svg
 - ajouter un systeme de quantite (lié au poids)
 - ajouter un systeme de log
+- catégories recette
+- retravailler le visuel
+- drag and drop transparent et améliorer les barre d'aperçu
 
-- un systeme de mise à jour
-Signatures numériques : Signez vos installateurs pour une sécurité accrue
 
 Voici un processus complet pour publier une mise à jour :
 
