@@ -361,13 +361,13 @@ class PlanningTab(QWidget):
         # Supprimer la semaine de la base de données
         try:
             self.db_manager.supprimer_semaine(semaine_id)
-        except Exception as e:
+        except KeyError as e:  # Replace with the specific exception type
             print(f"Erreur lors de la suppression de la semaine {semaine_id}: {e}")
         finally:
             # Supprimer également le nom personnalisé de la semaine
             try:
                 self.db_manager.supprimer_nom_semaine(semaine_id)
-            except Exception as e:
+            except KeyError as e:  # Replace with the specific exception type
                 print(
                     f"Erreur lors de la suppression du nom personnalisé de la semaine {semaine_id}: {e}"
                 )
@@ -379,7 +379,7 @@ class PlanningTab(QWidget):
                 self.semaine_ids.remove(semaine_id)
             if semaine_id in self.onglets_personnalises:
                 del self.onglets_personnalises[semaine_id]
-        except Exception as e:
+        except KeyError as e:
             print(
                 f"Erreur lors de la suppression de la semaine {semaine_id} des collections: {e}"
             )
@@ -406,16 +406,12 @@ class PlanningTab(QWidget):
 
         # Supprimer l'onglet du TabWidget
         try:
-            self.tabs_semaines.blockSignals(
-                True
-            )  # Bloquer les signaux pendant la suppression
+            self.tabs_semaines.blockSignals(True)
             self.tabs_semaines.removeTab(index)
-            self.tabs_semaines.blockSignals(False)  # Réactiver les signaux
-        except Exception as e:
+            self.tabs_semaines.blockSignals(False)
+        except RuntimeError as e:
             print(f"Erreur lors de la suppression de l'onglet: {e}")
-            self.tabs_semaines.blockSignals(
-                False
-            )  # S'assurer que les signaux sont réactivés
+            self.tabs_semaines.blockSignals(False)
 
         # Appliquer la nouvelle sélection si le TabWidget a encore des onglets
         if self.tabs_semaines.count() > 1:  # Au moins un onglet + le "+"
