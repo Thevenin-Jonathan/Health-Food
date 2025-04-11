@@ -8,9 +8,7 @@ Fonctionnalités nutritionnelles
 
 Interface utilisateur
 - Refonte visuelle : Améliorer l'aspect général de l'application
-- Drag and drop amélioré : Rendre les éléments transparents lors du glisser-déposer
-- Aperçus optimisés : Améliorer les barres d'aperçu pour plus de clarté
-- Catégorisation : Ajouter un système de catégories pour les recettes
+- Catégorisation : Améliorer le système de catégories pour les recettes
 
 Gestion des utilisateurs
 - Multi-utilisateurs : Implémenter la gestion de plusieurs profils utilisateurs
