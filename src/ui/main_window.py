@@ -37,7 +37,7 @@ class MainWindow(QMainWindow):
 
         # Onglet des recettes (repas types)
         self.recettes_tab = RecettesTab(self.db_manager)
-        self.tabs.addTab(self.recettes_tab, "Mes repas")
+        self.tabs.addTab(self.recettes_tab, "Mes recettes")
 
         # Onglet de liste de courses
         self.courses_tab = CoursesTab(self.db_manager)
