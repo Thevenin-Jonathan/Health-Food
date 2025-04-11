@@ -289,7 +289,7 @@ class RepasTypesManager(DBConnector):
         params = []
 
         if categorie_id is not None:
-            query += " AND (categorie_id = ? OR categorie_id IS NULL)"
+            query += " AND categorie_id = ? "
             params.append(categorie_id)
 
         if recherche:

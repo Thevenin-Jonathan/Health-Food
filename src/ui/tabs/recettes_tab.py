@@ -363,6 +363,7 @@ class RecettesTab(QWidget):
         """Charge les catégories dans le filtre"""
         self.category_filter.clear()
         self.category_filter.addItem("Toutes les catégories", None)
+        self.category_filter.addItem("Sans catégorie", "sans_categorie")
 
         categories = self.db_manager.get_categories()
         for categorie in categories:
@@ -376,8 +377,18 @@ class RecettesTab(QWidget):
         categorie_id = self.category_filter.currentData()
         recherche = self.search_input.text().strip()
 
-        # Récupérer les recettes filtrées
-        repas_types = self.db_manager.get_repas_types_filtres(categorie_id, recherche)
+        # Traitement spécial pour les recettes sans catégorie
+        if categorie_id == "sans_categorie":
+            # Récupérer les recettes sans catégorie avec une requête spéciale
+            repas_types = []
+            for repas in self.db_manager.get_repas_types():
+                if not repas.get("categorie_id"):
+                    repas_types.append(repas)
+        else:
+            # Récupérer les recettes avec le filtre normal
+            repas_types = self.db_manager.get_repas_types_filtres(
+                categorie_id, recherche
+            )
 
         for repas_type in repas_types:
             # Créer l'item sans appliquer de couleur
