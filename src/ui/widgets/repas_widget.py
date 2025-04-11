@@ -24,8 +24,9 @@ from PySide6.QtCore import (
     Signal,
     QPropertyAnimation,
     QEasingCurve,
+    QPoint,
 )
-from PySide6.QtGui import QDrag
+from PySide6.QtGui import QDrag, QPixmap, QPainter
 from src.ui.dialogs.aliment_repas_dialog import AlimentRepasDialog
 from src.ui.dialogs.remplacer_repas_dialog import RemplacerRepasDialog
 from src.ui.dialogs.repas_edition_dialog import RepasEditionDialog
@@ -115,6 +116,19 @@ class RepasWidget(QFrame):
         self.drag_threshold = 10
         self.is_dragging = False
         self.animation = None
+
+        # Initialiser les attributs qui sont définis plus tard dans le code
+        self.repas_layout = None
+        self.titre_repas = None
+        self.macro_summary = None
+        self.details_widget = None
+        self.details_layout = None
+        self.expand_btn = None
+        self.btn_multi = None
+        self._drag_object = None
+        self._mime_data = None
+        self._pixmap = None
+
         self.setMouseTracking(True)
 
         # Style visuel
@@ -946,21 +960,56 @@ class RepasWidget(QFrame):
         if distance < self.drag_threshold:
             return
 
+        # Créer des copies locales des données importantes pour éviter les références
+        # qui pourraient être invalidées plus tard
+        local_repas_id = self.repas_data["id"]
+        local_jour = self.jour
+
         self.is_dragging = True
         drag = QDrag(self)
         mime_data = QMimeData()
 
         # Données essentielles pour le drop: ID du repas et jour d'origine
-        data = QByteArray(f"{self.repas_data['id']}|{self.jour}".encode())
+        data = QByteArray(f"{local_repas_id}|{local_jour}".encode())
         mime_data.setData("application/x-repas", data)
         drag.setMimeData(mime_data)
+
+        # Capturer l'image du widget (légèrement plus petite pour l'effet visuel)
         pixmap = self.grab()
-        drag.setPixmap(pixmap)
-        drag.setHotSpot(event.pos() - self.rect().topLeft())
+
+        # Créer une version semi-transparente de l'image
+        transparent_pixmap = QPixmap(pixmap.size())
+        transparent_pixmap.fill(Qt.transparent)
+
+        painter = QPainter(transparent_pixmap)
+        painter.setOpacity(0.7)  # Un peu moins transparent (70% opaque)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.drawPixmap(0, 0, pixmap)
+        painter.end()
+
+        # Utiliser l'image semi-transparente pour le drag
+        drag.setPixmap(transparent_pixmap)
+
+        # Point d'ancrage légèrement décalé vers le haut pour une meilleure visibilité
+        drag.setHotSpot(QPoint(event.pos().x(), 5))
+
         self.setCursor(Qt.ClosedHandCursor)
-        drag.exec(Qt.MoveAction)
-        self.is_dragging = False
-        self.setCursor(Qt.OpenHandCursor)
+
+        # Garder une référence à tous les objets pendant l'exécution
+        self._drag_object = drag
+        self._mime_data = mime_data
+        self._pixmap = transparent_pixmap
+
+        # Exécuter le drag et nettoyer ensuite
+        try:
+            drag.exec(Qt.MoveAction)
+        finally:
+            self.is_dragging = False
+            self.setCursor(Qt.OpenHandCursor)
+            # Supprimer les références pour libérer la mémoire
+            del self._drag_object
+            del self._mime_data
+            del self._pixmap
 
     def mouseReleaseEvent(self, event):  # pylint: disable=invalid-name
         """Réinitialise les variables de suivi du drag"""
