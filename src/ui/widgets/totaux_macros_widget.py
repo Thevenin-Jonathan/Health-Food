@@ -193,11 +193,11 @@ class TotauxMacrosWidget(QFrame):
             percentage = 0  # Valeur par défaut sécuritaire
 
         # Définir le statut basé sur le pourcentage
-        if percentage > 1.1:
+        if percentage > 1.05:
             status = "over"  # Rouge - trop élevé
-        elif 0.9 <= percentage <= 1.1:
+        elif 0.95 <= percentage <= 1.05:
             status = "good"  # Vert - idéal
-        elif 0.5 <= percentage < 0.9:
+        elif 0.5 <= percentage < 0.95:
             status = "medium"  # Orange - moyen
         else:
             status = "low"  # Gris - trop bas

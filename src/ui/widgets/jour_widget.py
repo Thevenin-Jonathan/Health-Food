@@ -23,9 +23,9 @@ from src.ui.widgets.totaux_macros_widget import TotauxMacrosWidget
 class JourWidget(QWidget):
     """Widget représentant un jour de la semaine"""
 
-    THRESHOLD_OVER = 1.1  # Plus de 110%
-    THRESHOLD_GOOD_UPPER = 1.1  # Limite supérieure pour "bon"
-    THRESHOLD_GOOD_LOWER = 0.9  # Limite inférieure pour "bon"
+    THRESHOLD_OVER = 1.05  # Plus de 105%
+    THRESHOLD_GOOD_UPPER = 1.05  # Limite supérieure pour "bon"
+    THRESHOLD_GOOD_LOWER = 0.95  # Limite inférieure pour "bon"
     THRESHOLD_LOW = 0.5  # Seuil pour "bas"
 
     def __init__(self, db_manager, jour, repas_list, objectifs_utilisateur, semaine_id):
