@@ -1,3 +1,5 @@
+import traceback
+import sqlite3
 from .db_connector import DBConnector
 
 
@@ -23,18 +25,55 @@ class RepasTypesManager(DBConnector):
     def ajouter_aliment_repas_type(self, repas_type_id, aliment_id, quantite):
         """Ajoute un aliment à un repas type avec sa quantité"""
         self.connect()
-        self.cursor.execute(
-            """
-        INSERT INTO repas_types_aliments (repas_type_id, aliment_id, quantite)
-        VALUES (?, ?, ?)
-        """,
-            (repas_type_id, aliment_id, quantite),
-        )
+        try:
+            # Vérifier si cet aliment existe déjà dans ce repas type
+            self.cursor.execute(
+                """
+                SELECT id FROM repas_types_aliments 
+                WHERE repas_type_id = ? AND aliment_id = ?
+                """,
+                (repas_type_id, aliment_id),
+            )
+            existing = self.cursor.fetchone()
 
-        last_id = self.cursor.lastrowid
-        self.conn.commit()
-        self.disconnect()
-        return last_id
+            if existing:
+                # Si l'aliment existe déjà, mettre à jour la quantité
+                self.cursor.execute(
+                    """
+                    UPDATE repas_types_aliments 
+                    SET quantite = ? 
+                    WHERE repas_type_id = ? AND aliment_id = ?
+                    """,
+                    (quantite, repas_type_id, aliment_id),
+                )
+                print(
+                    f"Mise à jour de la quantité de l'aliment {aliment_id} dans la recette {repas_type_id}"
+                )
+            else:
+                # Sinon, insérer le nouvel aliment
+                self.cursor.execute(
+                    """
+                    INSERT INTO repas_types_aliments (repas_type_id, aliment_id, quantite)
+                    VALUES (?, ?, ?)
+                    """,
+                    (repas_type_id, aliment_id, quantite),
+                )
+                print(f"Ajout de l'aliment {aliment_id} à la recette {repas_type_id}")
+
+            last_id = self.cursor.lastrowid if not existing else existing[0]
+            self.conn.commit()
+            self.disconnect()
+            return last_id
+
+        except sqlite3.Error as e:
+            print(
+                f"Erreur lors de l'ajout de l'aliment {aliment_id} à la recette {repas_type_id}: {e}"
+            )
+
+            traceback.print_exc()
+            self.conn.rollback()
+            self.disconnect()
+            return None
 
     def supprimer_aliment_repas_type(self, repas_type_id, aliment_id):
         """Supprime un aliment d'un repas type"""
