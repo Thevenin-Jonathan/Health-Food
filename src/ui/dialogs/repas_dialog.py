@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QLineEdit,
     QLabel,
+    QCheckBox,
 )
 
 from src.utils import JOURS_SEMAINE
@@ -58,6 +59,10 @@ class RepasDialog(QDialog):
         self.ordre_input.setValue(self.ordre_predefini if self.ordre_predefini else 1)
         self.layout.addRow("Position dans la journée:", self.ordre_input)
 
+        # Option pour ajouter à tous les jours
+        self.tous_jours_checkbox = QCheckBox("Ajouter à tous les jours de la semaine")
+        self.layout.addRow("", self.tous_jours_checkbox)
+
         # Utiliser une recette existante
         self.repas_type_label = QLabel("Utiliser une recette existante (optionnel):")
         self.layout.addRow(self.repas_type_label)
@@ -106,4 +111,5 @@ class RepasDialog(QDialog):
             jour,
             self.ordre_input.value(),
             self.repas_type_input.currentData(),
+            self.tous_jours_checkbox.isChecked(),
         )

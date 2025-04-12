@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QPoint, QThread, QPropertyAnimation, QEasingCurve, QTimer
 
 from src.utils import EVENT_BUS
+from src.utils import JOURS_SEMAINE
 from src.utils.planning_worker import PlanningOperationWorker
 from src.ui.dialogs.repas_dialog import RepasDialog
 from src.ui.widgets.repas_widget import RepasWidget
@@ -386,33 +387,66 @@ class JourWidget(QWidget):
         )
 
         if dialog.exec():
-            nom, jour, ordre, repas_type_id = dialog.get_data()
+            nom, jour, ordre, repas_type_id, tous_jours = dialog.get_data()
 
-            # Si l'utilisateur a choisi un ordre différent de celui suggéré,
-            # décaler les repas existants pour faire de la place
-            if ordre != next_ordre:
-                # Vérifier si l'ordre existe déjà
-                existe_deja = False
-                for repas in self.repas_list:
-                    if repas["ordre"] == ordre:
-                        existe_deja = True
-                        break
+            if tous_jours:
+                # Ajouter le repas à tous les jours de la semaine
+                for jour_semaine in JOURS_SEMAINE:
+                    if ordre != next_ordre:
+                        repas_jour = self.db_manager.get_repas_semaine(
+                            self.semaine_id
+                        ).get(jour_semaine, [])
+                        existe_deja = any(
+                            repas["ordre"] == ordre for repas in repas_jour
+                        )
 
-                # Si l'ordre existe déjà, décaler les repas
-                if existe_deja:
-                    self.db_manager.decaler_ordres(jour, self.semaine_id, ordre)
+                        if existe_deja:
+                            self.db_manager.decaler_ordres(
+                                jour_semaine, self.semaine_id, ordre
+                            )
 
-            if repas_type_id:
-                # Utiliser une recette existante MAIS conserver le nom personnalisé
-                self.db_manager.appliquer_repas_type_au_jour(
-                    repas_type_id, jour, ordre, self.semaine_id, nom_personnalise=nom
-                )
+                    if repas_type_id:
+                        # Utiliser une recette existante MAIS conserver le nom personnalisé
+                        self.db_manager.appliquer_repas_type_au_jour(
+                            repas_type_id,
+                            jour_semaine,
+                            ordre,
+                            self.semaine_id,
+                            nom_personnalise=nom,
+                        )
+                    else:
+                        # Créer un nouveau repas vide
+                        self.db_manager.ajouter_repas(
+                            nom, jour_semaine, ordre, self.semaine_id
+                        )
             else:
-                # Créer un nouveau repas vide
-                self.db_manager.ajouter_repas(nom, jour, ordre, self.semaine_id)
+                # Comportement existant pour un seul jour
+                if ordre != next_ordre:
+                    existe_deja = False
+                    for repas in self.repas_list:
+                        if repas["ordre"] == ordre:
+                            existe_deja = True
+                            break
+
+                    if existe_deja:
+                        self.db_manager.decaler_ordres(jour, self.semaine_id, ordre)
+
+                if repas_type_id:
+                    # Utiliser une recette existante MAIS conserver le nom personnalisé
+                    self.db_manager.appliquer_repas_type_au_jour(
+                        repas_type_id,
+                        jour,
+                        ordre,
+                        self.semaine_id,
+                        nom_personnalise=nom,
+                    )
+                else:
+                    # Créer un nouveau repas vide
+                    self.db_manager.ajouter_repas(nom, jour, ordre, self.semaine_id)
 
             # Normaliser les ordres après l'ajout pour garantir des ordres consécutifs
-            self.db_manager.normaliser_ordres(jour, self.semaine_id)
+            for j in JOURS_SEMAINE if tous_jours else [jour]:
+                self.db_manager.normaliser_ordres(j, self.semaine_id)
 
             # Émettre le signal pour notifier que les repas ont été modifiés
             EVENT_BUS.repas_modifies.emit(self.semaine_id)
