@@ -184,7 +184,7 @@ class RepasManager(DBConnector):
                 a["lipides"] * a["quantite"] / 100 for a in aliments
             )
             repas["total_cout"] = sum(
-                (a.get("prix_kg", 0) / 1000) * a["quantite"] for a in aliments
+                ((a.get("prix_kg", 0) or 0) / 1000) * a["quantite"] for a in aliments
             )
 
             result[repas["jour"]].append(repas)
