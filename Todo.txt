@@ -3,7 +3,6 @@ Fonctionnalités nutritionnelles
 - Nutriments supplémentaires : Ajouter le suivi des graisses saturées, du sucre et du sel
 - Gestion des quantités : Développer un système pour ajuster les quantités en fonction du poids
 - Réutilisation des recettes : Permettre de réappliquer les modifications de recettes dans toute la semaine
-- Duplication des semaines : Permettre de copier une semaine vers une nouvelle
 - Effacer une journée : Permettre d'effacer une journéee d'un seul coup
 
 Interface utilisateur

@@ -8,6 +8,13 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QInputDialog,
     QTabBar,
+    QDialog,
+    QLabel,
+    QComboBox,
+    QCheckBox,
+    QGroupBox,
+    QGridLayout,
+    QRadioButton,
 )
 from PySide6.QtCore import Signal, Qt, QTimer
 
@@ -44,14 +51,15 @@ class CustomTabWidget(QTabWidget):
     def eventFilter(self, obj, event):  # pylint: disable=invalid-name
         """Filtre les événements pour intercepter le double-clic sur la barre d'onglets"""
         if obj == self.tabBar() and event.type() == event.Type.MouseButtonDblClick:
-            # Obtenir l'index de l'onglet cliqué directement à partir du tabBar
-            pos = event.pos()
-            index = self.tabBar().tabAt(pos)
+            # Récupérer l'index de l'onglet double-cliqué
+            index = self.tabBar().tabAt(event.pos())
 
-            # Vérifier si l'index est valide et ce n'est pas le dernier onglet ("+")
-            if index >= 0 and index < self.count() - 1:
-                self.parent_tab.renommer_semaine(index)
-                return True  # Événement traité
+            # Si ce n'est pas l'onglet "+", proposer de renommer
+            if index >= 0 and index < self.count() - 1:  # Ne pas traiter l'onglet "+"
+                # Accéder à la méthode de renommage de l'onglet parent
+                if hasattr(self.parent_tab, "renommer_semaine"):
+                    self.parent_tab.renommer_semaine(index)
+                    return True  # Événement traité
 
         # Dans tous les autres cas, laisser l'événement se propager
         return super().eventFilter(obj, event)
@@ -175,7 +183,7 @@ class PlanningTab(QWidget):
 
     def on_tab_changed(self, index):
         """Appelé quand un onglet est sélectionné"""
-        # Si c'est l'onglet +, ajouter une nouvelle semaine
+        # Si c'est l'onglet +, proposer les options: nouvelle semaine vierge ou dupliquer
         if (
             index == self.tabs_semaines.count() - 1
             and not self.add_in_progress
@@ -183,8 +191,83 @@ class PlanningTab(QWidget):
         ):
             self.add_in_progress = True
 
-            # Ajouter une nouvelle semaine
-            self.ajouter_semaine()
+            # Créer une boîte de dialogue personnalisée
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Nouvelle semaine")
+            dialog.setMinimumWidth(400)
+
+            layout = QVBoxLayout(dialog)
+
+            # Groupe d'options pour le type de nouvelle semaine
+            option_group = QGroupBox("Type de nouvelle semaine")
+            option_layout = QVBoxLayout()
+
+            # Options avec des boutons radio
+            rb_nouvelle = QRadioButton("Nouvelle semaine vierge")
+            rb_nouvelle.setChecked(True)  # Option par défaut
+            rb_dupliquer = QRadioButton("Dupliquer une semaine existante")
+
+            option_layout.addWidget(rb_nouvelle)
+            option_layout.addWidget(rb_dupliquer)
+            option_group.setLayout(option_layout)
+            layout.addWidget(option_group)
+
+            # Champ pour le nom de la semaine
+            nom_layout = QHBoxLayout()
+            nom_label = QLabel("Nom de la nouvelle semaine:")
+            nom_input = QLineEdit()
+            nom_layout.addWidget(nom_label)
+            nom_layout.addWidget(nom_input)
+            layout.addLayout(nom_layout)
+
+            # Boutons
+            buttons_layout = QHBoxLayout()
+            btn_annuler = QPushButton("Annuler")
+            btn_creer = QPushButton("Créer")
+            btn_creer.setDefault(True)
+
+            buttons_layout.addStretch()
+            buttons_layout.addWidget(btn_annuler)
+            buttons_layout.addWidget(btn_creer)
+            layout.addLayout(buttons_layout)
+
+            # Connexion des boutons
+            btn_annuler.clicked.connect(dialog.reject)
+            btn_creer.clicked.connect(dialog.accept)
+
+            # Exécuter la boîte de dialogue
+            resultat = dialog.exec()
+
+            if resultat == QDialog.Accepted:
+                # Récupérer le nom personnalisé si saisi
+                nom_personnalise = nom_input.text().strip()
+
+                if rb_nouvelle.isChecked():
+                    # Créer une nouvelle semaine vierge
+                    nouvelle_semaine_id = self.ajouter_semaine()
+
+                    # Appliquer le nom personnalisé si fourni
+                    if nom_personnalise:
+                        self.onglets_personnalises[nouvelle_semaine_id] = (
+                            nom_personnalise
+                        )
+                        self.db_manager.sauvegarder_nom_semaine(
+                            nouvelle_semaine_id, nom_personnalise
+                        )
+
+                        # Mettre à jour les noms des onglets
+                        self.reorganiser_noms_onglets()
+
+                else:
+                    # Dupliquer une semaine existante
+                    # Appeler la méthode dupliquer_semaine avec le nom personnalisé
+                    nouvelle_semaine_id = self.dupliquer_semaine(nom_personnalise)
+
+            else:
+                # Revenir à l'onglet précédemment sélectionné si annulation
+                self.tabs_semaines.setCurrentIndex(
+                    max(0, self.tabs_semaines.count() - 2)
+                )
 
             self.add_in_progress = False
 
@@ -426,6 +509,180 @@ class PlanningTab(QWidget):
 
         # Mettre à jour les noms d'onglets
         QTimer.singleShot(20, self.reorganiser_noms_onglets)
+
+    def dupliquer_semaine(self, nom_personnalise=None):
+        """Duplique une semaine existante avec possibilité de sélectionner les jours"""
+
+        # Créer une boîte de dialogue personnalisée
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Dupliquer une semaine")
+        dialog.setMinimumWidth(400)
+
+        layout = QVBoxLayout(dialog)
+
+        # Combobox pour sélectionner la semaine à dupliquer
+        label_semaine = QLabel("Sélectionnez la semaine à dupliquer:")
+        semaines_combo = QComboBox()
+
+        # Remplir la combobox avec les semaines disponibles
+        semaines_disponibles = {}
+        for i in range(self.tabs_semaines.count() - 1):  # Ignorer l'onglet "+"
+            semaine_widget = self.tabs_semaines.widget(i)
+            semaine_id = None
+
+            # Trouver l'ID correspondant à ce widget
+            for sid, widget in self.semaines.items():
+                if widget == semaine_widget:
+                    semaine_id = sid
+                    break
+
+            if semaine_id is not None:
+                # Utiliser le nom personnalisé ou le nom par défaut
+                nom_onglet = self.tabs_semaines.tabText(i)
+                semaines_disponibles[nom_onglet] = semaine_id
+                semaines_combo.addItem(nom_onglet, semaine_id)
+
+        layout.addWidget(label_semaine)
+        layout.addWidget(semaines_combo)
+
+        # Groupbox pour sélectionner les jours à dupliquer
+        jours_group = QGroupBox("Jours à dupliquer:")
+        jours_layout = QGridLayout()
+
+        jours = [
+            "Lundi",
+            "Mardi",
+            "Mercredi",
+            "Jeudi",
+            "Vendredi",
+            "Samedi",
+            "Dimanche",
+        ]
+        checkboxes = {}
+
+        # Créer une checkbox pour chaque jour, toutes cochées par défaut
+        for i, jour in enumerate(jours):
+            cb = QCheckBox(jour)
+            cb.setChecked(True)
+            checkboxes[jour] = cb
+            row = i // 3
+            col = i % 3
+            jours_layout.addWidget(cb, row, col)
+
+        jours_group.setLayout(jours_layout)
+        layout.addWidget(jours_group)
+
+        # Boutons
+        buttons_layout = QHBoxLayout()
+        btn_annuler = QPushButton("Annuler")
+        btn_dupliquer = QPushButton("Dupliquer")
+        btn_dupliquer.setDefault(True)
+
+        buttons_layout.addWidget(btn_annuler)
+        buttons_layout.addWidget(btn_dupliquer)
+        layout.addLayout(buttons_layout)
+
+        # Connexion des boutons
+        btn_annuler.clicked.connect(dialog.reject)
+        btn_dupliquer.clicked.connect(dialog.accept)
+
+        # Exécuter la boîte de dialogue
+        if dialog.exec() == QDialog.Accepted:
+            # Récupérer la semaine sélectionnée
+            semaine_id_source = semaines_combo.currentData()
+
+            # Récupérer les jours sélectionnés
+            jours_selectionnes = [
+                jour for jour in jours if checkboxes[jour].isChecked()
+            ]
+
+            # Effectuer la duplication
+            nouvelle_semaine_id = self.dupliquer_semaine_avec_jours(
+                semaine_id_source, jours_selectionnes
+            )
+
+            # Appliquer le nom personnalisé si fourni
+            if nom_personnalise and nouvelle_semaine_id:
+                self.onglets_personnalises[nouvelle_semaine_id] = nom_personnalise
+                self.db_manager.sauvegarder_nom_semaine(
+                    nouvelle_semaine_id, nom_personnalise
+                )
+
+                # Mettre à jour les noms des onglets
+                self.reorganiser_noms_onglets()
+
+            # Sélectionner le nouvel onglet
+            # Trouver l'index du nouveau widget de semaine
+            for i in range(self.tabs_semaines.count() - 1):
+                semaine_widget = self.tabs_semaines.widget(i)
+                for sid, widget in self.semaines.items():
+                    if widget == semaine_widget and sid == nouvelle_semaine_id:
+                        self.tabs_semaines.setCurrentIndex(i)
+                        break
+
+            return nouvelle_semaine_id
+
+        return None
+
+    def dupliquer_semaine_avec_jours(self, semaine_id_source, jours_selectionnes):
+        """
+        Duplique une semaine en ne conservant que les jours sélectionnés
+
+        Args:
+            semaine_id_source: ID de la semaine à dupliquer
+            jours_selectionnes: Liste des jours à inclure dans la duplication
+
+        Returns:
+            int: ID de la nouvelle semaine créée
+        """
+        # Créer une nouvelle semaine
+        nouvelle_semaine_id = self.ajouter_semaine()
+
+        if not nouvelle_semaine_id:
+            return None
+
+        # Récupérer tous les repas de la semaine source
+        repas_semaine = self.db_manager.get_repas_semaine(semaine_id_source)
+
+        # Pour chaque jour sélectionné, dupliquer les repas
+        for jour in jours_selectionnes:
+            if jour in repas_semaine:
+                for repas in repas_semaine[jour]:
+                    # Créer le nouveau repas dans la nouvelle semaine
+                    nouveau_repas_id = self.db_manager.ajouter_repas(
+                        nom=repas["nom"],
+                        jour=jour,
+                        ordre=repas["ordre"],
+                        semaine_id=nouvelle_semaine_id,
+                        repas_type_id=repas.get("repas_type_id"),
+                    )
+
+                    # Dupliquer les aliments
+                    for aliment in repas["aliments"]:
+                        self.db_manager.ajouter_aliment_repas(
+                            nouveau_repas_id, aliment["id"], aliment["quantite"]
+                        )
+
+                    # Dupliquer le multiplicateur si présent
+                    if "id" in repas:
+                        multi_info = self.db_manager.get_repas_multiplicateur(
+                            repas["id"]
+                        )
+                        if multi_info:
+                            self.db_manager.set_repas_multiplicateur(
+                                nouveau_repas_id,
+                                multi_info["multiplicateur"],
+                                multi_info["ignore_course"],
+                            )
+
+        # Rafraîchir les données pour afficher les repas copiés
+        self.semaines[nouvelle_semaine_id].load_data()
+
+        # Notifier des modifications
+        EVENT_BUS.semaine_ajoutee.emit(nouvelle_semaine_id)
+        EVENT_BUS.semaines_modifiees.emit()
+
+        return nouvelle_semaine_id
 
     def imprimer_planning_courant(self):
         """Imprime le planning de la semaine courante"""
