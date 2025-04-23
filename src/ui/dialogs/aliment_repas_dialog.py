@@ -145,17 +145,20 @@ class AlimentRepasDialog(QDialog):
             }
 
     def setup_ui(self):
-        """Configure l'interface utilisateur"""
-        self.setMinimumWidth(800)
-        self.setMinimumHeight(600)
+        """Configure l'interface utilisateur avec une disposition à trois colonnes plus efficace"""
+        self.setMinimumWidth(900)
+        self.setMinimumHeight(650)
 
         # Layout principal
         main_layout = QVBoxLayout(self)
         main_layout.setSpacing(8)
         main_layout.setContentsMargins(10, 10, 10, 10)
 
-        # TabWidget pour séparer aliments simples et composés
+        # TabWidget pour séparer aliments simples et composés - PRIORITÉ HAUTE
         self.tab_widget = QTabWidget()
+        self.tab_widget.setMinimumHeight(
+            300
+        )  # Assurer suffisamment d'espace pour les listes
 
         # Tab pour les aliments simples
         self.simple_tab = QWidget()
@@ -165,7 +168,7 @@ class AlimentRepasDialog(QDialog):
 
         # Filtres pour aliments simples
         filter_layout = QHBoxLayout()
-        filter_layout.addWidget(QLabel("Filtrer par:"))
+        filter_layout.addWidget(QLabel("Filtrer:"))
 
         # Catégorie
         self.category_filter = QComboBox()
@@ -216,7 +219,7 @@ class AlimentRepasDialog(QDialog):
 
         simple_layout.addWidget(self.aliments_table)
 
-        # Tab pour les aliments composés - Masquer les numéros de ligne
+        # Tab pour les aliments composés
         self.compose_tab = QWidget()
         compose_layout = QVBoxLayout(self.compose_tab)
         compose_layout.setContentsMargins(0, 8, 0, 8)
@@ -270,179 +273,191 @@ class AlimentRepasDialog(QDialog):
 
         # Ajouter les tabs
         self.tab_widget.addTab(self.simple_tab, "Aliments simples")
-        self.tab_widget.addTab(self.compose_tab, "Aliments composés (mélanges)")
+        self.tab_widget.addTab(self.compose_tab, "Aliments composés")
 
         # Connecter le changement de tab
         self.tab_widget.currentChanged.connect(self.on_tab_changed)
 
-        main_layout.addWidget(self.tab_widget)
+        # Ajouter le TabWidget au layout principal avec priorité haute
+        main_layout.addWidget(self.tab_widget, 1)  # Stretch factor 1 pour priorité
 
-        # Section inférieure avec grille: quantité + infos nutritionnelles
+        # ==== SECTION INFÉRIEURE AVEC 3 COLONNES ====
         bottom_widget = QWidget()
-        bottom_layout = QGridLayout(bottom_widget)
-        bottom_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_layout = QHBoxLayout(bottom_widget)
+        bottom_layout.setContentsMargins(5, 5, 5, 5)
         bottom_layout.setSpacing(10)
 
-        # Colonne 1: Quantité et détails aliment
-        col1_widget = QWidget()
+        # ==== COLONNE 1: Quantité et Composition ====
+        col1_widget = QFrame()
+        col1_widget.setFrameShape(QFrame.StyledPanel)
         col1_layout = QVBoxLayout(col1_widget)
-        col1_layout.setContentsMargins(0, 0, 0, 0)
         col1_layout.setSpacing(8)
 
-        # Section pour la quantité avec design amélioré
-        quant_widget = QWidget()
-        quant_layout = QHBoxLayout(quant_widget)
-        quant_layout.setContentsMargins(12, 8, 12, 8)
-
-        quant_label = QLabel("Quantité:")
-        quant_layout.addWidget(quant_label)
+        # Titre et quantité
+        quant_layout = QHBoxLayout()
+        quant_layout.addWidget(QLabel("Quantité:"))
 
         self.quantite_spin = AutoSelectDoubleSpinBox()
         self.quantite_spin.setMinimum(1)
         self.quantite_spin.setMaximum(1000)
-        self.quantite_spin.setProperty("class", "spin-box-vertical")
         self.quantite_spin.setValue(100)
         self.quantite_spin.setSuffix(" g")
         self.quantite_spin.valueChanged.connect(self.update_details)
         quant_layout.addWidget(self.quantite_spin)
+        quant_layout.addStretch()
 
-        col1_layout.addWidget(quant_widget)
+        col1_layout.addLayout(quant_layout)
 
-        # Détails de l'aliment sélectionné dans un cadre stylisé
-        details_frame = QFrame()
-        details_frame.setFrameShape(QFrame.StyledPanel)
+        # Zone de composition (dynamique)
+        self.composition_label = QLabel()
+        self.composition_label.setTextFormat(Qt.RichText)
+        self.composition_label.setWordWrap(True)
+        col1_layout.addWidget(self.composition_label)
 
-        details_layout = QVBoxLayout(details_frame)
-        details_layout.setContentsMargins(8, 8, 8, 8)
+        # ==== COLONNE 2: Valeurs nutritionnelles ====
+        col2_widget = QFrame()
+        col2_widget.setFrameShape(QFrame.StyledPanel)
+        col2_layout = QVBoxLayout(col2_widget)
+        col2_layout.setSpacing(8)
+
+        nutrition_title = QLabel("Valeurs nutritionnelles")
+        nutrition_title.setAlignment(Qt.AlignCenter)
+        nutrition_title.setProperty("class", "nutrition-title")
+        col2_layout.addWidget(nutrition_title)
 
         self.details_label = QLabel()
         self.details_label.setTextFormat(Qt.RichText)
         self.details_label.setWordWrap(True)
-        details_layout.addWidget(self.details_label)
+        col2_layout.addWidget(
+            self.details_label, 1
+        )  # Stretch factor pour remplir l'espace
 
-        col1_layout.addWidget(details_frame, 1)  # 1 = stretch factor
+        # ==== COLONNE 3: Aperçu nutritionnel ====
+        col3_widget = QFrame()
+        col3_widget.setFrameShape(QFrame.StyledPanel)
+        col3_layout = QVBoxLayout(col3_widget)
+        col3_layout.setSpacing(8)
 
-        # Colonne 2: Aperçu des valeurs nutritionnelles de la journée
-        col2_widget = QFrame()
-        col2_widget.setFrameShape(QFrame.StyledPanel)
+        # Titre aperçu
+        progress_title = QLabel("Aperçu nutritionnel")
+        progress_title.setAlignment(Qt.AlignCenter)
+        progress_title.setProperty("class", "nutrition-title")
+        col3_layout.addWidget(progress_title)
 
-        col2_layout = QVBoxLayout(col2_widget)
-        col2_layout.setSpacing(8)
+        # Grille compacte pour les valeurs actuelles
+        progress_grid = QGridLayout()
+        progress_grid.setVerticalSpacing(3)
+        progress_grid.setHorizontalSpacing(5)
 
-        # Titre
-        title_label = QLabel("Aperçu des valeurs nutritionnelles")
-        title_label.setAlignment(Qt.AlignCenter)
-        col2_layout.addWidget(title_label)
+        # En-têtes
+        current_label = QLabel("Actuel")
+        current_label.setAlignment(Qt.AlignCenter)
+        progress_grid.addWidget(current_label, 0, 1)
 
-        # Sous-titre "Actuellement"
-        current_label = QLabel("Actuellement")
-        col2_layout.addWidget(current_label)
-
-        # Valeurs actuelles avec barres de progression
-        self.progress_layout = QGridLayout()
-        self.progress_layout.setColumnStretch(1, 1)
+        after_label = QLabel("Après ajout")
+        after_label.setAlignment(Qt.AlignCenter)
+        progress_grid.addWidget(after_label, 0, 2)
 
         # Calories
-        self.progress_layout.addWidget(QLabel("Calories:"), 0, 0)
+        progress_grid.addWidget(QLabel("Calories:"), 1, 0)
+
+        self.cal_value = QLabel()
+        self.cal_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        progress_grid.addWidget(self.cal_value, 1, 1)
+
+        self.cal_after_value = QLabel()
+        self.cal_after_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        progress_grid.addWidget(self.cal_after_value, 1, 2)
+
+        # Barres de progression pour calories
         self.cal_progress = QProgressBar()
         self.cal_progress.setProperty("class", "calories")
         self.cal_progress.setTextVisible(True)
-        self.progress_layout.addWidget(self.cal_progress, 0, 1)
-        self.cal_value = QLabel()
-        self.cal_value.setAlignment(Qt.AlignRight)
-        self.progress_layout.addWidget(self.cal_value, 0, 2)
+        progress_grid.addWidget(self.cal_progress, 2, 1)
 
-        # Protéines
-        self.progress_layout.addWidget(QLabel("Protéines:"), 1, 0)
-        self.prot_progress = QProgressBar()
-        self.prot_progress.setProperty("class", "proteines")
-        self.prot_progress.setTextVisible(True)
-        self.progress_layout.addWidget(self.prot_progress, 1, 1)
-        self.prot_value = QLabel()
-        self.prot_value.setAlignment(Qt.AlignRight)
-        self.progress_layout.addWidget(self.prot_value, 1, 2)
-
-        # Glucides
-        self.progress_layout.addWidget(QLabel("Glucides:"), 2, 0)
-        self.gluc_progress = QProgressBar()
-        self.gluc_progress.setProperty("class", "glucides")
-        self.gluc_progress.setTextVisible(True)
-        self.progress_layout.addWidget(self.gluc_progress, 2, 1)
-        self.gluc_value = QLabel()
-        self.gluc_value.setAlignment(Qt.AlignRight)
-        self.progress_layout.addWidget(self.gluc_value, 2, 2)
-
-        # Lipides
-        self.progress_layout.addWidget(QLabel("Lipides:"), 3, 0)
-        self.lip_progress = QProgressBar()
-        self.lip_progress.setProperty("class", "lipides")
-        self.lip_progress.setTextVisible(True)
-        self.progress_layout.addWidget(self.lip_progress, 3, 1)
-        self.lip_value = QLabel()
-        self.lip_value.setAlignment(Qt.AlignRight)
-        self.progress_layout.addWidget(self.lip_value, 3, 2)
-
-        col2_layout.addLayout(self.progress_layout)
-
-        # Sous-titre "Après ajout"
-        after_label = QLabel("Après ajout de cet aliment")
-        after_label.setProperty("class", "subtitle")
-        col2_layout.addWidget(after_label)
-
-        # Valeurs après ajout
-        self.after_layout = QGridLayout()
-        self.after_layout.setColumnStretch(1, 1)
-
-        # Calories après
-        self.after_layout.addWidget(QLabel("Calories:"), 0, 0)
         self.cal_after_progress = QProgressBar()
         self.cal_after_progress.setProperty("class", "calories")
         self.cal_after_progress.setTextVisible(True)
-        self.after_layout.addWidget(self.cal_after_progress, 0, 1)
-        self.cal_after_value = QLabel()
-        self.cal_after_value.setAlignment(Qt.AlignRight)
-        self.after_layout.addWidget(self.cal_after_value, 0, 2)
+        progress_grid.addWidget(self.cal_after_progress, 2, 2)
 
-        # Protéines après
-        self.after_layout.addWidget(QLabel("Protéines:"), 1, 0)
+        # Protéines
+        progress_grid.addWidget(QLabel("Protéines:"), 3, 0)
+
+        self.prot_value = QLabel()
+        self.prot_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        progress_grid.addWidget(self.prot_value, 3, 1)
+
+        self.prot_after_value = QLabel()
+        self.prot_after_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        progress_grid.addWidget(self.prot_after_value, 3, 2)
+
+        # Barres pour protéines
+        self.prot_progress = QProgressBar()
+        self.prot_progress.setProperty("class", "proteines")
+        self.prot_progress.setTextVisible(True)
+        progress_grid.addWidget(self.prot_progress, 4, 1)
+
         self.prot_after_progress = QProgressBar()
         self.prot_after_progress.setProperty("class", "proteines")
         self.prot_after_progress.setTextVisible(True)
-        self.after_layout.addWidget(self.prot_after_progress, 1, 1)
-        self.prot_after_value = QLabel()
-        self.prot_after_value.setAlignment(Qt.AlignRight)
-        self.after_layout.addWidget(self.prot_after_value, 1, 2)
+        progress_grid.addWidget(self.prot_after_progress, 4, 2)
 
-        # Glucides après
-        self.after_layout.addWidget(QLabel("Glucides:"), 2, 0)
+        # Glucides
+        progress_grid.addWidget(QLabel("Glucides:"), 5, 0)
+
+        self.gluc_value = QLabel()
+        self.gluc_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        progress_grid.addWidget(self.gluc_value, 5, 1)
+
+        self.gluc_after_value = QLabel()
+        self.gluc_after_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        progress_grid.addWidget(self.gluc_after_value, 5, 2)
+
+        # Barres pour glucides
+        self.gluc_progress = QProgressBar()
+        self.gluc_progress.setProperty("class", "glucides")
+        self.gluc_progress.setTextVisible(True)
+        progress_grid.addWidget(self.gluc_progress, 6, 1)
+
         self.gluc_after_progress = QProgressBar()
         self.gluc_after_progress.setProperty("class", "glucides")
         self.gluc_after_progress.setTextVisible(True)
-        self.after_layout.addWidget(self.gluc_after_progress, 2, 1)
-        self.gluc_after_value = QLabel()
-        self.gluc_after_value.setAlignment(Qt.AlignRight)
-        self.after_layout.addWidget(self.gluc_after_value, 2, 2)
+        progress_grid.addWidget(self.gluc_after_progress, 6, 2)
 
-        # Lipides après
-        self.after_layout.addWidget(QLabel("Lipides:"), 3, 0)
+        # Lipides
+        progress_grid.addWidget(QLabel("Lipides:"), 7, 0)
+
+        self.lip_value = QLabel()
+        self.lip_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        progress_grid.addWidget(self.lip_value, 7, 1)
+
+        self.lip_after_value = QLabel()
+        self.lip_after_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        progress_grid.addWidget(self.lip_after_value, 7, 2)
+
+        # Barres pour lipides
+        self.lip_progress = QProgressBar()
+        self.lip_progress.setProperty("class", "lipides")
+        self.lip_progress.setTextVisible(True)
+        progress_grid.addWidget(self.lip_progress, 8, 1)
+
         self.lip_after_progress = QProgressBar()
         self.lip_after_progress.setProperty("class", "lipides")
         self.lip_after_progress.setTextVisible(True)
-        self.after_layout.addWidget(self.lip_after_progress, 3, 1)
-        self.lip_after_value = QLabel()
-        self.lip_after_value.setAlignment(Qt.AlignRight)
-        self.after_layout.addWidget(self.lip_after_value, 3, 2)
+        progress_grid.addWidget(self.lip_after_progress, 8, 2)
 
-        col2_layout.addLayout(self.after_layout)
-        col2_layout.addStretch()
+        col3_layout.addLayout(progress_grid)
+        col3_layout.addStretch()
 
-        # Ajouter les colonnes au layout inférieur
-        bottom_layout.addWidget(col1_widget, 0, 0)
-        bottom_layout.addWidget(col2_widget, 0, 1)
+        # Ajouter les trois colonnes au layout du bas
+        bottom_layout.addWidget(col1_widget)
+        bottom_layout.addWidget(col2_widget)
+        bottom_layout.addWidget(col3_widget)
 
+        # Ajouter le widget du bas au layout principal
         main_layout.addWidget(bottom_widget)
 
-        # Boutons
+        # Boutons d'actions
         buttons_layout = QHBoxLayout()
         cancel_btn = QPushButton("Annuler")
         cancel_btn.clicked.connect(self.reject)
@@ -675,6 +690,7 @@ class AlimentRepasDialog(QDialog):
     def update_aliment_details(self):
         """Met à jour les détails de l'aliment sélectionné"""
         if self.selected_aliment_id is None:
+            self.composition_label.setText("")
             self.details_label.setText("")
             self.nutritionChanged.emit(0, 0, 0, 0, 0)  # Réinitialiser l'aperçu
             return
@@ -696,15 +712,21 @@ class AlimentRepasDialog(QDialog):
         # Émettre le signal pour mettre à jour l'aperçu nutritionnel
         self.nutritionChanged.emit(calories, proteines, glucides, lipides, fibres)
 
-        # Créer le texte HTML avec un style plus moderne
-        html = f"""
-        <h3 style="margin-top:0;">{aliment['nom']}</h3>
-        <p>
+        # 1. INFORMATION DE BASE DANS LA COLONNE 1 (car pas de composition pour aliment simple)
+        info_html = f"""
+        <h3 style="margin-top:0; text-align:center;">{aliment['nom']}</h3>
+        <p style="text-align:center;">
             <span style="color:#666;">Marque:</span> <b>{aliment.get('marque', 'Non spécifiée')}</b><br>
             <span style="color:#666;">Catégorie:</span> <b>{aliment.get('categorie', 'Non spécifiée')}</b>
         </p>
+        """
+
+        self.composition_label.setText(info_html)
+
+        # 2. VALEURS NUTRITIONNELLES DANS LA COLONNE 2
+        nutri_html = f"""
         <div style="background-color: #f0f4f8; border-radius: 5px; padding: 8px; border: 1px solid #e9ecef;">
-            <h4 style="margin-top:0; margin-bottom:5px; color:#2c3e50;">Valeurs nutritionnelles pour {quantite}g:</h4>
+            <h4 style="margin-top:0; margin-bottom:5px; color:#2c3e50;">Valeurs pour {quantite}g:</h4>
             <table style="width:100%; border-collapse:collapse;">
                 <tr>
                     <td style="padding:3px;"><span style="color:#666;">Calories:</span></td>
@@ -726,8 +748,7 @@ class AlimentRepasDialog(QDialog):
 
         # Ajouter les fibres si disponibles
         if aliment.get("fibres"):
-            fibres = aliment["fibres"] * quantite / 100
-            html += f"""<tr>
+            nutri_html += f"""<tr>
                     <td style="padding:3px;"><span style="color:#666;">Fibres:</span></td>
                     <td align="right"><b>{fibres:.1f}g</b></td>
                 </tr>"""
@@ -735,21 +756,22 @@ class AlimentRepasDialog(QDialog):
         # Ajouter le prix si disponible
         if aliment.get("prix_kg"):
             prix = (aliment["prix_kg"] / 1000) * quantite
-            html += f"""<tr>
+            nutri_html += f"""<tr>
                     <td style="padding:3px;"><span style="color:#666;">Coût:</span></td>
                     <td align="right"><b>{prix:.2f}€</b></td>
                 </tr>"""
 
-        html += """
+        nutri_html += """
             </table>
         </div>
         """
 
-        self.details_label.setText(html)
+        self.details_label.setText(nutri_html)
 
     def update_compose_details(self):
         """Met à jour les détails de l'aliment composé sélectionné"""
         if self.selected_aliment_compose_id is None:
+            self.composition_label.setText("")
             self.details_label.setText("")
             self.nutritionChanged.emit(0, 0, 0, 0, 0)  # Réinitialiser l'aperçu
             return
@@ -774,13 +796,13 @@ class AlimentRepasDialog(QDialog):
         # Émettre le signal pour mettre à jour l'aperçu nutritionnel
         self.nutritionChanged.emit(calories, proteines, glucides, lipides, fibres)
 
-        # Créer le texte HTML avec un style plus moderne
-        html = f"""
-        <h3 style="margin-top:0;">{aliment['nom']}</h3>
-        <p style="color:#666;">{aliment.get('description', '')}</p>
+        # 1. AFFICHER LA COMPOSITION DANS LA COLONNE 1
+        comp_html = f"""
+        <h3 style="margin-top:0; text-align:center;">{aliment['nom']}</h3>
+        <p style="color:#666; text-align:center;">{aliment.get('description', '')}</p>
         
-        <div style="background-color: #f0f4f8; border-radius: 5px; padding: 8px; border: 1px solid #e9ecef; margin-bottom: 10px;">
-            <h4 style="margin-top:0; margin-bottom:5px; color:#2c3e50;">Composition normalisée pour 100g:</h4>
+        <div style="background-color: #f0f4f8; border-radius: 5px; padding: 8px; border: 1px solid #e9ecef;">
+            <h4 style="margin-top:0; margin-bottom:5px; color:#2c3e50;">Composition pour {quantite}g:</h4>
             <ul style="margin-top:5px; color:#555; padding-left: 20px;">
         """
 
@@ -792,37 +814,26 @@ class AlimentRepasDialog(QDialog):
         # Facteur de normalisation pour afficher la composition pour 100g
         facteur_normalisation = 100.0 / poids_total if poids_total > 0 else 1
 
-        # Liste des ingrédients normalisés à 100g
+        # Calculer les quantités ajustées pour la quantité sélectionnée
         for ingredient in aliment["ingredients"]:
-            ing_quantite = ingredient["quantite"] * facteur_normalisation
-            html += f"<li><b>{ingredient['nom']}:</b> {ing_quantite:.1f}g</li>"
+            ing_quantite_ajustee = (
+                ingredient["quantite"] * facteur_normalisation * facteur
+            )
+            comp_html += (
+                f"<li><b>{ingredient['nom']}:</b> {ing_quantite_ajustee:.1f}g</li>"
+            )
 
-        # Ajouter la section pour la composition proportionnelle à la quantité sélectionnée
-        if quantite != 100:
-            html += f"""
-            </ul>
-            </div>
-            
-            <div style="background-color: #f0f4f8; border-radius: 5px; padding: 8px; border: 1px solid #e9ecef; margin-bottom: 10px;">
-                <h4 style="margin-top:0; margin-bottom:5px; color:#2c3e50;">Composition pour {quantite}g:</h4>
-                <ul style="margin-top:5px; color:#555; padding-left: 20px;">
-            """
-
-            # Calculer les quantités ajustées pour la quantité sélectionnée
-            for ingredient in aliment["ingredients"]:
-                ing_quantite_ajustee = (
-                    ingredient["quantite"] * facteur_normalisation * facteur
-                )
-                html += (
-                    f"<li><b>{ingredient['nom']}:</b> {ing_quantite_ajustee:.1f}g</li>"
-                )
-
-        html += f"""
+        comp_html += """
             </ul>
         </div>
-        
+        """
+
+        self.composition_label.setText(comp_html)
+
+        # 2. AFFICHER LES VALEURS NUTRITIONNELLES DANS LA COLONNE 2
+        nut_html = f"""
         <div style="background-color: #f0f4f8; border-radius: 5px; padding: 8px; border: 1px solid #e9ecef;">
-            <h4 style="margin-top:0; margin-bottom:5px; color:#2c3e50;">Valeurs nutritionnelles pour {quantite}g:</h4>
+            <h4 style="margin-top:0; margin-bottom:5px; color:#2c3e50;">Valeurs pour {quantite}g:</h4>
             <table style="width:100%; border-collapse:collapse;">
                 <tr>
                     <td style="padding:3px;"><span style="color:#666;">Calories:</span></td>
@@ -848,7 +859,7 @@ class AlimentRepasDialog(QDialog):
         </div>
         """
 
-        self.details_label.setText(html)
+        self.details_label.setText(nut_html)
 
     def open_compose_manager(self):
         """Ouvre le gestionnaire d'aliments composés"""
