@@ -483,13 +483,49 @@ class AlimentRepasDialog(QDialog):
     def on_tab_changed(self, index):
         """Gère le changement d'onglet"""
         self.mode_aliment_compose = index == 1  # 1 = tab des aliments composés
-        self.add_btn.setEnabled(False)
 
-        # Mettre à jour les détails selon l'onglet actif
+        # Désélectionner tous les éléments des deux tableaux
+        self.aliments_table.clearSelection()
+        self.compose_table.clearSelection()
+
+        # Si on passe à l'onglet des aliments composés
         if self.mode_aliment_compose:
-            self.update_compose_details()
+            # Si un aliment composé est déjà sélectionné, le resélectionner
+            if self.selected_aliment_compose_id is not None:
+                # Rechercher et sélectionner la ligne correspondante
+                for row in range(self.compose_table.rowCount()):
+                    item = self.compose_table.item(row, 0)
+                    if (
+                        item
+                        and item.data(Qt.UserRole + 1)
+                        == self.selected_aliment_compose_id
+                    ):
+                        self.compose_table.selectRow(row)
+                        break
+                self.add_btn.setEnabled(True)
+
+                # Appeler explicitement update_compose_details même si le signal de sélection ne se déclenche pas
+                self.update_compose_details()
+            else:
+                # Aucun aliment composé n'est sélectionné, réinitialiser l'aperçu
+                self.composition_label.setText("")
+                self.details_label.setText("")
+                self.nutritionChanged.emit(0, 0, 0, 0, 0)
+                self.add_btn.setEnabled(False)
         else:
-            self.update_aliment_details()
+            # Si on passe à l'onglet des aliments simples
+            if self.selected_aliment_id is not None:
+                # Rechercher et sélectionner la ligne correspondante
+                for row in range(self.aliments_table.rowCount()):
+                    item = self.aliments_table.item(row, 0)
+                    if item and item.data(Qt.UserRole + 1) == self.selected_aliment_id:
+                        self.aliments_table.selectRow(row)
+                        break
+                self.update_aliment_details()
+                self.add_btn.setEnabled(True)
+            else:
+                # Aucun aliment n'est sélectionné
+                self.add_btn.setEnabled(False)
 
     def load_aliments(self):
         """Charge tous les aliments dans le tableau"""
