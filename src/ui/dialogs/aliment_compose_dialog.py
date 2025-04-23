@@ -327,8 +327,12 @@ class AlimentComposeDialog(QDialog):
         total_lipides = 0
         total_fibres = 0
         total_cout = 0
+        poids_total = 0
 
         for ingredient in self.ingredients:
+            # Ajouter le poids de l'ingrédient au poids total
+            poids_total += ingredient["quantite"]
+
             # Calculer les valeurs pour la quantité spécifiée
             ratio = ingredient["quantite"] / 100.0
             total_calories += ingredient["calories"] * ratio
@@ -342,13 +346,34 @@ class AlimentComposeDialog(QDialog):
             if "prix_kg" in ingredient and ingredient["prix_kg"]:
                 total_cout += (ingredient["prix_kg"] / 1000) * ingredient["quantite"]
 
-        # Mettre à jour les étiquettes avec un format plus joli
-        self.calories_label.setText(f"{total_calories:.0f} kcal")
-        self.proteines_label.setText(f"{total_proteines:.1f} g")
-        self.glucides_label.setText(f"{total_glucides:.1f} g")
-        self.lipides_label.setText(f"{total_lipides:.1f} g")
-        self.fibres_label.setText(f"{total_fibres:.1f} g")
-        self.cout_label.setText(f"{total_cout:.2f} €")
+        # Si le poids total est 0, éviter la division par zéro
+        if poids_total == 0:
+            self.calories_label.setText("0 kcal")
+            self.proteines_label.setText("0 g")
+            self.glucides_label.setText("0 g")
+            self.lipides_label.setText("0 g")
+            self.fibres_label.setText("0 g")
+            self.cout_label.setText("0.00 €")
+            return
+
+        # Normaliser les valeurs pour 100g
+        facteur_normalisation = 100.0 / poids_total
+        calories_100g = total_calories * facteur_normalisation
+        proteines_100g = total_proteines * facteur_normalisation
+        glucides_100g = total_glucides * facteur_normalisation
+        lipides_100g = total_lipides * facteur_normalisation
+        fibres_100g = total_fibres * facteur_normalisation
+
+        # Le coût est déjà pour la quantité totale, mais on peut le normaliser aussi si nécessaire
+        cout_100g = total_cout * facteur_normalisation
+
+        # Mettre à jour les étiquettes avec les valeurs normalisées
+        self.calories_label.setText(f"{calories_100g:.0f} kcal")
+        self.proteines_label.setText(f"{proteines_100g:.1f} g")
+        self.glucides_label.setText(f"{glucides_100g:.1f} g")
+        self.lipides_label.setText(f"{lipides_100g:.1f} g")
+        self.fibres_label.setText(f"{fibres_100g:.1f} g")
+        self.cout_label.setText(f"{cout_100g:.2f} €")
 
     def ajouter_ingredient(self):
         """Ouvre un dialogue pour ajouter un ingrédient"""
