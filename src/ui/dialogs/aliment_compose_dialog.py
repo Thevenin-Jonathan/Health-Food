@@ -16,11 +16,8 @@ from PySide6.QtWidgets import (
     QWidget,
     QGridLayout,
     QFrame,
-    QSizePolicy,
 )
 from PySide6.QtCore import Qt, Signal
-
-from src.ui.dialogs.aliment_repas_dialog import AlimentRepasDialog
 from src.ui.dialogs.aliment_simple_selection_dialog import AlimentSimpleSelectionDialog
 
 
@@ -74,7 +71,7 @@ class AlimentComposeDialog(QDialog):
             "Aliment composé" if self.mode_edition else "Nouvel aliment composé"
         )
         self.setMinimumWidth(700)
-        self.setMinimumHeight(550)
+        self.setMinimumHeight(650)
 
         main_layout = QVBoxLayout(self)
 
