@@ -136,24 +136,69 @@ class RemplacerRepasDialog(QDialog):
 
         # Récupérer les totaux du jour si disponibles
         self.totaux_jour = None
-        if repas_actuel and repas_actuel.get("jour"):
-            for jour, repas_list in self.db_manager.get_repas_semaine(
-                repas_actuel.get("semaine_id")
-            ).items():
-                if jour == repas_actuel["jour"]:
-                    # Calculer les totaux du jour
-                    cal_total = sum(r["total_calories"] for r in repas_list)
-                    prot_total = sum(r["total_proteines"] for r in repas_list)
-                    gluc_total = sum(r["total_glucides"] for r in repas_list)
-                    lip_total = sum(r["total_lipides"] for r in repas_list)
 
-                    self.totaux_jour = {
-                        "calories": cal_total,
-                        "proteines": prot_total,
-                        "glucides": gluc_total,
-                        "lipides": lip_total,
-                    }
-                    break
+        # 1. Essayer d'obtenir la semaine_id et calculer normalement
+        if repas_actuel and repas_actuel.get("jour"):
+            # Si le parent est un RepasWidget, essayer de récupérer les totaux journaliers directement
+            try:
+                if parent and hasattr(parent, "get_objectifs_jour"):
+                    objectifs_jour = parent.get_objectifs_jour()
+                    if objectifs_jour and "actuel" in objectifs_jour:
+                        self.totaux_jour = objectifs_jour["actuel"]
+                        print(f"Totaux jour récupérés du parent: {self.totaux_jour}")
+            except Exception as e:
+                print(f"Erreur lors de la récupération des totaux du parent: {str(e)}")
+
+            # Si les totaux ne sont pas disponibles via le parent, essayer via semaine_id/jour
+            if not self.totaux_jour:
+                try:
+                    semaine_id = repas_actuel.get("semaine_id")
+                    jour = repas_actuel.get("jour")
+
+                    if semaine_id and jour:
+                        # Récupérer tous les repas de la journée
+                        repas_jour = []
+                        repas_semaine = self.db_manager.get_repas_semaine(semaine_id)
+
+                        if jour in repas_semaine:
+                            repas_jour = repas_semaine[jour]
+
+                        # Calculer les totaux du jour
+                        cal_total = sum(r.get("total_calories", 0) for r in repas_jour)
+                        prot_total = sum(
+                            r.get("total_proteines", 0) for r in repas_jour
+                        )
+                        gluc_total = sum(r.get("total_glucides", 0) for r in repas_jour)
+                        lip_total = sum(r.get("total_lipides", 0) for r in repas_jour)
+
+                        # Utiliser des valeurs par défaut de 0 si les sommes sont None
+                        self.totaux_jour = {
+                            "calories": cal_total or 0,
+                            "proteines": prot_total or 0,
+                            "glucides": gluc_total or 0,
+                            "lipides": lip_total or 0,
+                        }
+
+                        # Log de debug
+                        print(f"Totaux jour calculés: {self.totaux_jour}")
+                    else:
+                        print(
+                            "semaine_id ou jour manquant, calcul des totaux impossible via cette méthode"
+                        )
+                except Exception as e:
+                    print(f"Erreur lors du calcul des totaux journaliers: {str(e)}")
+
+        # 2. Si aucune méthode n'a réussi, utiliser une estimation basée sur le repas actuel
+        if not self.totaux_jour:
+            print("Création de totaux jour estimés basés sur le repas actuel")
+            # Créer des totaux estimés (multiplier les valeurs du repas actuel par 3 pour simuler une journée)
+            self.totaux_jour = {
+                "calories": repas_actuel.get("total_calories", 0) * 3,
+                "proteines": repas_actuel.get("total_proteines", 0) * 3,
+                "glucides": repas_actuel.get("total_glucides", 0) * 3,
+                "lipides": repas_actuel.get("total_lipides", 0) * 3,
+            }
+            print(f"Totaux jour estimés: {self.totaux_jour}")
 
         self.setup_ui()
 
