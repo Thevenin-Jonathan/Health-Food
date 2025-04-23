@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFrame,
     QGridLayout,
+    QWidget,
 )
 from PySide6.QtCore import Qt, Signal
 
@@ -60,7 +61,7 @@ class AlimentSimpleSelectionDialog(QDialog):
     def setup_ui(self):
         """Configure l'interface utilisateur"""
         self.setMinimumWidth(800)
-        self.setMinimumHeight(600)  # Plus grand pour accueillir l'aperçu
+        self.setMinimumHeight(800)  # Plus grand pour accueillir l'aperçu
 
         main_layout = QVBoxLayout(self)
         main_layout.setSpacing(10)
@@ -128,117 +129,123 @@ class AlimentSimpleSelectionDialog(QDialog):
         separator.setFrameShadow(QFrame.Sunken)
         main_layout.addWidget(separator)
 
-        # Aperçu avant/après - Version améliorée avec styles existants
+        # Aperçu avant/après - Version améliorée avec le même style que l'AlimentComposeDialog
         preview_layout = QVBoxLayout()
 
-        # Titre de l'aperçu avec style
+        # Titre de la section avec style amélioré
         preview_title = QLabel("Impact nutritionnel sur l'aliment composé")
+        preview_title.setProperty("class", "nutrition-title")
         preview_title.setAlignment(Qt.AlignCenter)
-        preview_title.setProperty(
-            "class", "nutrition-title"
-        )  # Utilisation d'une classe existante
         preview_layout.addWidget(preview_title)
 
-        # Cadre stylisé pour l'aperçu nutritionnel utilisant les styles existants
-        preview_frame = QFrame()
-        preview_frame.setFrameShape(QFrame.StyledPanel)
-        preview_frame.setFrameShadow(QFrame.Raised)
-        preview_frame.setObjectName(
-            "nutrition-frame"
-        )  # Utilisation d'un style existant
-        preview_frame.setProperty(
-            "class", "nutrition-summary"
-        )  # Utilisation d'une classe existante
+        # Cadre nutritionnel stylisé
+        nutrition_frame = QFrame()
+        nutrition_frame.setObjectName("nutrition-frame")  # Pour cibler avec QSS
+        nutrition_frame.setProperty("class", "nutrition-summary")  # Style existant
+        nutrition_frame.setFrameShape(QFrame.StyledPanel)
+        nutrition_frame.setMaximumWidth(360)  # Limite la largeur totale du cadre
 
-        # Layout pour le cadre
-        frame_layout = QGridLayout(preview_frame)
-        frame_layout.setSpacing(6)
-        frame_layout.setContentsMargins(10, 10, 10, 10)
+        nutrition_layout = QGridLayout(nutrition_frame)
+        nutrition_layout.setContentsMargins(15, 15, 15, 15)
+        nutrition_layout.setVerticalSpacing(8)
+        nutrition_layout.setHorizontalSpacing(15)
 
-        # En-têtes stylisés
-        headers = ["", "Actuel", "+", "Ajout", "=", "Nouveau"]
-        for i, text in enumerate(headers):
-            header = QLabel(text)
-            header.setProperty("class", "bold")  # Utilisation d'une classe existante
-            header.setAlignment(Qt.AlignCenter)
-            if i == 0:
-                header.setAlignment(Qt.AlignLeft)
-            frame_layout.addWidget(header, 0, i)
+        # En-tête stylisé
+        header_label = QLabel("Valeurs avant / après")
+        header_label.setProperty("class", "nutrition-subtitle")
+        header_label.setAlignment(Qt.AlignCenter)
+        nutrition_layout.addWidget(header_label, 0, 0, 1, 3)
 
-        # Ligne de séparation sous les en-têtes
-        header_line = QFrame()
-        header_line.setFrameShape(QFrame.HLine)
-        header_line.setFrameShadow(QFrame.Sunken)
-        frame_layout.addWidget(header_line, 1, 0, 1, 6)
+        # Ligne de séparation sous le titre
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        separator.setStyleSheet("background-color: #d1e3fa; margin: 5px 0px;")
+        separator.setMaximumHeight(2)
+        nutrition_layout.addWidget(separator, 1, 0, 1, 3)
 
-        # Données nutritionnelles avec des styles cohérents par type de nutriment
+        # Structure des données nutritionnelles à afficher
         nutrition_data = [
-            ("Calories:", "calories", "kcal", False),
-            ("Protéines:", "proteines", "g", True),
-            ("Glucides:", "glucides", "g", True),
-            ("Lipides:", "lipides", "g", True),
-            ("Fibres:", "fibres", "g", True),
+            ("🔥", "Calories:", "calories", "kcal", False),
+            ("🥩", "Protéines:", "proteines", "g", True),
+            ("🍞", "Glucides:", "glucides", "g", True),
+            ("🥑", "Lipides:", "lipides", "g", True),
+            ("🥦", "Fibres:", "fibres", "g", True),
         ]
 
-        for row, (label_text, attr, unit, decimal) in enumerate(nutrition_data, 2):
-            # Label du nutriment
-            label = QLabel(label_text)
-            label.setProperty(
-                "class", "nutrition-subtitle"
-            )  # Utilisation d'une classe existante
-            frame_layout.addWidget(label, row, 0)
+        # Créer un widget conteneur avec taille fixe pour chaque ligne
+        for row, (icon_text, label_text, attr_name, unit, decimal) in enumerate(
+            nutrition_data, 2
+        ):
+            # Container pour cette ligne
+            row_widget = QWidget()
+            row_layout = QHBoxLayout(row_widget)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setSpacing(5)
+
+            # Icône
+            icon_label = QLabel(icon_text)
+            icon_label.setAlignment(Qt.AlignCenter)
+            icon_label.setFixedWidth(30)
+            row_layout.addWidget(icon_label)
+
+            # Nom du nutriment
+            name_label = QLabel(label_text)
+            name_label.setProperty("class", "nutrition-subtitle")
+            name_label.setFixedWidth(80)
+            row_layout.addWidget(name_label)
+
+            # Layout pour les valeurs actuelles et futures
+            values_widget = QWidget()
+            values_layout = QHBoxLayout(values_widget)
+            values_layout.setContentsMargins(0, 0, 0, 0)
+            values_layout.setSpacing(5)
 
             # Valeur actuelle
             format_str = "{:.1f}" if decimal else "{:.0f}"
             current_val = QLabel(
-                f"{format_str.format(self.current_values[attr])} {unit}"
+                format_str.format(self.current_values[attr_name]) + f" {unit}"
             )
-            current_val.setAlignment(Qt.AlignCenter)
-            current_val.setProperty(
-                "type", attr
-            )  # Pour que les couleurs spécifiques s'appliquent
-            current_val.setProperty("class", "nutrition-value")  # Style existant
-            setattr(self, f"current_{attr}", current_val)
-            frame_layout.addWidget(current_val, row, 1)
+            current_val.setProperty("class", "nutrition-value")
+            if attr_name != "fibres":  # Ne pas appliquer de couleur aux fibres
+                current_val.setProperty("type", attr_name)
+            current_val.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            current_val.setFixedWidth(70)
+            setattr(self, f"current_{attr_name}", current_val)
+            values_layout.addWidget(current_val)
 
-            # Symbole plus
-            plus = QLabel("+")
-            plus.setAlignment(Qt.AlignCenter)
-            plus.setProperty("class", "hint")  # Style existant pour un texte grisé
-            frame_layout.addWidget(plus, row, 2)
+            # Séparateur
+            arrow_label = QLabel("→")
+            arrow_label.setAlignment(Qt.AlignCenter)
+            arrow_label.setFixedWidth(20)
+            arrow_label.setStyleSheet("color: #777;")
+            values_layout.addWidget(arrow_label)
 
-            # Valeur ajoutée - utilise la classe existante mais avec un style spécifique
-            added_val = QLabel(f"0 {unit}")
-            added_val.setAlignment(Qt.AlignCenter)
-            added_val.setProperty("class", "nutrition-value")
-            added_val.setProperty(
-                "type", attr
-            )  # Pour que les couleurs spécifiques s'appliquent
-            added_val.setStyleSheet(
-                "font-weight: bold; color: #0078d7;"
-            )  # Style spécifique en bleu
-            setattr(self, f"added_{attr}", added_val)
-            frame_layout.addWidget(added_val, row, 3)
+            # Nouvelle valeur
+            new_val = QLabel(
+                format_str.format(self.current_values[attr_name]) + f" {unit}"
+            )
+            new_val.setProperty("class", "result-value-highlight")
+            if attr_name != "fibres":  # Ne pas appliquer de couleur aux fibres
+                new_val.setProperty("type", attr_name)
+            new_val.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            new_val.setFixedWidth(70)
+            setattr(self, f"new_{attr_name}", new_val)
+            values_layout.addWidget(new_val)
 
-            # Symbole égal
-            equal = QLabel("=")
-            equal.setAlignment(Qt.AlignCenter)
-            equal.setProperty("class", "hint")  # Style existant pour un texte grisé
-            frame_layout.addWidget(equal, row, 4)
+            # Ajouter le layout des valeurs au layout de la ligne
+            row_layout.addWidget(values_widget)
 
-            # Nouvelle valeur - utilisez la classe pour les valeurs mises en évidence
-            new_val = QLabel(f"{format_str.format(self.current_values[attr])} {unit}")
-            new_val.setAlignment(Qt.AlignCenter)
-            new_val.setProperty(
-                "class", "result-value-highlight"
-            )  # Style existant pour mettre en évidence
-            new_val.setProperty(
-                "type", attr
-            )  # Pour que les couleurs spécifiques s'appliquent
-            setattr(self, f"new_{attr}", new_val)
-            frame_layout.addWidget(new_val, row, 5)
+            # Ajouter la ligne complète au layout principal
+            nutrition_layout.addWidget(row_widget, row, 0, 1, 3)
 
-        preview_layout.addWidget(preview_frame)
+        # Centrer le cadre nutritionnel dans son conteneur
+        nutrition_container = QHBoxLayout()
+        nutrition_container.addStretch()
+        nutrition_container.addWidget(nutrition_frame)
+        nutrition_container.addStretch()
+
+        preview_layout.addLayout(nutrition_container)
         main_layout.addLayout(preview_layout)
 
         # Séparateur horizontal
@@ -370,40 +377,54 @@ class AlimentSimpleSelectionDialog(QDialog):
             "calories": {
                 "current": self.current_values["calories"],
                 "added": self.selected_aliment["calories"] * quantity_factor,
-                "format": "{:.0f} kcal",
+                "format": "{:.0f}",
             },
             "proteines": {
                 "current": self.current_values["proteines"],
                 "added": self.selected_aliment["proteines"] * quantity_factor,
-                "format": "{:.1f} g",
+                "format": "{:.1f}",
             },
             "glucides": {
                 "current": self.current_values["glucides"],
                 "added": self.selected_aliment["glucides"] * quantity_factor,
-                "format": "{:.1f} g",
+                "format": "{:.1f}",
             },
             "lipides": {
                 "current": self.current_values["lipides"],
                 "added": self.selected_aliment["lipides"] * quantity_factor,
-                "format": "{:.1f} g",
+                "format": "{:.1f}",
             },
             "fibres": {
                 "current": self.current_values["fibres"],
                 "added": self.selected_aliment.get("fibres", 0) * quantity_factor,
-                "format": "{:.1f} g",
+                "format": "{:.1f}",
             },
         }
 
-        # Mettre à jour tous les labels
-        for attr, values in nutrition_values.items():
-            # Calculer la nouvelle valeur
-            new_value = values["current"] + values["added"]
+        # Les unités correspondant à chaque nutriment
+        units = {
+            "calories": "kcal",
+            "proteines": "g",
+            "glucides": "g",
+            "lipides": "g",
+            "fibres": "g",
+        }
 
-            # Mettre à jour les labels
-            getattr(self, f"added_{attr}").setText(
-                values["format"].format(values["added"])
+        # Mettre à jour les labels
+        for attr, values in nutrition_values.items():
+            current = values["current"]
+            added = values["added"]
+            new_value = current + added
+            format_str = values["format"]
+            unit = units[attr]
+
+            # Mise à jour des labels avec le format et l'unité
+            getattr(self, f"current_{attr}").setText(
+                f"{format_str.format(current)} {unit}"
             )
-            getattr(self, f"new_{attr}").setText(values["format"].format(new_value))
+            getattr(self, f"new_{attr}").setText(
+                f"{format_str.format(new_value)} {unit}"
+            )
 
         # Émettre le signal avec les valeurs ajoutées
         self.nutritionChanged.emit(
@@ -418,20 +439,23 @@ class AlimentSimpleSelectionDialog(QDialog):
         """Réinitialise l'aperçu des valeurs nutritionnelles"""
         # Structure pour simplifier la réinitialisation
         nutrition_attrs = [
-            ("calories", "{:.0f} kcal"),
-            ("proteines", "{:.1f} g"),
-            ("glucides", "{:.1f} g"),
-            ("lipides", "{:.1f} g"),
-            ("fibres", "{:.1f} g"),
+            ("calories", "{:.0f}", "kcal"),
+            ("proteines", "{:.1f}", "g"),
+            ("glucides", "{:.1f}", "g"),
+            ("lipides", "{:.1f}", "g"),
+            ("fibres", "{:.1f}", "g"),
         ]
 
-        for attr, format_str in nutrition_attrs:
+        for attr, format_str, unit in nutrition_attrs:
             current_value = self.current_values[attr]
 
-            # Mettre à jour les labels
-            getattr(self, f"current_{attr}").setText(format_str.format(current_value))
-            getattr(self, f"added_{attr}").setText(format_str.format(0))
-            getattr(self, f"new_{attr}").setText(format_str.format(current_value))
+            # Mettre à jour les labels avec les valeurs actuelles
+            getattr(self, f"current_{attr}").setText(
+                f"{format_str.format(current_value)} {unit}"
+            )
+            getattr(self, f"new_{attr}").setText(
+                f"{format_str.format(current_value)} {unit}"
+            )
 
     def get_data(self):
         """Retourne l'ID de l'aliment et la quantité sélectionnés"""
