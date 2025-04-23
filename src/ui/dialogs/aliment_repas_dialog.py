@@ -200,9 +200,9 @@ class AlimentRepasDialog(QDialog):
         # Tableau des aliments - Masquer les numéros de ligne
         self.aliments_table = QTableWidget()
         self.aliments_table.setSortingEnabled(True)
-        self.aliments_table.setColumnCount(4)  # Réduction des colonnes
+        self.aliments_table.setColumnCount(5)
         self.aliments_table.setHorizontalHeaderLabels(
-            ["Nom", "Marque", "Calories", "Protéines"]
+            ["Nom", "Marque", "Calories", "Protéines", "Catégorie"]
         )
         header = self.aliments_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)  # Nom
