@@ -315,6 +315,32 @@ class DBConnector:
             """
         )
 
+        # Table pour les aliments composés (mélanges, sauces, etc.)
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS aliments_composes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nom TEXT NOT NULL,
+                description TEXT,
+                categorie TEXT
+            )
+            """
+        )
+
+        # Table pour les ingrédients des aliments composés
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS aliments_composes_ingredients (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                aliment_compose_id INTEGER,
+                aliment_id INTEGER,
+                quantite REAL,
+                FOREIGN KEY (aliment_compose_id) REFERENCES aliments_composes (id) ON DELETE CASCADE,
+                FOREIGN KEY (aliment_id) REFERENCES aliments (id) ON DELETE CASCADE
+            )
+            """
+        )
+
         # Ajouter quelques catégories par défaut
         self.cursor.execute("SELECT COUNT(*) FROM categories_repas")
         if self.cursor.fetchone()[0] == 0:

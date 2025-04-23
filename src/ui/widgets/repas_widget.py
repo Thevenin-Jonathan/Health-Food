@@ -529,7 +529,6 @@ class RepasWidget(QFrame):
             if was_expanded:
                 self.is_expanded = True
                 self.details_widget.setVisible(True)
-                self.expand_btn.setText("▲")
                 self.expand_btn.setStyleSheet(
                     """
                     border-top-left-radius: 0px;
@@ -544,12 +543,49 @@ class RepasWidget(QFrame):
 
     def add_food_to_meal(self):
         """Ajouter un aliment au repas"""
-        dialog = AlimentRepasDialog(self, self.db_manager)
+        # Trouver les objectifs nutritionnels et l'état actuel du jour
+        objectifs_journee = self.get_objectifs_jour()
+
+        dialog = AlimentRepasDialog(
+            parent=self,
+            db_manager=self.db_manager,
+            semaine_id=self.semaine_id,
+            jour=self.jour,
+            objectifs=objectifs_journee.get("objectif", {}),
+        )
+
         if dialog.exec():
-            aliment_id, quantite = dialog.get_data()
-            self.db_manager.ajouter_aliment_repas(
-                self.repas_data["id"], aliment_id, quantite
-            )
+            result = dialog.get_data()
+
+            # Vérifier si c'est un aliment simple ou composé
+            if (
+                isinstance(result, tuple)
+                and len(result) == 3
+                and result[0] == "compose"
+            ):
+                # C'est un aliment composé
+                _, aliment_compose_id, quantite = result
+
+                # Ajouter l'aliment composé au repas
+                success = self.db_manager.ajouter_aliment_compose_a_repas(
+                    self.repas_data["id"], aliment_compose_id, quantite
+                )
+
+                if not success:
+                    QMessageBox.warning(
+                        self,
+                        "Erreur",
+                        "Impossible d'ajouter l'aliment composé au repas.",
+                    )
+                    return
+            else:
+                # C'est un aliment simple (format classique)
+                aliment_id, quantite = result
+
+                # Ajouter l'aliment au repas
+                self.db_manager.ajouter_aliment_repas(
+                    self.repas_data["id"], aliment_id, quantite
+                )
 
             # Récupérer les données mises à jour
             repas_updated = self.db_manager.get_repas(self.repas_data["id"])
@@ -580,6 +616,84 @@ class RepasWidget(QFrame):
 
                 # Mettre à jour les totaux du jour parent
                 self.notify_parent_day_widget()
+
+    def get_objectifs_jour(self):
+        """Récupère les objectifs nutritionnels et l'état actuel de la journée"""
+        # Valeurs par défaut
+        data = {
+            "actuel": {
+                "calories": 0,
+                "proteines": 0,
+                "glucides": 0,
+                "lipides": 0,
+                "fibres": 0,
+            },
+            "objectif": {
+                "calories": 2500,
+                "proteines": 150,
+                "glucides": 250,
+                "lipides": 80,
+                "fibres": 30,
+            },
+        }
+
+        # Trouver le widget jour parent
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, "objectifs_utilisateur"):
+                # Nous avons trouvé le JourWidget
+                # Objectifs
+                data["objectif"]["calories"] = parent.objectifs_utilisateur.get(
+                    "calories", 2500
+                )
+                data["objectif"]["proteines"] = parent.objectifs_utilisateur.get(
+                    "proteines", 150
+                )
+                data["objectif"]["glucides"] = parent.objectifs_utilisateur.get(
+                    "glucides", 250
+                )
+                data["objectif"]["lipides"] = parent.objectifs_utilisateur.get(
+                    "lipides", 70
+                )
+                data["objectif"]["fibres"] = parent.objectifs_utilisateur.get(
+                    "fibres", 30
+                )
+
+                # Calculer les totaux actuels sans ce repas
+                cal_total, prot_total, gluc_total, lip_total, fibres_total = (
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                )
+
+                for repas in parent.repas_list:
+                    # Ne pas compter ce repas
+                    if repas["id"] != self.repas_data["id"]:
+                        cal_total += repas["total_calories"]
+                        prot_total += repas["total_proteines"]
+                        gluc_total += repas["total_glucides"]
+                        lip_total += repas["total_lipides"]
+
+                        # Calculer les fibres si disponibles
+                        for aliment in repas["aliments"]:
+                            if "fibres" in aliment and aliment["fibres"]:
+                                fibres_total += (
+                                    aliment["fibres"] * aliment["quantite"] / 100
+                                )
+
+                # Mettre à jour les valeurs actuelles
+                data["actuel"]["calories"] = cal_total
+                data["actuel"]["proteines"] = prot_total
+                data["actuel"]["glucides"] = gluc_total
+                data["actuel"]["lipides"] = lip_total
+                data["actuel"]["fibres"] = fibres_total
+
+                break
+            parent = parent.parent()
+
+        return data
 
     def delete_meal(self):
         """Supprimer ce repas"""
@@ -850,9 +964,9 @@ class RepasWidget(QFrame):
 
         # Mettre à jour les macronutriments
         self.macro_summary.setText(
-            f"<b>P:</b> {self.repas_data['total_proteines']:.1f}g | "
-            f"<b>G:</b> {self.repas_data['total_glucides']:.1f}g | "
-            f"<b>L:</b> {self.repas_data['total_lipides']:.1f}g"
+            f"<b>P:</b> {self.repas_data["total_proteines"]:.1f}g | "
+            f"<b>G:</b> {self.repas_data["total_glucides"]:.1f}g | "
+            f"<b>L:</b> {self.repas_data["total_lipides"]:.1f}g"
         )
 
     def notify_parent_day_widget(self):
@@ -916,7 +1030,7 @@ class RepasWidget(QFrame):
         confirm = QMessageBox.question(
             self,
             "Confirmation",
-            f"Voulez-vous vraiment supprimer le repas {self.repas_data['nom']} ?",
+            f"Voulez-vous vraiment supprimer le repas {self.repas_data["nom"]} ?",
             QMessageBox.Yes | QMessageBox.No,
         )
 
@@ -1031,7 +1145,6 @@ class RepasWidget(QFrame):
         try:
             # Mémoriser explicitement l'état d'expansion avant tout
             was_expanded = self.is_expanded
-            print(f"État d'expansion avant correction: {was_expanded}")  # Pour debug
 
             # Récupérer les données complètes de l'aliment depuis la base de données
             aliment_complet = self.db_manager.get_aliment(aliment["id"])
@@ -1073,11 +1186,9 @@ class RepasWidget(QFrame):
                     self.clear_and_rebuild_details()
                     self.update_summaries()
 
-                    # Forcer explicitement l'état d'expansion précédent
+                    # Restaurer l'état d'expansion
                     if was_expanded:
-                        # Ne pas modifier self.is_expanded ici - le faire après avoir rendu visible
                         self.details_widget.setVisible(True)
-                        self.expand_btn.setText("▲")
                         self.expand_btn.setStyleSheet(
                             """
                             border-top-left-radius: 0px;
@@ -1086,25 +1197,15 @@ class RepasWidget(QFrame):
                             border-bottom-right-radius: 12px;
                             """
                         )
-                        # Mettre à jour l'état d'expansion après avoir modifié l'interface
                         self.is_expanded = True
                     else:
-                        # Si ce n'était pas expanded, assurez-vous que c'est bien fermé
                         self.details_widget.setVisible(False)
                         self.expand_btn.setStyleSheet("")
                         self.is_expanded = False
 
-                    print(
-                        f"État d'expansion après correction: {self.is_expanded}"
-                    )  # Pour debug
-
                     # Mettre à jour les totaux du jour parent
                     self.notify_parent_day_widget()
 
-        except (
-            KeyError,
-            ValueError,
-            AttributeError,
-        ) as e:  # Replace with specific exceptions
+        except Exception as e:
             print(f"Erreur lors de la correction des valeurs nutritionnelles: {e}")
-            traceback.print_exc()  # Affiche la stack trace complète
+            traceback.print_exc()

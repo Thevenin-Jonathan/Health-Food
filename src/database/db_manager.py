@@ -6,6 +6,7 @@ from .db_utilisateur import UserManager
 from .db_repas_types import RepasTypesManager
 from .db_export_import import ExportImportManager
 from .db_categories_repas import CategoriesRepasManager
+from .db_aliments_composes import AlimentsComposesManager
 
 
 class DatabaseManager(DBConnector):
@@ -26,6 +27,8 @@ class DatabaseManager(DBConnector):
         self.export_import_manager = ExportImportManager(self.db_file)
         self.courses_manager = CoursesManager(self.db_file)
         self.categories_repas_manager = CategoriesRepasManager(self.db_file)
+        self.aliments_composes = AlimentsComposesManager(self.db_file)
+        # Nous pourrions ajouter un gestionnaire spécifique pour les aliments composés plus tard
 
     def init_db(self):
         """Initialise la structure de la base de données et crée un utilisateur par défaut si nécessaire"""
@@ -338,3 +341,68 @@ class DatabaseManager(DBConnector):
     def get_repas_types_filtres(self, categorie_id=None, recherche=None):
         """Délègue la récupération des repas types filtrés"""
         return self.repas_types_manager.get_repas_types_filtres(categorie_id, recherche)
+
+    # =========== MÉTHODES POUR LES ALIMENTS COMPOSÉS ===========
+    def ajouter_aliment_compose(self, nom, description, categorie=None):
+        """Ajoute un nouvel aliment composé"""
+        return self.aliments_composes.ajouter_aliment_compose(
+            nom, description, categorie
+        )
+
+    def ajouter_ingredient_aliment_compose(
+        self, aliment_compose_id, aliment_id, quantite
+    ):
+        """Ajoute un ingrédient à un aliment composé"""
+        return self.aliments_composes.ajouter_ingredient_aliment_compose(
+            aliment_compose_id, aliment_id, quantite
+        )
+
+    def supprimer_ingredient_aliment_compose(self, aliment_compose_id, aliment_id):
+        """Supprime un ingrédient d'un aliment composé"""
+        return self.aliments_composes.supprimer_ingredient_aliment_compose(
+            aliment_compose_id, aliment_id
+        )
+
+    def get_aliments_composes(self, categorie=None):
+        """Récupère tous les aliments composés, éventuellement filtrés par catégorie"""
+        return self.aliments_composes.get_aliments_composes(categorie)
+
+    def get_aliment_compose(self, aliment_compose_id):
+        """Récupère un aliment composé spécifique avec tous ses ingrédients"""
+        return self.aliments_composes.get_aliment_compose(aliment_compose_id)
+
+    def get_ingredients_aliment_compose(self, aliment_compose_id):
+        """Récupère tous les ingrédients d'un aliment composé"""
+        return self.aliments_composes.get_ingredients_aliment_compose(
+            aliment_compose_id
+        )
+
+    def calculer_valeurs_nutritionnelles_aliment_compose(self, aliment_compose_id):
+        """Calcule les valeurs nutritionnelles totales d'un aliment composé"""
+        return self.aliments_composes.calculer_valeurs_nutritionnelles_aliment_compose(
+            aliment_compose_id
+        )
+
+    def modifier_aliment_compose(
+        self, aliment_compose_id, nom, description, categorie=None
+    ):
+        """Modifie les informations d'un aliment composé"""
+        return self.aliments_composes.modifier_aliment_compose(
+            aliment_compose_id, nom, description, categorie
+        )
+
+    def supprimer_aliment_compose(self, aliment_compose_id):
+        """Supprime un aliment composé et tous ses ingrédients"""
+        return self.aliments_composes.supprimer_aliment_compose(aliment_compose_id)
+
+    def ajouter_aliment_compose_a_repas(
+        self, repas_id, aliment_compose_id, quantite_totale
+    ):
+        """Ajoute tous les ingrédients d'un aliment composé à un repas"""
+        return self.aliments_composes.ajouter_aliment_compose_a_repas(
+            repas_id, aliment_compose_id, quantite_totale
+        )
+
+    def get_categories_aliments_composes(self):
+        """Récupère toutes les catégories uniques d'aliments composés"""
+        return self.aliments_composes.get_categories_aliments_composes()

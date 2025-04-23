@@ -1396,3 +1396,86 @@ QProgressBar[status="medium"]::chunk {
 QProgressBar[status="low"]::chunk {
     background-color: #757575;  /* Gris foncé - même que les badges */
 }
+
+/* 
+============================================
+   DIALOGUE ALIMENT REPAS - BARRES NUTRITIONNELLES
+============================================
+*/
+
+/* Styles pour les barres de progression dans le dialogue d'ajout d'aliments */
+AlimentRepasDialog QProgressBar {
+    border: none;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    text-align: center;
+    height: 12px;
+    margin: 2px 0px;
+}
+
+/* Les couleurs des barres sont maintenant gérées par les styles status (over, good, medium, low) */
+/* Les styles sur les chunks sont hérités du style général des barres de progression */
+
+/* Styles pour les valeurs des barres dans le dialogue */
+AlimentRepasDialog QLabel.nutrition-value {
+    font-weight: bold;
+    font-size: 11px;
+    min-width: 90px;
+    text-align: right;
+}
+
+/* Styles pour les sections d'informations nutritionnelles */
+AlimentRepasDialog QFrame#nutrition-frame {
+    background-color: #f0f4f8;
+    border-radius: 6px;
+    border: 1px solid #d1e3fa;
+    padding: 8px;
+}
+
+AlimentRepasDialog QLabel.nutrition-title {
+    font-weight: bold;
+    font-size: 14px;
+    color: #2c3e50;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #d1e3fa;
+}
+
+AlimentRepasDialog QLabel.nutrition-subtitle {
+    font-weight: bold;
+    color: #34495e;
+    margin-top: 5px;
+}
+
+/* 
+============================================
+   BARRES DE PROGRESSION - STYLE UNIFIÉ
+============================================
+*/
+
+/* Style de base pour toutes les barres de progression */
+QProgressBar {
+    border: 1px solid #E0E0E0;
+    border-radius: 4px;
+    text-align: center;
+}
+
+/* Statuts uniformisés pour toutes les barres de progression */
+/* Rouge - quand la valeur est trop élevée (>105%) */
+QProgressBar[status="over"]::chunk {
+    background-color: #e74c3c;
+}
+
+/* Vert - quand la valeur est idéale (95-105%) */
+QProgressBar[status="good"]::chunk {
+    background-color: #2ecc71;
+}
+
+/* Orange - quand la valeur est moyenne (50-95%) */
+QProgressBar[status="medium"]::chunk {
+    background-color: #f39c12;
+}
+
+/* Gris - quand la valeur est trop basse (<50%) */
+QProgressBar[status="low"]::chunk {
+    background-color: #95a5a6;
+}

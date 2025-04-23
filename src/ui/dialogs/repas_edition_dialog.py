@@ -147,7 +147,19 @@ class RepasEditionDialog(QDialog):
 
     def add_aliment(self):
         """Ajoute un aliment au repas"""
-        dialog = AlimentRepasDialog(self, self.db_manager)
+
+        user_data = self.db_manager.get_utilisateur()
+        objectifs = {
+            "calories": user_data.get("objectif_calories", 2500),
+            "proteines": user_data.get("objectif_proteines", 180),
+            "glucides": user_data.get("objectif_glucides", 250),
+            "lipides": user_data.get("objectif_lipides", 70),
+        }
+
+        dialog = AlimentRepasDialog(
+            parent=self, db_manager=self.db_manager, objectifs=objectifs
+        )
+
         if dialog.exec():
             aliment_id, quantite = dialog.get_data()
 
