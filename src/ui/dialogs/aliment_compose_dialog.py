@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
     QGridLayout,
     QFrame,
+    QSizePolicy,
 )
 from PySide6.QtCore import Qt, Signal
 
@@ -105,60 +106,98 @@ class AlimentComposeDialog(QDialog):
 
         # Résumé nutritionnel avec un style plus moderne
         nutrition_frame = QFrame()
+        nutrition_frame.setObjectName("nutrition-frame")  # Pour cibler avec QSS
+        nutrition_frame.setProperty("class", "nutrition-summary")  # Style existant
         nutrition_frame.setFrameShape(QFrame.StyledPanel)
+        nutrition_frame.setMaximumWidth(300)  # Limite la largeur totale du cadre
 
         nutrition_layout = QGridLayout(nutrition_frame)
         nutrition_layout.setContentsMargins(15, 15, 15, 15)
         nutrition_layout.setVerticalSpacing(8)
         nutrition_layout.setHorizontalSpacing(15)
 
-        # Titre de la section
+        # Titre de la section avec style amélioré
         title_label = QLabel("Valeurs nutritionnelles (pour 100g)")
-        title_label.setObjectName("nutrition_title")
+        title_label.setProperty("class", "nutrition-title")
         title_label.setAlignment(Qt.AlignCenter)
-        nutrition_layout.addWidget(title_label, 0, 0, 1, 2)
+        nutrition_layout.addWidget(title_label, 0, 0, 1, 3)
 
-        # Colonnes de valeurs nutritionnelles
-        nutrition_layout.addWidget(QLabel("Calories:"), 1, 0)
-        nutrition_layout.addWidget(QLabel("Protéines:"), 2, 0)
-        nutrition_layout.addWidget(QLabel("Glucides:"), 3, 0)
-        nutrition_layout.addWidget(QLabel("Lipides:"), 4, 0)
-        nutrition_layout.addWidget(QLabel("Fibres:"), 5, 0)
-        nutrition_layout.addWidget(QLabel("Coût:"), 6, 0)
+        # Ligne de séparation sous le titre avec container pour limiter sa largeur
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        separator.setStyleSheet("background-color: #d1e3fa; margin: 5px 0px;")
+        separator.setMaximumHeight(2)
+        nutrition_layout.addWidget(separator, 1, 0, 1, 3)
 
-        # Valeurs
-        self.calories_label = QLabel("0 kcal")
-        self.calories_label.setProperty("class", "nutrition_value")
-        self.calories_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        # Forcer les tailles de colonnes avec des widgets invisibles
+        # Ces widgets agissent comme des "espaceurs" avec des tailles fixes
+        spacer_icon = QWidget()
+        spacer_icon.setFixedSize(30, 0)
+        nutrition_layout.addWidget(spacer_icon, 2, 0)
 
-        self.proteines_label = QLabel("0 g")
-        self.proteines_label.setProperty("class", "nutrition_value")
-        self.proteines_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        spacer_label = QWidget()
+        spacer_label.setFixedSize(100, 0)  # Largeur du texte (ex: "Calories:")
+        nutrition_layout.addWidget(spacer_label, 2, 1)
 
-        self.glucides_label = QLabel("0 g")
-        self.glucides_label.setProperty("class", "nutrition_value")
-        self.glucides_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        spacer_value = QWidget()
+        spacer_value.setFixedSize(80, 0)  # Largeur des valeurs (ex: "200 kcal")
+        nutrition_layout.addWidget(spacer_value, 2, 2)
 
-        self.lipides_label = QLabel("0 g")
-        self.lipides_label.setProperty("class", "nutrition_value")
-        self.lipides_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        # Ensuite, les données nutritionnelles
+        nutrition_data = [
+            ("🔥", "Calories:", "calories", "kcal", False),
+            ("🥩", "Protéines:", "proteines", "g", True),
+            ("🍞", "Glucides:", "glucides", "g", True),
+            ("🥑", "Lipides:", "lipides", "g", True),
+            ("🥦", "Fibres:", "fibres", "g", True),
+            ("💰", "Coût:", "cout", "€", True),
+        ]
 
-        self.fibres_label = QLabel("0 g")
-        self.fibres_label.setProperty("class", "nutrition_value")
-        self.fibres_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        # Créer un widget conteneur avec taille fixe pour chaque ligne
+        for row, (icon_text, label_text, attr_name, unit, decimal) in enumerate(
+            nutrition_data, 3
+        ):
+            # Container pour cette ligne avec une taille maximale
+            row_widget = QWidget()
+            row_layout = QHBoxLayout(row_widget)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setSpacing(5)
 
-        self.cout_label = QLabel("0.00 €")
-        self.cout_label.setProperty("class", "nutrition_value")
-        self.cout_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            # Icône
+            icon_label = QLabel(icon_text)
+            icon_label.setAlignment(Qt.AlignCenter)
+            icon_label.setFixedWidth(30)
+            row_layout.addWidget(icon_label)
 
-        nutrition_layout.addWidget(self.calories_label, 1, 1)
-        nutrition_layout.addWidget(self.proteines_label, 2, 1)
-        nutrition_layout.addWidget(self.glucides_label, 3, 1)
-        nutrition_layout.addWidget(self.lipides_label, 4, 1)
-        nutrition_layout.addWidget(self.fibres_label, 5, 1)
-        nutrition_layout.addWidget(self.cout_label, 6, 1)
+            # Nom du nutriment
+            name_label = QLabel(label_text)
+            name_label.setProperty("class", "nutrition-subtitle")
+            name_label.setFixedWidth(100)
+            row_layout.addWidget(name_label)
 
-        info_layout.addWidget(nutrition_frame)
+            # Valeur
+            value_label = QLabel(f"0{' '+unit}" if decimal else f"0 {unit}")
+            value_label.setProperty("class", "nutrition-value")
+            if attr_name != "cout":  # Ne pas appliquer de couleur au coût
+                value_label.setProperty("type", attr_name)
+            value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            value_label.setFixedWidth(80)
+            row_layout.addWidget(value_label)
+
+            # Stocker la référence pour mise à jour ultérieure
+            setattr(self, f"{attr_name}_label", value_label)
+
+            # Ajouter la ligne complète au layout principal
+            nutrition_layout.addWidget(row_widget, row, 0, 1, 3)
+
+        # Centrer le cadre nutritionnel dans son conteneur
+        nutrition_container = QHBoxLayout()
+        nutrition_container.addStretch()
+        nutrition_container.addWidget(nutrition_frame)
+        nutrition_container.addStretch()
+
+        info_layout.addLayout(nutrition_container)
         info_layout.addStretch()
 
         tab_widget.addTab(info_widget, "Informations")
