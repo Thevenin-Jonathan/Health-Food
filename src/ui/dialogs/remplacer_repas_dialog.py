@@ -145,7 +145,6 @@ class RemplacerRepasDialog(QDialog):
                     objectifs_jour = parent.get_objectifs_jour()
                     if objectifs_jour and "actuel" in objectifs_jour:
                         self.totaux_jour = objectifs_jour["actuel"]
-                        print(f"Totaux jour récupérés du parent: {self.totaux_jour}")
             except Exception as e:
                 print(f"Erreur lors de la récupération des totaux du parent: {str(e)}")
 
@@ -204,7 +203,7 @@ class RemplacerRepasDialog(QDialog):
 
     def setup_ui(self):
         self.setWindowTitle("Remplacer un repas")
-        self.setMinimumSize(1200, 700)
+        self.setMinimumSize(1300, 750)
 
         main_layout = QVBoxLayout(self)
         main_layout.setSpacing(10)

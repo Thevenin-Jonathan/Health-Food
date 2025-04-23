@@ -79,52 +79,111 @@ class NutritionComparison(QWidget):
 
         # Titre
         title = QLabel("<h3>Comparaison nutritionnelle</h3>")
+        title.setProperty("class", "group-title")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
-        # Tableau de comparaison
+        # NOUVELLE IMPLÉMENTATION: Remplacer le QTableWidget par un cadre stylisé
+        comparison_frame = QFrame()
+        comparison_frame.setObjectName("comparison-frame")
+        comparison_frame.setProperty("class", "nutrition-summary")
+        comparison_frame.setFrameShape(QFrame.StyledPanel)
+        comparison_frame.setMaximumWidth(600)  # Plus large pour les 4 colonnes
+
+        comparison_layout = QGridLayout(comparison_frame)
+        comparison_layout.setContentsMargins(15, 15, 15, 15)
+        comparison_layout.setVerticalSpacing(10)
+        comparison_layout.setHorizontalSpacing(15)
+
+        # En-têtes pour les 4 colonnes
+        headers = ["Nutriment", "Repas actuel", "Nouveau repas", "Différence"]
+        for col, text in enumerate(headers):
+            header = QLabel(text)
+            header.setProperty("class", "nutrition-subtitle")
+            header.setAlignment(Qt.AlignCenter)
+            comparison_layout.addWidget(header, 0, col)
+
+        # Ligne de séparation sous les en-têtes
+        separator_container = QWidget()
+        separator_container_layout = QHBoxLayout(separator_container)
+        separator_container_layout.setContentsMargins(5, 0, 5, 0)
+
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        separator.setStyleSheet("background-color: #d1e3fa; margin: 5px 0px;")
+        separator.setMaximumHeight(2)
+
+        separator_container_layout.addWidget(separator)
+        comparison_layout.addWidget(separator_container, 1, 0, 1, 4)
+
+        # Structure des données nutritionnelles pour la comparaison
+        comparison_data = [
+            ("🔥", "Calories", "calories", "kcal"),
+            ("🥩", "Protéines", "proteines", "g"),
+            ("🍞", "Glucides", "glucides", "g"),
+            ("🥑", "Lipides", "lipides", "g"),
+            ("🌱", "Fibres", "fibres", "g"),
+            ("💰", "Coût", "cout", "€"),
+        ]
+
+        # Créer les labels pour chaque ligne de la comparaison
+        for row, (icon, label_text, attr_name, unit) in enumerate(comparison_data, 2):
+            # Colonne 0: Icône + nom du nutriment
+            nutriment_container = QWidget()
+            nutriment_layout = QHBoxLayout(nutriment_container)
+            nutriment_layout.setContentsMargins(0, 0, 0, 0)
+            nutriment_layout.setSpacing(5)
+
+            # Icône
+            icon_label = QLabel(icon)
+            icon_label.setAlignment(Qt.AlignCenter)
+            icon_label.setFixedWidth(25)
+            nutriment_layout.addWidget(icon_label)
+
+            # Nom du nutriment
+            name_label = QLabel(label_text)
+            name_label.setProperty("class", "nutrition-subtitle")
+            nutriment_layout.addWidget(name_label)
+
+            comparison_layout.addWidget(nutriment_container, row, 0)
+
+            # Colonne 1: Repas actuel
+            current_val = QLabel("0" + f" {unit}")
+            current_val.setProperty("class", "comparison-value")
+            current_val.setAlignment(Qt.AlignCenter)
+            setattr(self, f"compare_current_{attr_name}", current_val)
+            comparison_layout.addWidget(current_val, row, 1)
+
+            # Colonne 2: Nouveau repas
+            new_val = QLabel("0" + f" {unit}")
+            new_val.setProperty("class", "comparison-value")
+            new_val.setAlignment(Qt.AlignCenter)
+            setattr(self, f"compare_new_{attr_name}", new_val)
+            comparison_layout.addWidget(new_val, row, 2)
+
+            # Colonne 3: Différence (avec affichage +/-)
+            diff_val = QLabel("0" + f" {unit}")
+            diff_val.setProperty("class", "comparison-diff")
+            diff_val.setAlignment(Qt.AlignCenter)
+            setattr(self, f"compare_diff_{attr_name}", diff_val)
+            comparison_layout.addWidget(diff_val, row, 3)
+
+        # Centrer le cadre de comparaison
+        comparison_container = QHBoxLayout()
+        comparison_container.addStretch()
+        comparison_container.addWidget(comparison_frame)
+        comparison_container.addStretch()
+
+        layout.addLayout(comparison_container)
+
+        # Conserver le tableau existant pour des raisons de compatibilité
+        # mais le masquer (on utilisera les nouveaux labels)
         self.comparison_table = QTableWidget()
         self.comparison_table.setObjectName("comparisonTable")
         self.comparison_table.setColumnCount(4)
-        self.comparison_table.setHorizontalHeaderLabels(
-            ["Nutriment", "Repas actuel", "Nouveau repas", "Différence"]
-        )
-
-        # Configuration du tableau similaire à l'existant
-        self.comparison_table.horizontalHeader().setMinimumHeight(30)
-        self.comparison_table.verticalHeader().setDefaultSectionSize(30)
-        self.comparison_table.setColumnWidth(0, 150)  # Nutriment
-        self.comparison_table.setColumnWidth(1, 120)  # Repas actuel
-        self.comparison_table.setColumnWidth(2, 120)  # Nouveau repas
-        self.comparison_table.setColumnWidth(3, 120)  # Différence
-        self.comparison_table.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.Interactive
-        )
-        self.comparison_table.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.Stretch
-        )
-        self.comparison_table.horizontalHeader().setSectionResizeMode(
-            2, QHeaderView.Stretch
-        )
-        self.comparison_table.horizontalHeader().setSectionResizeMode(
-            3, QHeaderView.Stretch
-        )
-        self.comparison_table.setAlternatingRowColors(True)
-        self.comparison_table.verticalHeader().setVisible(False)
-        self.comparison_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.comparison_table.setEditTriggers(QTableWidget.NoEditTriggers)
-
-        # Lignes pour les macros
-        self.comparison_table.setRowCount(6)  # 5 macros + coût
-        self.comparison_table.setItem(0, 0, QTableWidgetItem("Calories"))
-        self.comparison_table.setItem(1, 0, QTableWidgetItem("Protéines"))
-        self.comparison_table.setItem(2, 0, QTableWidgetItem("Glucides"))
-        self.comparison_table.setItem(3, 0, QTableWidgetItem("Lipides"))
-        self.comparison_table.setItem(4, 0, QTableWidgetItem("Fibres"))
-        self.comparison_table.setItem(5, 0, QTableWidgetItem("Coût estimé"))
-
-        # Ajouter le tableau au layout
-        layout.addWidget(self.comparison_table)
+        self.comparison_table.setRowCount(6)
+        self.comparison_table.setHidden(True)
 
         # Séparateur horizontal
         separator = QFrame()
@@ -134,8 +193,8 @@ class NutritionComparison(QWidget):
         layout.addWidget(separator)
 
         # Titre de l'impact nutritionnel journalier
-        nutritional_impact_label = QLabel("<b>Impact nutritionnel journalier</b>")
-        nutritional_impact_label.setProperty("class", "nutrition-title")
+        nutritional_impact_label = QLabel("<h3>Impact nutritionnel journalier</h3>")
+        nutritional_impact_label.setProperty("class", "group-title")
         nutritional_impact_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(nutritional_impact_label)
 
@@ -259,84 +318,91 @@ class NutritionComparison(QWidget):
 
         layout.addLayout(nutrition_container)
 
+    def _get_status_color(self, status):
+        """Retourne la couleur CSS correspondant au statut"""
+        colors = {
+            "over": "#c62828",  # Rouge - trop élevé
+            "good": "#2e7d32",  # Vert - optimal
+            "medium": "#f57f17",  # Orange - moyen
+            "low": "#757575",  # Gris - insuffisant
+            "neutral": "",  # Pas de couleur spécifique
+        }
+        return colors.get(status, "")
+
     def update_comparison(self, repas_actuel, repas_nouveau, totaux_jour=None):
         """Met à jour la comparaison avec les données des deux repas"""
 
         # Calories
-        cal_actuel = QTableWidgetItem(f"{repas_actuel['total_calories']:.0f} kcal")
-        cal_actuel.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.comparison_table.setItem(0, 1, cal_actuel)
-
-        cal_nouveau = QTableWidgetItem(f"{repas_nouveau['total_calories']:.0f} kcal")
-        cal_nouveau.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.comparison_table.setItem(0, 2, cal_nouveau)
+        self.compare_current_calories.setText(
+            f"{repas_actuel['total_calories']:.0f} kcal"
+        )
+        self.compare_new_calories.setText(f"{repas_nouveau['total_calories']:.0f} kcal")
 
         diff_cal = repas_nouveau["total_calories"] - repas_actuel["total_calories"]
-        diff_cal_item = QTableWidgetItem(f"{diff_cal:+.0f} kcal")
-        diff_cal_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.compare_diff_calories.setText(f"{diff_cal:+.0f} kcal")
         if diff_cal > 0:
-            diff_cal_item.setForeground(QBrush(QColor("red")))
+            self.compare_diff_calories.setStyleSheet(
+                f"color: {self._get_status_color('over')}; font-weight: bold;"
+            )
         elif diff_cal < 0:
-            diff_cal_item.setForeground(QBrush(QColor("green")))
-        self.comparison_table.setItem(0, 3, diff_cal_item)
+            self.compare_diff_calories.setStyleSheet(
+                f"color: {self._get_status_color('good')}; font-weight: bold;"
+            )
+        else:
+            self.compare_diff_calories.setStyleSheet("")
 
         # Protéines
-        prot_actuel = QTableWidgetItem(f"{repas_actuel['total_proteines']:.1f} g")
-        prot_actuel.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.comparison_table.setItem(1, 1, prot_actuel)
-
-        prot_nouveau = QTableWidgetItem(f"{repas_nouveau['total_proteines']:.1f} g")
-        prot_nouveau.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.comparison_table.setItem(1, 2, prot_nouveau)
+        self.compare_current_proteines.setText(
+            f"{repas_actuel['total_proteines']:.1f} g"
+        )
+        self.compare_new_proteines.setText(f"{repas_nouveau['total_proteines']:.1f} g")
 
         diff_prot = repas_nouveau["total_proteines"] - repas_actuel["total_proteines"]
-        diff_prot_item = QTableWidgetItem(f"{diff_prot:+.1f} g")
-        diff_prot_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.compare_diff_proteines.setText(f"{diff_prot:+.1f} g")
         if diff_prot > 0:
-            diff_prot_item.setForeground(QBrush(QColor("green")))
+            self.compare_diff_proteines.setStyleSheet(
+                f"color: {self._get_status_color('good')}; font-weight: bold;"
+            )
         elif diff_prot < 0:
-            diff_prot_item.setForeground(QBrush(QColor("red")))
-        self.comparison_table.setItem(1, 3, diff_prot_item)
+            self.compare_diff_proteines.setStyleSheet(
+                f"color: {self._get_status_color('over')}; font-weight: bold;"
+            )
+        else:
+            self.compare_diff_proteines.setStyleSheet("")
 
         # Glucides
-        gluc_actuel = QTableWidgetItem(f"{repas_actuel['total_glucides']:.1f} g")
-        gluc_actuel.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.comparison_table.setItem(2, 1, gluc_actuel)
-
-        gluc_nouveau = QTableWidgetItem(f"{repas_nouveau['total_glucides']:.1f} g")
-        gluc_nouveau.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.comparison_table.setItem(2, 2, gluc_nouveau)
+        self.compare_current_glucides.setText(f"{repas_actuel['total_glucides']:.1f} g")
+        self.compare_new_glucides.setText(f"{repas_nouveau['total_glucides']:.1f} g")
 
         diff_gluc = repas_nouveau["total_glucides"] - repas_actuel["total_glucides"]
-        diff_gluc_item = QTableWidgetItem(f"{diff_gluc:+.1f} g")
-        diff_gluc_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.compare_diff_glucides.setText(f"{diff_gluc:+.1f} g")
         if abs(diff_gluc) < 5:  # Petite différence -> neutre
-            pass
+            self.compare_diff_glucides.setStyleSheet("")
         elif diff_gluc > 0:
-            diff_gluc_item.setForeground(QBrush(QColor("orange")))
+            self.compare_diff_glucides.setStyleSheet(
+                f"color: {self._get_status_color('medium')}; font-weight: bold;"
+            )
         else:
-            diff_gluc_item.setForeground(QBrush(QColor("green")))
-        self.comparison_table.setItem(2, 3, diff_gluc_item)
+            self.compare_diff_glucides.setStyleSheet(
+                f"color: {self._get_status_color('good')}; font-weight: bold;"
+            )
 
         # Lipides
-        lip_actuel = QTableWidgetItem(f"{repas_actuel['total_lipides']:.1f} g")
-        lip_actuel.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.comparison_table.setItem(3, 1, lip_actuel)
-
-        lip_nouveau = QTableWidgetItem(f"{repas_nouveau['total_lipides']:.1f} g")
-        lip_nouveau.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.comparison_table.setItem(3, 2, lip_nouveau)
+        self.compare_current_lipides.setText(f"{repas_actuel['total_lipides']:.1f} g")
+        self.compare_new_lipides.setText(f"{repas_nouveau['total_lipides']:.1f} g")
 
         diff_lip = repas_nouveau["total_lipides"] - repas_actuel["total_lipides"]
-        diff_lip_item = QTableWidgetItem(f"{diff_lip:+.1f} g")
-        diff_lip_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.compare_diff_lipides.setText(f"{diff_lip:+.1f} g")
         if abs(diff_lip) < 2:  # Petite différence -> neutre
-            pass
+            self.compare_diff_lipides.setStyleSheet("")
         elif diff_lip > 0:
-            diff_lip_item.setForeground(QBrush(QColor("orange")))
+            self.compare_diff_lipides.setStyleSheet(
+                f"color: {self._get_status_color('medium')}; font-weight: bold;"
+            )
         else:
-            diff_lip_item.setForeground(QBrush(QColor("green")))
-        self.comparison_table.setItem(3, 3, diff_lip_item)
+            self.compare_diff_lipides.setStyleSheet(
+                f"color: {self._get_status_color('good')}; font-weight: bold;"
+            )
 
         # Fibres
         total_fibres_actuel = sum(
@@ -347,24 +413,23 @@ class NutritionComparison(QWidget):
             for a in repas_nouveau["aliments"]
         )
 
-        fibres_actuel = QTableWidgetItem(f"{total_fibres_actuel:.1f} g")
-        fibres_actuel.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.comparison_table.setItem(4, 1, fibres_actuel)
-
-        fibres_nouveau = QTableWidgetItem(f"{total_fibres_nouveau:.1f} g")
-        fibres_nouveau.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.comparison_table.setItem(4, 2, fibres_nouveau)
+        self.compare_current_fibres.setText(f"{total_fibres_actuel:.1f} g")
+        self.compare_new_fibres.setText(f"{total_fibres_nouveau:.1f} g")
 
         diff_fibre = total_fibres_nouveau - total_fibres_actuel
-        diff_fibre_item = QTableWidgetItem(f"{diff_fibre:+.1f} g")
-        diff_fibre_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.compare_diff_fibres.setText(f"{diff_fibre:+.1f} g")
         if diff_fibre > 0:
-            diff_fibre_item.setForeground(QBrush(QColor("green")))
+            self.compare_diff_fibres.setStyleSheet(
+                f"color: {self._get_status_color('good')}; font-weight: bold;"
+            )
         elif diff_fibre < 0:
-            diff_fibre_item.setForeground(QBrush(QColor("red")))
-        self.comparison_table.setItem(4, 3, diff_fibre_item)
+            self.compare_diff_fibres.setStyleSheet(
+                f"color: {self._get_status_color('over')}; font-weight: bold;"
+            )
+        else:
+            self.compare_diff_fibres.setStyleSheet("")
 
-        # Coût estimé
+        # Coût
         total_cout_actuel = sum(
             (a.get("prix_kg", 0) * a["quantite"] / 1000)
             for a in repas_actuel["aliments"]
@@ -374,22 +439,21 @@ class NutritionComparison(QWidget):
             for a in repas_nouveau["aliments"]
         )
 
-        cout_actuel = QTableWidgetItem(f"{total_cout_actuel:.2f} €")
-        cout_actuel.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.comparison_table.setItem(5, 1, cout_actuel)
-
-        cout_nouveau = QTableWidgetItem(f"{total_cout_nouveau:.2f} €")
-        cout_nouveau.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.comparison_table.setItem(5, 2, cout_nouveau)
+        self.compare_current_cout.setText(f"{total_cout_actuel:.2f} €")
+        self.compare_new_cout.setText(f"{total_cout_nouveau:.2f} €")
 
         diff_cout = total_cout_nouveau - total_cout_actuel
-        diff_cout_item = QTableWidgetItem(f"{diff_cout:+.2f} €")
-        diff_cout_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.compare_diff_cout.setText(f"{diff_cout:+.2f} €")
         if diff_cout > 0:
-            diff_cout_item.setForeground(QBrush(QColor("red")))
+            self.compare_diff_cout.setStyleSheet(
+                f"color: {self._get_status_color('over')}; font-weight: bold;"
+            )
         elif diff_cout < 0:
-            diff_cout_item.setForeground(QBrush(QColor("green")))
-        self.comparison_table.setItem(5, 3, diff_cout_item)
+            self.compare_diff_cout.setStyleSheet(
+                f"color: {self._get_status_color('good')}; font-weight: bold;"
+            )
+        else:
+            self.compare_diff_cout.setStyleSheet("")
 
         # Mise à jour de l'impact sur la journée si les données sont disponibles
         if totaux_jour:
@@ -557,16 +621,15 @@ class NutritionComparison(QWidget):
         # Stocker le statut comme propriété du label pour pouvoir y accéder via CSS
         label.setProperty("status", status)
 
-        # Appliquer le style selon le statut
-        if status == "over":
-            label.setStyleSheet("color: #c62828; font-weight: bold;")
-            label.setToolTip(f"Excessif: {ratio*100:.0f}% de l'objectif")
-        elif status == "good":
-            label.setStyleSheet("color: #2e7d32; font-weight: bold;")
-            label.setToolTip(f"Optimal: {ratio*100:.0f}% de l'objectif")
-        elif status == "medium":
-            label.setStyleSheet("color: #f57f17; font-weight: bold;")
-            label.setToolTip(f"Proche: {ratio*100:.0f}% de l'objectif")
-        else:  # "low"
-            label.setStyleSheet("color: #757575; font-weight: bold;")
-            label.setToolTip(f"Insuffisant: {ratio*100:.0f}% de l'objectif")
+        # Appliquer le style selon le statut en utilisant la méthode _get_status_color
+        color = self._get_status_color(status)
+        label.setStyleSheet(f"color: {color}; font-weight: bold;")
+
+        # Définir le texte du tooltip selon le statut
+        message = {
+            "over": "Excessif",
+            "good": "Optimal",
+            "medium": "Proche",
+            "low": "Insuffisant",
+        }
+        label.setToolTip(f"{message.get(status, '')}: {ratio*100:.0f}% de l'objectif")
