@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal
 
 from src.ui.dialogs.aliment_repas_dialog import AlimentRepasDialog
+from src.ui.dialogs.aliment_simple_selection_dialog import AlimentSimpleSelectionDialog
 
 
 # Classe pour les items du tableau avec tri numérique correct
@@ -377,7 +378,28 @@ class AlimentComposeDialog(QDialog):
 
     def ajouter_ingredient(self):
         """Ouvre un dialogue pour ajouter un ingrédient"""
-        dialog = AlimentRepasDialog(self, self.db_manager)
+
+        # Calculer les valeurs nutritionnelles actuelles
+        current_values = {
+            "calories": sum(
+                ingr["calories"] * ingr["quantite"] / 100 for ingr in self.ingredients
+            ),
+            "proteines": sum(
+                ingr["proteines"] * ingr["quantite"] / 100 for ingr in self.ingredients
+            ),
+            "glucides": sum(
+                ingr["glucides"] * ingr["quantite"] / 100 for ingr in self.ingredients
+            ),
+            "lipides": sum(
+                ingr["lipides"] * ingr["quantite"] / 100 for ingr in self.ingredients
+            ),
+            "fibres": sum(
+                ingr.get("fibres", 0) * ingr["quantite"] / 100
+                for ingr in self.ingredients
+            ),
+        }
+
+        dialog = AlimentSimpleSelectionDialog(self, self.db_manager, current_values)
         if dialog.exec():
             aliment_id, quantite = dialog.get_data()
 
