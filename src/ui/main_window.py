@@ -7,6 +7,7 @@ from .tabs.courses_tab import CoursesTab
 from .tabs.recettes_tab import RecettesTab
 from .tabs.utilisateur_tab import UtilisateurTab
 from .tabs.options_tab import OptionsTab
+from .tabs.aliments_composes_tab import AlimentsComposesTab
 
 
 class MainWindow(QMainWindow):
@@ -35,6 +36,10 @@ class MainWindow(QMainWindow):
         self.aliments_tab = AlimentsTab(self.db_manager)
         self.tabs.addTab(self.aliments_tab, "Mes aliments")
 
+        # Onglet Aliments Composés
+        self.aliments_composes_tab = AlimentsComposesTab(self.db_manager)
+        self.tabs.addTab(self.aliments_composes_tab, "Mes Aliments Composés")
+
         # Onglet des recettes (repas types)
         self.recettes_tab = RecettesTab(self.db_manager)
         self.tabs.addTab(self.recettes_tab, "Mes recettes")
@@ -61,6 +66,7 @@ class MainWindow(QMainWindow):
         # Connexion aux signaux du bus d'événements (redondant mais pour sécurité)
         EVENT_BUS.semaine_ajoutee.connect(self.on_semaine_ajoutee)
         EVENT_BUS.semaine_supprimee.connect(self.on_semaine_supprimee)
+        EVENT_BUS.aliments_modifies.connect(self.aliments_composes_tab.refresh_data)
 
     def on_tab_changed(self, index):
         """Appelé lorsque l'utilisateur change d'onglet"""
