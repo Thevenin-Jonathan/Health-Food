@@ -211,7 +211,7 @@ class AlimentsComposesTab(TabBase):
             2: (250, QHeaderView.Stretch),  # Nom - largeur dynamique
             3: (150, QHeaderView.Fixed),  # Catégorie
             4: (80, QHeaderView.Fixed),  # Calories
-            5: (100, QHeaderView.Fixed),  # Nb ingrédients
+            5: (120, QHeaderView.Fixed),  # Nb ingrédients
         }
 
         # Appliquer les largeurs fixes pour les colonnes qui ne sont pas en Stretch
