@@ -291,25 +291,6 @@ class AlimentRepasDialog(QDialog):
 
         # Section pour la quantité avec design amélioré
         quant_widget = QWidget()
-        quant_widget.setStyleSheet(
-            """
-            QWidget {
-                background-color: #f5f5f5;
-                border-radius: 6px;
-            }
-            QLabel {
-                font-weight: bold;
-            }
-            QDoubleSpinBox {
-                font-size: 16px;
-                padding: 4px;
-                min-width: 80px;
-                background-color: white;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-            }
-        """
-        )
         quant_layout = QHBoxLayout(quant_widget)
         quant_layout.setContentsMargins(12, 8, 12, 8)
 
@@ -319,6 +300,7 @@ class AlimentRepasDialog(QDialog):
         self.quantite_spin = AutoSelectDoubleSpinBox()
         self.quantite_spin.setMinimum(1)
         self.quantite_spin.setMaximum(1000)
+        self.quantite_spin.setProperty("class", "spin-box-vertical")
         self.quantite_spin.setValue(100)
         self.quantite_spin.setSuffix(" g")
         self.quantite_spin.valueChanged.connect(self.update_details)
@@ -329,16 +311,6 @@ class AlimentRepasDialog(QDialog):
         # Détails de l'aliment sélectionné dans un cadre stylisé
         details_frame = QFrame()
         details_frame.setFrameShape(QFrame.StyledPanel)
-        details_frame.setStyleSheet(
-            """
-            QFrame {
-                background-color: #f8f9fa;
-                border-radius: 6px;
-                border: 1px solid #e9ecef;
-                padding: 0px;
-            }
-        """
-        )
 
         details_layout = QVBoxLayout(details_frame)
         details_layout.setContentsMargins(8, 8, 8, 8)
@@ -353,40 +325,17 @@ class AlimentRepasDialog(QDialog):
         # Colonne 2: Aperçu des valeurs nutritionnelles de la journée
         col2_widget = QFrame()
         col2_widget.setFrameShape(QFrame.StyledPanel)
-        col2_widget.setStyleSheet(
-            """
-            QFrame {
-                background-color: #f0f4f8;
-                border-radius: 6px;
-                border: 1px solid #d1e3fa;
-            }
-            QLabel.title {
-                font-weight: bold;
-                font-size: 14px;
-                color: #2c3e50;
-                padding-bottom: 5px;
-                border-bottom: 1px solid #d1e3fa;
-            }
-            QLabel.subtitle {
-                font-weight: bold;
-                color: #34495e;
-                margin-top: 5px;
-            }
-        """
-        )
 
         col2_layout = QVBoxLayout(col2_widget)
         col2_layout.setSpacing(8)
 
         # Titre
         title_label = QLabel("Aperçu des valeurs nutritionnelles")
-        title_label.setProperty("class", "title")
         title_label.setAlignment(Qt.AlignCenter)
         col2_layout.addWidget(title_label)
 
         # Sous-titre "Actuellement"
         current_label = QLabel("Actuellement")
-        current_label.setProperty("class", "subtitle")
         col2_layout.addWidget(current_label)
 
         # Valeurs actuelles avec barres de progression
@@ -815,7 +764,7 @@ class AlimentRepasDialog(QDialog):
         # Calculer le facteur d'échelle
         facteur = quantite / 100.0
 
-        # Calculer les valeurs
+        # Calculer les valeurs pour la quantité sélectionnée
         calories = aliment["total_calories"] * facteur
         proteines = aliment["total_proteines"] * facteur
         glucides = aliment["total_glucides"] * facteur
@@ -831,14 +780,42 @@ class AlimentRepasDialog(QDialog):
         <p style="color:#666;">{aliment.get('description', '')}</p>
         
         <div style="background-color: #f0f4f8; border-radius: 5px; padding: 8px; border: 1px solid #e9ecef; margin-bottom: 10px;">
-            <h4 style="margin-top:0; margin-bottom:5px; color:#2c3e50;">Composition pour {quantite}g:</h4>
+            <h4 style="margin-top:0; margin-bottom:5px; color:#2c3e50;">Composition normalisée pour 100g:</h4>
             <ul style="margin-top:5px; color:#555; padding-left: 20px;">
         """
 
-        # Liste des ingrédients
+        # Calculer le poids total actuel des ingrédients
+        poids_total = sum(
+            ingredient["quantite"] for ingredient in aliment["ingredients"]
+        )
+
+        # Facteur de normalisation pour afficher la composition pour 100g
+        facteur_normalisation = 100.0 / poids_total if poids_total > 0 else 1
+
+        # Liste des ingrédients normalisés à 100g
         for ingredient in aliment["ingredients"]:
-            ing_quantite = ingredient["quantite"] * facteur
-            html += f"<li><b>{ingredient['nom']}:</b> {ing_quantite:.0f}g</li>"
+            ing_quantite = ingredient["quantite"] * facteur_normalisation
+            html += f"<li><b>{ingredient['nom']}:</b> {ing_quantite:.1f}g</li>"
+
+        # Ajouter la section pour la composition proportionnelle à la quantité sélectionnée
+        if quantite != 100:
+            html += f"""
+            </ul>
+            </div>
+            
+            <div style="background-color: #f0f4f8; border-radius: 5px; padding: 8px; border: 1px solid #e9ecef; margin-bottom: 10px;">
+                <h4 style="margin-top:0; margin-bottom:5px; color:#2c3e50;">Composition pour {quantite}g:</h4>
+                <ul style="margin-top:5px; color:#555; padding-left: 20px;">
+            """
+
+            # Calculer les quantités ajustées pour la quantité sélectionnée
+            for ingredient in aliment["ingredients"]:
+                ing_quantite_ajustee = (
+                    ingredient["quantite"] * facteur_normalisation * facteur
+                )
+                html += (
+                    f"<li><b>{ingredient['nom']}:</b> {ing_quantite_ajustee:.1f}g</li>"
+                )
 
         html += f"""
             </ul>
@@ -985,40 +962,73 @@ class AlimentRepasDialog(QDialog):
         gluc_obj = self.objectifs.get("glucides", 250)
         lip_obj = self.objectifs.get("lipides", 80)
 
-        # Calculer les nouvelles valeurs
+        # Calculer les pourcentages actuels
+        cal_pct_actuel = cal_actuel / cal_obj if cal_obj > 0 else 0
+        prot_pct_actuel = prot_actuel / prot_obj if prot_obj > 0 else 0
+        gluc_pct_actuel = gluc_actuel / gluc_obj if gluc_obj > 0 else 0
+        lip_pct_actuel = lip_actuel / lip_obj if lip_obj > 0 else 0
+
+        # Mettre à jour les barres actuelles (avant ajout)
+        self.cal_progress.setMaximum(cal_obj * 1.2)
+        self.cal_progress.setValue(min(cal_actuel, cal_obj * 1.2))
+        self.cal_progress.setFormat(f"{cal_pct_actuel*100:.0f}%")
+        self.cal_value.setText(f"{cal_actuel:.0f} / {cal_obj:.0f} kcal")
+        self.set_progress_bar_status(self.cal_progress, cal_pct_actuel)
+
+        self.prot_progress.setMaximum(prot_obj * 1.2)
+        self.prot_progress.setValue(min(prot_actuel, prot_obj * 1.2))
+        self.prot_progress.setFormat(f"{prot_pct_actuel*100:.0f}%")
+        self.prot_value.setText(f"{prot_actuel:.1f} / {prot_obj:.0f} g")
+        self.set_progress_bar_status(self.prot_progress, prot_pct_actuel)
+
+        self.gluc_progress.setMaximum(gluc_obj * 1.2)
+        self.gluc_progress.setValue(min(gluc_actuel, gluc_obj * 1.2))
+        self.gluc_progress.setFormat(f"{gluc_pct_actuel*100:.0f}%")
+        self.gluc_value.setText(f"{gluc_actuel:.1f} / {gluc_obj:.0f} g")
+        self.set_progress_bar_status(self.gluc_progress, gluc_pct_actuel)
+
+        self.lip_progress.setMaximum(lip_obj * 1.2)
+        self.lip_progress.setValue(min(lip_actuel, lip_obj * 1.2))
+        self.lip_progress.setFormat(f"{lip_pct_actuel*100:.0f}%")
+        self.lip_value.setText(f"{lip_actuel:.1f} / {lip_obj:.0f} g")
+        self.set_progress_bar_status(self.lip_progress, lip_pct_actuel)
+
+        # Calculer les nouvelles valeurs après ajout
         cal_new = cal_actuel + calories
         prot_new = prot_actuel + proteines
         gluc_new = gluc_actuel + glucides
         lip_new = lip_actuel + lipides
 
-        # Calculer les pourcentages
-        cal_pct = cal_new / cal_obj if cal_obj > 0 else 0
-        prot_pct = prot_new / prot_obj if prot_obj > 0 else 0
-        gluc_pct = gluc_new / gluc_obj if gluc_obj > 0 else 0
-        lip_pct = lip_new / lip_obj if lip_obj > 0 else 0
+        # Calculer les pourcentages pour les nouvelles valeurs
+        cal_pct_new = cal_new / cal_obj if cal_obj > 0 else 0
+        prot_pct_new = prot_new / prot_obj if prot_obj > 0 else 0
+        gluc_pct_new = gluc_new / gluc_obj if gluc_obj > 0 else 0
+        lip_pct_new = lip_new / lip_obj if lip_obj > 0 else 0
 
         # Mettre à jour les barres "après ajout"
+        self.cal_after_progress.setMaximum(cal_obj * 1.2)
         self.cal_after_progress.setValue(min(cal_new, cal_obj * 1.2))
-        self.cal_after_progress.setFormat(f"{cal_pct*100:.0f}%")
+        self.cal_after_progress.setFormat(f"{cal_pct_new*100:.0f}%")
         self.cal_after_value.setText(f"{cal_new:.0f} / {cal_obj:.0f} kcal")
+        self.set_progress_bar_status(self.cal_after_progress, cal_pct_new)
 
+        self.prot_after_progress.setMaximum(prot_obj * 1.2)
         self.prot_after_progress.setValue(min(prot_new, prot_obj * 1.2))
-        self.prot_after_progress.setFormat(f"{prot_pct*100:.0f}%")
+        self.prot_after_progress.setFormat(f"{prot_pct_new*100:.0f}%")
         self.prot_after_value.setText(f"{prot_new:.1f} / {prot_obj:.0f} g")
+        self.set_progress_bar_status(self.prot_after_progress, prot_pct_new)
 
+        self.gluc_after_progress.setMaximum(gluc_obj * 1.2)
         self.gluc_after_progress.setValue(min(gluc_new, gluc_obj * 1.2))
-        self.gluc_after_progress.setFormat(f"{gluc_pct*100:.0f}%")
+        self.gluc_after_progress.setFormat(f"{gluc_pct_new*100:.0f}%")
         self.gluc_after_value.setText(f"{gluc_new:.1f} / {gluc_obj:.0f} g")
+        self.set_progress_bar_status(self.gluc_after_progress, gluc_pct_new)
 
+        self.lip_after_progress.setMaximum(lip_obj * 1.2)
         self.lip_after_progress.setValue(min(lip_new, lip_obj * 1.2))
-        self.lip_after_progress.setFormat(f"{lip_pct*100:.0f}%")
+        self.lip_after_progress.setFormat(f"{lip_pct_new*100:.0f}%")
         self.lip_after_value.setText(f"{lip_new:.1f} / {lip_obj:.0f} g")
-
-        # Mettre à jour les statuts/couleurs des barres "après ajout"
-        self.set_progress_bar_status(self.cal_after_progress, cal_pct)
-        self.set_progress_bar_status(self.prot_after_progress, prot_pct)
-        self.set_progress_bar_status(self.gluc_after_progress, gluc_pct)
-        self.set_progress_bar_status(self.lip_after_progress, lip_pct)
+        self.set_progress_bar_status(self.lip_after_progress, lip_pct_new)
 
     def set_progress_bar_status(self, progress_bar, percentage):
         """Définit le statut (et donc la couleur) de la barre de progression selon le pourcentage"""

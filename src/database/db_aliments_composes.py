@@ -1,4 +1,5 @@
 import sqlite3
+import traceback
 from .db_connector import DBConnector
 
 
@@ -161,7 +162,7 @@ class AlimentsComposesManager(DBConnector):
             self.disconnect()
 
     def calculer_valeurs_nutritionnelles_aliment_compose(self, aliment_compose_id):
-        """Calcule les valeurs nutritionnelles totales d'un aliment composé"""
+        """Calcule les valeurs nutritionnelles totales d'un aliment composé normalisées pour 100g"""
         ingredients = self.get_ingredients_aliment_compose(aliment_compose_id)
 
         total_calories = 0
@@ -170,6 +171,23 @@ class AlimentsComposesManager(DBConnector):
         total_lipides = 0
         total_fibres = 0
         total_cout = 0
+
+        # Calculer le poids total des ingrédients
+        poids_total = sum(ingredient["quantite"] for ingredient in ingredients)
+
+        # Si le poids total est nul, éviter la division par zéro
+        if poids_total == 0:
+            return {
+                "total_calories": 0,
+                "total_proteines": 0,
+                "total_glucides": 0,
+                "total_lipides": 0,
+                "total_fibres": 0,
+                "total_cout": 0,
+            }
+
+        # Facteur de normalisation pour ramener à 100g
+        facteur_normalisation = 100.0 / poids_total
 
         for ingredient in ingredients:
             # Calculer les valeurs pour la quantité spécifiée
@@ -184,6 +202,16 @@ class AlimentsComposesManager(DBConnector):
 
             if "prix_kg" in ingredient and ingredient["prix_kg"]:
                 total_cout += (ingredient["prix_kg"] / 1000) * ingredient["quantite"]
+
+        # Normaliser toutes les valeurs nutritionnelles pour 100g
+        total_calories *= facteur_normalisation
+        total_proteines *= facteur_normalisation
+        total_glucides *= facteur_normalisation
+        total_lipides *= facteur_normalisation
+        total_fibres *= facteur_normalisation
+
+        # Le coût est déjà calculé pour la quantité totale, on le normalise aussi
+        total_cout *= facteur_normalisation
 
         return {
             "total_calories": total_calories,
@@ -241,51 +269,80 @@ class AlimentsComposesManager(DBConnector):
     def ajouter_aliment_compose_a_repas(
         self, repas_id, aliment_compose_id, quantite_totale
     ):
+        """Ajoute tous les ingrédients d'un aliment composé à un repas
+        Cette méthode ajoute chaque ingrédient de l'aliment composé au repas
+        en ajustant les quantités proportionnellement à la quantité totale demandée.
         """
-        Ajoute tous les ingrédients d'un aliment composé à un repas,
-        en ajustant les quantités selon la quantité totale demandée
-        """
-        # Récupérer l'aliment composé et ses ingrédients
-        aliment_compose = self.get_aliment_compose(aliment_compose_id)
-        if not aliment_compose:
-            return False
-
-        ingredients = aliment_compose["ingredients"]
-        if not ingredients:
-            return False
-
-        # Calculer la somme totale des quantités d'ingrédients
-        somme_quantites_ingredients = sum(ing["quantite"] for ing in ingredients)
-        if somme_quantites_ingredients <= 0:
-            return False
-
-        # Facteur d'échelle pour ajuster les quantités
-        facteur = quantite_totale / somme_quantites_ingredients
-
-        self.connect()
         try:
-            # Ajouter chaque ingrédient ajusté au repas
+            # Récupérer l'aliment composé avec ses ingrédients
+            aliment_compose = self.get_aliment_compose(aliment_compose_id)
+            if not aliment_compose:
+                return False
+
+            ingredients = aliment_compose.get("ingredients", [])
+            if not ingredients:
+                return False
+
+            # Calculer le poids total actuel de l'aliment composé (somme des ingrédients)
+            poids_total_actuel = sum(
+                ingredient["quantite"] for ingredient in ingredients
+            )
+
+            if poids_total_actuel == 0:
+                return False  # Éviter la division par zéro
+
+            # Facteur d'ajustement pour obtenir la quantité totale souhaitée
+            facteur_ajustement = quantite_totale / poids_total_actuel
+
+            # Pour chaque ingrédient, calculer sa nouvelle quantité et l'ajouter au repas
             for ingredient in ingredients:
-                # Calculer la nouvelle quantité pour cet ingrédient
-                nouvelle_quantite = ingredient["quantite"] * facteur
+                nouvelle_quantite = ingredient["quantite"] * facteur_ajustement
 
-                # Ajouter l'ingrédient au repas
-                self.cursor.execute(
-                    """
-                    INSERT INTO repas_aliments (repas_id, aliment_id, quantite)
-                    VALUES (?, ?, ?)
-                    """,
-                    (repas_id, ingredient["aliment_id"], nouvelle_quantite),
-                )
+                # Ajouter cet ingrédient au repas
+                self.connect()
+                try:
+                    # Vérifier si l'aliment existe déjà dans ce repas
+                    self.cursor.execute(
+                        """
+                        SELECT id FROM repas_aliments 
+                        WHERE repas_id = ? AND aliment_id = ?
+                        """,
+                        (repas_id, ingredient["aliment_id"]),
+                    )
+                    existing = self.cursor.fetchone()
 
-            self.conn.commit()
+                    if existing:
+                        # Mettre à jour la quantité existante
+                        self.cursor.execute(
+                            """
+                            UPDATE repas_aliments 
+                            SET quantite = quantite + ? 
+                            WHERE repas_id = ? AND aliment_id = ?
+                            """,
+                            (nouvelle_quantite, repas_id, ingredient["aliment_id"]),
+                        )
+                    else:
+                        # Ajouter un nouvel ingrédient
+                        self.cursor.execute(
+                            """
+                            INSERT INTO repas_aliments (repas_id, aliment_id, quantite) 
+                            VALUES (?, ?, ?)
+                            """,
+                            (repas_id, ingredient["aliment_id"], nouvelle_quantite),
+                        )
+
+                    self.conn.commit()
+
+                finally:
+                    self.disconnect()
+
             return True
-        except sqlite3.Error as e:
-            self.conn.rollback()
-            print(f"Erreur lors de l'ajout de l'aliment composé au repas: {e}")
+
+        except Exception as e:
+            print(f"Erreur lors de l'ajout d'un aliment composé à un repas: {e}")
+
+            traceback.print_exc()
             return False
-        finally:
-            self.disconnect()
 
     def get_categories_aliments_composes(self):
         """Récupère toutes les catégories uniques d'aliments composés"""
