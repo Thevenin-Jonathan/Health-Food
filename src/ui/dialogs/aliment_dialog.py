@@ -222,17 +222,17 @@ class AlimentDialog(QDialog):
         nutrition_layout.addWidget(QLabel("Calories:"), 0, 0)
         nutrition_layout.addWidget(self.calories_input, 0, 1)
 
-        nutrition_layout.addWidget(QLabel("Protéines:"), 0, 2)
-        nutrition_layout.addWidget(self.proteines_input, 0, 3)
+        nutrition_layout.addWidget(QLabel("Lipides:"), 0, 2)
+        nutrition_layout.addWidget(self.lipides_input, 0, 3)
 
         nutrition_layout.addWidget(QLabel("Glucides:"), 1, 0)
         nutrition_layout.addWidget(self.glucides_input, 1, 1)
 
-        nutrition_layout.addWidget(QLabel("Lipides:"), 1, 2)
-        nutrition_layout.addWidget(self.lipides_input, 1, 3)
+        nutrition_layout.addWidget(QLabel("Fibres:"), 1, 2)
+        nutrition_layout.addWidget(self.fibres_input, 1, 3)
 
-        nutrition_layout.addWidget(QLabel("Fibres:"), 2, 0)
-        nutrition_layout.addWidget(self.fibres_input, 2, 1)
+        nutrition_layout.addWidget(QLabel("Protéines:"), 2, 0)
+        nutrition_layout.addWidget(self.proteines_input, 2, 1)
 
         nutrition_group.setLayout(nutrition_layout)
         main_layout.addWidget(nutrition_group)
