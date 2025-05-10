@@ -173,9 +173,11 @@ class CoursesTab(TabBase):
         self.db_manager.connect()
         self.db_manager.cursor.execute(
             """
-            SELECT DISTINCT semaine_id FROM repas
-            WHERE semaine_id IS NOT NULL
-            ORDER BY semaine_id
+            SELECT DISTINCT r.semaine_id, s.nom_personnalise 
+            FROM repas r
+            LEFT JOIN semaines s ON r.semaine_id = s.id
+            WHERE r.semaine_id IS NOT NULL
+            ORDER BY r.semaine_id
             """
         )
         semaines = self.db_manager.cursor.fetchall()
@@ -184,7 +186,8 @@ class CoursesTab(TabBase):
         # Ajouter chaque semaine au combobox
         for semaine in semaines:
             semaine_id = semaine[0]
-            self.semaine_combo.addItem(f"Semaine {semaine_id}", semaine_id)
+            semaine_nom = semaine[1] if semaine[1] else f"Semaine {semaine_id}"
+            self.semaine_combo.addItem(semaine_nom, semaine_id)
 
         # Restaurer la sélection précédente si possible
         if current_id is not None:
