@@ -1,7 +1,12 @@
+import tempfile
+import os
+import time
 from PySide6.QtGui import QTextDocument, QPageLayout
 from PySide6.QtPrintSupport import QPrinter, QPrintDialog
+from PySide6.QtWidgets import QMessageBox, QDialog
 from src.ui.dialogs.print_preview_dialog import PrintPreviewDialog
 from src.utils import JOURS_SEMAINE
+from src.utils.browser_launcher import launch_browser_with_file
 
 
 class PrintManager:
@@ -9,15 +14,35 @@ class PrintManager:
 
     def __init__(self, db_manager):
         self.db_manager = db_manager
+        self.temp_files = []  # Pour suivre les fichiers temporaires
 
     def print_planning(self, semaine_id):
-        """Imprime le planning de la semaine actuelle"""
+        """Imprime le planning de la semaine actuelle ou l'ouvre dans le navigateur"""
         # Générer le contenu HTML pour l'impression
         content = self.generate_print_content(semaine_id)
 
+        # Demander à l'utilisateur s'il veut imprimer ou ouvrir dans le navigateur
+        msg_box = QMessageBox()
+        msg_box.setWindowTitle("Option d'affichage du planning")
+        msg_box.setText("Comment souhaitez-vous visualiser le planning?")
+        print_button = msg_box.addButton("Aperçu et impression", QMessageBox.ActionRole)
+        browser_button = msg_box.addButton(
+            "Ouvrir dans le navigateur", QMessageBox.ActionRole
+        )
+        msg_box.addButton("Annuler", QMessageBox.RejectRole)
+
+        msg_box.exec()
+
+        if msg_box.clickedButton() == print_button:
+            self._show_print_dialog(content)
+        elif msg_box.clickedButton() == browser_button:
+            self._open_in_browser(content)
+
+    def _show_print_dialog(self, content):
+        """Affiche la boîte de dialogue d'aperçu et d'impression"""
         # Afficher une boîte de dialogue d'aperçu avant impression
         preview_dialog = PrintPreviewDialog(content)
-        if preview_dialog.exec():
+        if preview_dialog.exec() == QDialog.Accepted:
             # Création d'une imprimante et configuration
             printer = QPrinter(QPrinter.HighResolution)
 
@@ -38,6 +63,78 @@ class PrintManager:
 
                 # Imprimer le document
                 document.print_(printer)
+
+    def _open_in_browser(self, content):
+        """Ouvre le contenu HTML dans un navigateur web directement"""
+        # Créer un fichier temporaire avec extension .html qui ne sera pas supprimé automatiquement
+        try:
+            # Créer un nom de fichier unique dans le dossier temp
+            file_name = f"planning_{int(time.time())}.html"
+            temp_dir = tempfile.gettempdir()
+            file_path = os.path.join(temp_dir, file_name)
+
+            # Écrire le contenu HTML dans le fichier
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(content)
+                f.flush()  # Forcer l'écriture sur le disque
+                os.fsync(
+                    f.fileno()
+                )  # S'assurer que les données sont écrites physiquement
+
+            # Ajouter une petite pause pour s'assurer que le fichier est bien écrit
+            time.sleep(0.2)
+
+            # Garder une référence au fichier pour éviter qu'il soit supprimé
+            self.temp_files.append(file_path)
+
+            # Ouvrir le fichier dans le navigateur
+            success = launch_browser_with_file(file_path)
+
+            if success:
+                print(f"Fichier ouvert avec succès: {file_path}")
+            else:
+                # Si l'ouverture a échoué, informer l'utilisateur
+                QMessageBox.warning(
+                    None,
+                    "Problème d'ouverture",
+                    f"Impossible d'ouvrir automatiquement le fichier dans un navigateur.\n\n"
+                    f"Le planning a été enregistré dans:\n{file_path}\n\n"
+                    f"Veuillez l'ouvrir manuellement avec votre navigateur.",
+                )
+
+        except Exception as e:
+            QMessageBox.critical(
+                None,
+                "Erreur",
+                f"Impossible d'ouvrir le planning dans le navigateur: {str(e)}",
+            )
+            print(f"Erreur d'ouverture du fichier HTML: {e}")
+            import traceback
+
+            traceback.print_exc()
+
+    def __del__(self):
+        """Nettoyage des fichiers temporaires à la destruction de l'objet"""
+        for file_path in self.temp_files:
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception:
+                pass
+
+    def cleanup_temp_files(self, delay=30):
+        """Nettoie les fichiers temporaires après un certain délai"""
+        for file_path in self.temp_files:
+            try:
+                if (
+                    os.path.exists(file_path)
+                    and (time.time() - os.path.getctime(file_path)) > delay
+                ):
+                    os.remove(file_path)
+            except Exception as e:
+                print(
+                    f"Erreur lors de la suppression du fichier temporaire {file_path}: {e}"
+                )
 
     def generate_print_content(self, semaine_id):
         """Génère le contenu HTML du planning pour l'impression"""
